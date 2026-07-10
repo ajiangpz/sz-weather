@@ -1,0 +1,11 @@
+[      30ms] [ERROR] Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES @ http://127.0.0.1:5173/src/App.vue?t=1783581403094:0
+[      75ms] [ERROR] Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES @ http://127.0.0.1:5173/node_modules/.vite/deps/vue.js?v=6f9cdbf4:0
+[     128ms] [ERROR] Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES @ http://127.0.0.1:5173/node_modules/.vite/deps/pinia.js?v=6f9cdbf4:0
+[    1656ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/favicon.ico:0
+[    2154ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:5173/?token=LbYRSHNCZS0f' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/@vite/client:744
+[    4224ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:5173/?token=LbYRSHNCZS0f' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/@vite/client:754
+[    4225ms] [ERROR] [vite] failed to connect to websocket.
+your current setup:
+  (browser) 127.0.0.1:5173/ <--[HTTP]--> 127.0.0.1:5173/ (server)
+  (browser) 127.0.0.1:5173/ <--[WebSocket (failing)]--> 127.0.0.1:5173/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr . @ http://127.0.0.1:5173/@vite/client:764

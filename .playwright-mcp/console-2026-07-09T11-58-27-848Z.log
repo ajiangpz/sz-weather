@@ -1,0 +1,12 @@
+[  111092ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5199/@vite/client:864
+[  850445ms] [ERROR] Error: sources.radarRibbons: missing required property "data"
+    at Object.hs [as C] (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:3408:84)
+    at Li (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18493:34)
+    at ki._load (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18575:34)
+    at http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18565:84 @ http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:500
+[  922502ms] [ERROR] Error: sources.radarRibbons: missing required property "data"
+    at Object.hs [as C] (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:3408:84)
+    at Li (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18493:34)
+    at ki._load (http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18575:34)
+    at http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18565:84 @ http://127.0.0.1:5199/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:500
+[ 1060043ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5199/@vite/client:864

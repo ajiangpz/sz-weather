@@ -1,0 +1,306 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: R
+      - generic [ref=e7]:
+        - heading "RainScope" [level=1] [ref=e8]
+        - paragraph [ref=e9]: 深圳天气可视化大屏
+    - button "深圳市" [ref=e10] [cursor=pointer]:
+      - generic [ref=e11]: ⌖
+      - text: 深圳市
+      - generic [ref=e12]: ⌄
+    - generic [ref=e13]:
+      - generic [ref=e14]: ☁
+      - strong [ref=e15]: 中雨
+      - generic [ref=e16]: 29°C
+    - generic "当前天气指标" [ref=e17]:
+      - generic [ref=e18]:
+        - text: 湿度
+        - strong [ref=e19]: 82%
+      - generic [ref=e20]:
+        - text: 风速
+        - strong [ref=e21]: 5.2m/s
+      - generic [ref=e22]:
+        - text: 气压
+        - strong [ref=e23]: 1005hPa
+    - generic [ref=e24]:
+      - strong [ref=e25]: 2026-07-09 14:30:00
+      - generic [ref=e26]: 数据每5分钟更新
+    - generic [ref=e27]:
+      - button "刷新" [ref=e28] [cursor=pointer]
+      - button "深色模式" [ref=e29] [cursor=pointer]
+  - region "RainScope 深圳天气可视化大屏" [ref=e30]:
+    - complementary "图层与站点" [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - heading "图层控制" [level=2] [ref=e34]
+          - generic [ref=e35]: ›
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - generic [ref=e38]:
+              - checkbox "降雨雷达" [checked] [ref=e39]
+              - generic [ref=e40]: 降雨雷达
+            - generic [ref=e41]:
+              - generic [ref=e42]: 透明度
+              - slider [ref=e43]: "70"
+              - strong [ref=e44]: 70%
+          - listitem [ref=e45]:
+            - generic [ref=e46]:
+              - checkbox "预警区域" [checked] [ref=e47]
+              - generic [ref=e48]: 预警区域
+            - generic [ref=e49]:
+              - generic [ref=e50]: 透明度
+              - slider [ref=e51]: "60"
+              - strong [ref=e52]: 60%
+          - listitem [ref=e53]:
+            - generic [ref=e54]:
+              - checkbox "监测站点" [checked] [ref=e55]
+              - generic [ref=e56]: 监测站点
+            - generic [ref=e57]:
+              - generic [ref=e58]: 透明度
+              - slider [ref=e59]: "100"
+              - strong [ref=e60]: 100%
+          - listitem [ref=e61]:
+            - generic [ref=e62]:
+              - checkbox "风场流线" [disabled] [ref=e63]
+              - generic [ref=e64]: 风场流线
+            - generic [ref=e65]:
+              - generic [ref=e66]: 透明度
+              - slider [disabled] [ref=e67]: "50"
+              - strong [ref=e68]: 50%
+          - listitem [ref=e69]:
+            - generic [ref=e70]:
+              - checkbox "温度热力" [disabled] [ref=e71]
+              - generic [ref=e72]: 温度热力
+            - generic [ref=e73]:
+              - generic [ref=e74]: 透明度
+              - slider [disabled] [ref=e75]: "60"
+              - strong [ref=e76]: 60%
+          - listitem [ref=e77]:
+            - generic [ref=e78]:
+              - checkbox "湿度热力" [disabled] [ref=e79]
+              - generic [ref=e80]: 湿度热力
+            - generic [ref=e81]:
+              - generic [ref=e82]: 透明度
+              - slider [disabled] [ref=e83]: "60"
+              - strong [ref=e84]: 60%
+      - generic [ref=e85]:
+        - heading "降雨强度图例 (mm/h)" [level=2] [ref=e86]
+        - list [ref=e87]:
+          - listitem [ref=e88]:
+            - generic [ref=e90]: 无雨
+            - strong [ref=e91]: "0"
+          - listitem [ref=e92]:
+            - generic [ref=e94]: 小雨
+            - strong [ref=e95]: 0.1 - 2.5
+          - listitem [ref=e96]:
+            - generic [ref=e98]: 中雨
+            - strong [ref=e99]: 2.5 - 8
+          - listitem [ref=e100]:
+            - generic [ref=e102]: 大雨
+            - strong [ref=e103]: 8 - 16
+          - listitem [ref=e104]:
+            - generic [ref=e106]: 暴雨
+            - strong [ref=e107]: 16 - 32
+          - listitem [ref=e108]:
+            - generic [ref=e110]: 大暴雨
+            - strong [ref=e111]: 32 - 50
+          - listitem [ref=e112]:
+            - generic [ref=e114]: 特大暴雨
+            - strong [ref=e115]: "> 50"
+      - generic [ref=e116]:
+        - heading "监测站点 (24h降雨)" [level=2] [ref=e117]
+        - list [ref=e118]:
+          - listitem [ref=e119]:
+            - text: ◇
+            - generic [ref=e120]: 大梧桐
+            - strong [ref=e121]: 36.8 mm
+          - listitem [ref=e122]:
+            - text: ◇
+            - generic [ref=e123]: 罗湖
+            - strong [ref=e124]: 28.6 mm
+          - listitem [ref=e125]:
+            - text: ◇
+            - generic [ref=e126]: 南山
+            - strong [ref=e127]: 24.3 mm
+          - listitem [ref=e128]:
+            - text: ◇
+            - generic [ref=e129]: 福田
+            - strong [ref=e130]: 20.1 mm
+          - listitem [ref=e131]:
+            - text: ◇
+            - generic [ref=e132]: 宝安
+            - strong [ref=e133]: 18.5 mm
+    - region "深圳降雨雷达地图" [ref=e134]:
+      - region "Map" [ref=e136]
+      - generic [ref=e137]: 当前时间：2026-07-09 14:30
+      - generic [ref=e138]: 光明区
+      - generic [ref=e139]: 龙华区
+      - generic [ref=e140]: 坪山区
+      - generic [ref=e141]: 宝安区
+      - generic [ref=e142]: 南山区
+      - generic [ref=e143]: 福田区
+      - generic [ref=e144]: 罗湖区
+      - generic [ref=e145]: 盐田区
+      - generic [ref=e146]: 大鹏新区
+      - article [ref=e153]:
+        - button "关闭" [ref=e154]: ×
+        - heading "点击位置" [level=3] [ref=e155]
+        - paragraph [ref=e156]: 经度：114.0571°E
+        - paragraph [ref=e157]: 纬度：22.5431°N
+        - paragraph [ref=e158]: 降雨强度：18.4 mm/h
+        - paragraph [ref=e159]: 1小时降雨：14.2 mm
+        - paragraph [ref=e160]: 温度：28.6°C
+        - paragraph [ref=e161]: 湿度：81%
+        - paragraph [ref=e162]: 风速：4.8 m/s
+        - paragraph [ref=e163]:
+          - text: 预警：
+          - strong [ref=e164]: 黄色暴雨预警
+      - generic "地图控制" [ref=e165]:
+        - button "＋" [ref=e166]
+        - button "－" [ref=e167]
+        - button "◈" [ref=e168]
+        - button "⌖" [ref=e169]
+      - generic [ref=e170]: 5 km
+    - complementary "实时指标与预警" [ref=e171]:
+      - generic [ref=e172]:
+        - generic [ref=e173]:
+          - heading "实时指标" [level=2] [ref=e174]
+          - generic [ref=e175]: ›
+        - generic [ref=e176]:
+          - article [ref=e177]:
+            - generic [ref=e178]: 1小时降雨
+            - generic [ref=e179]:
+              - strong [ref=e180]: "12.4"
+              - generic [ref=e181]: mm
+              - generic [ref=e182]: ☔
+          - article [ref=e183]:
+            - generic [ref=e184]: 24小时降雨
+            - generic [ref=e185]:
+              - strong [ref=e186]: "36.8"
+              - generic [ref=e187]: mm
+              - generic [ref=e188]: ☔
+          - article [ref=e189]:
+            - generic [ref=e190]: 最大雨强
+            - generic [ref=e191]:
+              - strong [ref=e192]: "28.6"
+              - generic [ref=e193]: mm/h
+              - generic [ref=e194]: ☁
+          - article [ref=e195]:
+            - generic [ref=e196]: 当前温度
+            - generic [ref=e197]:
+              - strong [ref=e198]: "29"
+              - generic [ref=e199]: °C
+              - generic [ref=e200]: ♨
+          - article [ref=e201]:
+            - generic [ref=e202]: 相对湿度
+            - generic [ref=e203]:
+              - strong [ref=e204]: "82"
+              - generic [ref=e205]: "%"
+              - generic [ref=e206]: 💧
+          - article [ref=e207]:
+            - generic [ref=e208]: 风速
+            - generic [ref=e209]:
+              - strong [ref=e210]: "5.2"
+              - generic [ref=e211]: m/s
+              - generic [ref=e212]: ◎
+        - button "查看详情 ›" [ref=e213] [cursor=pointer]
+      - generic [ref=e214]:
+        - generic [ref=e215]:
+          - heading "天气预警（2）" [level=2] [ref=e216]
+          - button "更多 ›" [ref=e217] [cursor=pointer]
+        - article [ref=e218]:
+          - generic [ref=e219]: ☔
+          - generic [ref=e220]:
+            - generic [ref=e221]:
+              - heading "暴雨黄色预警" [level=3] [ref=e222]
+              - generic [ref=e223]: 生效中
+            - paragraph [ref=e224]: 发布时间：07-09 13:45
+            - paragraph [ref=e225]: 影响区域：罗湖区、福田区、南山区
+            - paragraph [ref=e226]: 预计时间：未来6小时
+            - button "查看详情" [ref=e227]
+        - article [ref=e228]:
+          - generic [ref=e229]: ϟ
+          - generic [ref=e230]:
+            - generic [ref=e231]:
+              - heading "雷雨大风蓝色预警" [level=3] [ref=e232]
+              - generic [ref=e233]: 生效中
+            - paragraph [ref=e234]: 发布时间：07-09 12:30
+            - paragraph [ref=e235]: 影响区域：全市陆地、珠江口海域
+            - paragraph [ref=e236]: 预计时间：未来3小时
+            - button "查看详情" [ref=e237]
+      - generic [ref=e238]:
+        - heading "降雨强度分布" [level=2] [ref=e239]
+        - generic [ref=e240]:
+          - generic [ref=e242]: 占比(%)
+          - list [ref=e243]:
+            - listitem [ref=e244]:
+              - generic [ref=e246]: 无雨
+              - strong [ref=e247]: 18.6%
+            - listitem [ref=e248]:
+              - generic [ref=e250]: 小雨
+              - strong [ref=e251]: 32.4%
+            - listitem [ref=e252]:
+              - generic [ref=e254]: 中雨
+              - strong [ref=e255]: 23.7%
+            - listitem [ref=e256]:
+              - generic [ref=e258]: 大雨
+              - strong [ref=e259]: 15.6%
+            - listitem [ref=e260]:
+              - generic [ref=e262]: 暴雨
+              - strong [ref=e263]: 6.2%
+            - listitem [ref=e264]:
+              - generic [ref=e266]: 大暴雨
+              - strong [ref=e267]: 2.8%
+            - listitem [ref=e268]:
+              - generic [ref=e270]: 特大暴雨
+              - strong [ref=e271]: 0.7%
+    - generic [ref=e272]:
+      - generic [ref=e273]:
+        - heading "趋势分析（未来24小时）" [level=2] [ref=e274]
+        - generic "趋势类型" [ref=e275]:
+          - button "降雨量" [ref=e276] [cursor=pointer]
+          - button "温度" [ref=e277] [cursor=pointer]
+          - button "湿度" [ref=e278] [cursor=pointer]
+          - button "风速" [ref=e279] [cursor=pointer]
+      - generic [ref=e280]:
+        - article [ref=e281]:
+          - generic [ref=e282]:
+            - generic [ref=e283]: 降雨量(mm)
+            - strong [ref=e284]: 累计降雨(mm)
+        - article [ref=e308]:
+          - generic [ref=e309]:
+            - generic [ref=e310]: 温度(°C)
+            - strong [ref=e311]: 湿度(%)
+        - article [ref=e314]:
+          - generic [ref=e316]: 风速(m/s)
+    - generic [ref=e318]:
+      - generic [ref=e319]:
+        - button "播放" [ref=e320] [cursor=pointer]: ▶
+        - button "下一帧" [ref=e321] [cursor=pointer]: ▸|
+        - button "1x⌄" [ref=e322] [cursor=pointer]
+      - generic "时间轴" [ref=e323]:
+        - strong [ref=e329]: 当前
+        - generic [ref=e330]:
+          - generic [ref=e331]: 12:30
+          - generic [ref=e332]: 12:40
+          - generic [ref=e333]: 12:50
+          - generic [ref=e334]: 13:00
+          - generic [ref=e335]: 13:10
+          - generic [ref=e336]: 13:20
+          - generic [ref=e337]: 13:30
+          - generic [ref=e338]: 13:40
+          - generic [ref=e339]: 14:00
+          - generic [ref=e340]: 14:10
+          - generic [ref=e341]: 14:20
+          - generic [ref=e342]: 14:30
+          - generic [ref=e343]: 14:40
+          - generic [ref=e344]: 15:00
+          - generic [ref=e345]: 15:20
+          - generic [ref=e346]: 15:40
+          - generic [ref=e347]: 16:00
+          - generic [ref=e348]: 16:20
+          - generic [ref=e349]: 16:30
+      - generic [ref=e350]:
+        - button "‹ 近小时" [ref=e351] [cursor=pointer]
+        - button "逐10分钟 ›" [ref=e352] [cursor=pointer]

@@ -1,0 +1,15 @@
+[  463181ms] [ERROR] Error: sources.radarFragments: missing required property "data"
+    at Object.hs [as C] (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:3408:84)
+    at Li (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18493:34)
+    at ki._load (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18575:34)
+    at http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18565:84 @ http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:500
+[  617488ms] [ERROR] Error: sources.radarFragments: missing required property "data"
+    at Object.hs [as C] (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:3408:84)
+    at Li (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18493:34)
+    at ki._load (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18575:34)
+    at http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18565:84 @ http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:500
+[  632053ms] [ERROR] Error: sources.radarFragments: missing required property "data"
+    at Object.hs [as C] (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:3408:84)
+    at Li (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18493:34)
+    at ki._load (http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18575:34)
+    at http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:18565:84 @ http://localhost:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:500

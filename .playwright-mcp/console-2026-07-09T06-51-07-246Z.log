@@ -1,0 +1,16 @@
+[    6058ms] [WARNING] [Vue warn]: Unhandled error during execution of mounted hook 
+  at <WeatherMapPanel class="weather-dashboard__map" > 
+  at <WeatherDashboardView> 
+  at <App> @ http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:2225
+[    6063ms] Error: {"requestedAttributes":{"antialias":false,"preserveDrawingBuffer":false,"powerPreference":"high-performance","failIfMajorPerformanceCaveat":false,"desynchronized":false,"alpha":true,"depth":true,"stencil":true,"premultipliedAlpha":true},"statusMessage":"Web page caused context loss and was blocked","type":"webglcontextcreationerror","message":"Failed to initialize WebGL"}
+    at ds._setupPainter (http://127.0.0.1:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:23174:44)
+    at new ds (http://127.0.0.1:5173/node_modules/.vite/deps/maplibre-gl.js?v=6f9cdbf4:22641:1477)
+    at http://127.0.0.1:5173/src/components/weather/WeatherMapPanel.vue:35:13
+    at http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:5336:40
+    at callWithErrorHandling (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:2373:19)
+    at callWithAsyncErrorHandling (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:2380:17)
+    at hook.__weh.hook.__weh (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:5316:19)
+    at flushPostFlushCbs (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:2558:28)
+    at render2 (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:9081:7)
+    at mount (http://127.0.0.1:5173/node_modules/.vite/deps/chunk-GE6VSVEM.js?v=6f9cdbf4:6478:13)
+[    6234ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5173/favicon.ico:0
