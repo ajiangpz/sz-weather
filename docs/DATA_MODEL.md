@@ -97,6 +97,46 @@ export interface RainFrame {
 }
 ```
 
+For the `deckGL` branch, the radar frame should remain renderer-agnostic at the store boundary, but it may expose preprocessed render data for deck.gl layer factories.
+
+```ts
+export interface RadarCell {
+  id: string;
+  level: RainfallLevel;
+  longitude: number;
+  latitude: number;
+  intensity: number;
+  radius?: number;
+}
+
+export interface RadarBand {
+  id: string;
+  level: RainfallLevel;
+  intensity: number;
+  coordinates: Array<[number, number]>;
+  tier?: 'base' | 'band' | 'core';
+}
+
+export interface RadarBitmapFrame {
+  id: string;
+  imageUrl: string;
+  bounds: [number, number, number, number];
+}
+
+export interface DeckRadarFrame {
+  cells: RadarCell[];
+  bands: RadarBand[];
+  bitmap?: RadarBitmapFrame;
+}
+```
+
+MVP guidance:
+
+- Use `RadarCell` and `RadarBand` mock data first.
+- Keep `RadarBitmapFrame` optional for a later smoother radar texture pass.
+- Do not store deck.gl layer instances in Pinia. Stores should contain serializable weather data and UI state only.
+- deck.gl layer factories should convert `DeckRadarFrame` data into render layers inside the map component or a nearby map helper module.
+
 ## 7. Trends
 
 ```ts

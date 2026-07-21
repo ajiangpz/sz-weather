@@ -4,7 +4,7 @@
 
 Design first for 1920x1080.
 
-The dashboard should also work well at 1440px width because that is a common development and review size.
+The dashboard should also work well at 1536x1024 because `docs/image.png` uses that size, and at 1440px width because that is a common development and review size.
 
 ## 2. Desktop Layout
 
@@ -16,6 +16,7 @@ For 1440px and wider:
 - Trend charts sit below the main row.
 - Timeline sits at the bottom.
 - The desktop layout should resemble `docs/image.png`.
+- At 1536x1024, the dashboard should keep the same full first-screen composition as the reference image: header, side panels, map, trend charts, and timeline all visible.
 
 Recommended layout:
 

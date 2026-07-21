@@ -14,6 +14,7 @@ Requirements:
 - 1440px compatible
 - No real API
 - Keep existing MapLibre + OSM map if present
+- Use deck.gl for rainfall radar rendering on the `deckGL` branch
 - Use mock text and mock data
 
 Components:
@@ -34,7 +35,9 @@ Acceptance:
 - Layout matches `docs/UI_DESIGN_SPEC.md`
 - Style follows `docs/VISUAL_STYLE_GUIDE.md`
 - First viewport composition resembles `docs/image.png`
+- 1536x1024 keeps the complete reference composition visible without scrolling
 - Current MapLibre + OSM page is restyled into the dark RainScope dashboard direction
+- deck.gl radar direction is reflected in the map implementation plan
 - No unnecessary decorative effects
 
 ---
@@ -64,19 +67,21 @@ Acceptance:
 
 ---
 
-## Task 3: MapLibre Map and Rainfall Layer
+## Task 3: MapLibre Map and deck.gl Rainfall Radar Layer
 
-Implement the first dashboard map version using the current MapLibre + OSM foundation.
+Implement the first dashboard map version using the current MapLibre + OSM foundation and a deck.gl radar overlay.
 
 This task intentionally differs from the original generated template in `chatGPT.md`: the local project already has MapLibre + OSM, so the current milestone should restyle and extend it instead of replacing it with a simulated-only map.
 
 Requirements:
 
 - Keep MapLibre + OSM raster tiles for this milestone
+- Add deck.gl dependencies needed for MapLibre overlay rendering
+- Use `MapboxOverlay` from `@deck.gl/mapbox` to connect deck.gl to the MapLibre map
 - Restyle the map area to match the dark professional dashboard style
 - Subdue the OSM basemap so rainfall remains dominant
 - District labels
-- Rainfall blobs
+- Rainfall radar rendered by deck.gl from mock cell/band data
 - Station points
 - Alert area
 - Point popup
@@ -84,11 +89,14 @@ Requirements:
 - Current frame time
 - Scale bar
 - Layer and locate controls
+- deck.gl overlay cleanup on component unmount
 
 Acceptance:
 
 - Rainfall layer looks continuous
+- Rainfall texture resembles `docs/image.png`: broad precipitation fields, dense irregular fragments, and warm-color high-intensity cores
 - Rainfall opacity is controlled by layer store
+- Timeline frame changes update deck.gl radar data without recreating the MapLibre map
 - Station click works
 - Map click shows popup
 - Map visually follows `docs/VISUAL_STYLE_GUIDE.md`

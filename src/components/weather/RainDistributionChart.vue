@@ -3,12 +3,10 @@
     <h2>降雨强度分布</h2>
 
     <div class="distribution-panel__content">
-      <div class="distribution-panel__donut" aria-hidden="true">
-        <span>占比(%)</span>
-      </div>
+      <BaseChart class="distribution-panel__donut" :option="option" accessible-label="降雨强度占比分布图" />
 
       <ul>
-        <li v-for="item in distribution" :key="item.label">
+        <li v-for="item in store.rainDistribution" :key="item.label">
           <i :style="{ background: item.color }"></i>
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}%</strong>
@@ -19,13 +17,32 @@
 </template>
 
 <script setup lang="ts">
-const distribution = [
-  { label: '无雨', value: 18.6, color: '#8EA6C1' },
-  { label: '小雨', value: 32.4, color: '#4BA3FF' },
-  { label: '中雨', value: 23.7, color: '#37D67A' },
-  { label: '大雨', value: 15.6, color: '#F4D03F' },
-  { label: '暴雨', value: 6.2, color: '#F59E42' },
-  { label: '大暴雨', value: 2.8, color: '#E84C88' },
-  { label: '特大暴雨', value: 0.7, color: '#9B5DE5' },
-];
+import type { EChartsOption } from 'echarts';
+import { computed } from 'vue';
+import BaseChart from '@/components/charts/BaseChart.vue';
+import { useWeatherStore } from '@/stores/weather';
+
+const store = useWeatherStore();
+const option = computed<EChartsOption>(() => ({
+  animation: false,
+  title: {
+    text: '占比(%)',
+    left: 'center',
+    top: '43%',
+    textStyle: { color: '#d6e7f8', fontSize: 11, fontWeight: 500 },
+  },
+  tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+  series: [{
+    type: 'pie',
+    radius: ['56%', '78%'],
+    center: ['50%', '50%'],
+    label: { show: false },
+    emphasis: { scaleSize: 4 },
+    data: store.rainDistribution.map((item) => ({
+      name: item.label,
+      value: item.value,
+      itemStyle: { color: item.color },
+    })),
+  }],
+}));
 </script>

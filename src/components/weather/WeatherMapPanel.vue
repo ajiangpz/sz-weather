@@ -3,30 +3,35 @@
     <div ref="mapContainer" class="weather-map-panel__canvas"></div>
     <div class="weather-map-panel__shade"></div>
 
-    <div class="weather-map-panel__time">当前时间：2026-07-09 14:30</div>
+    <div class="weather-map-panel__time">当前时间：2026-07-09 {{ timelineStore.currentFrameTime }}</div>
 
-    <div class="weather-map-panel__stations" aria-hidden="true">
-      <i v-for="station in stations" :key="station.name" :class="{ active: station.active }" :style="{ left: station.left, top: station.top }"></i>
-    </div>
-
-    <article class="weather-map-panel__popup">
-      <button type="button" aria-label="关闭">×</button>
-      <h3>点击位置</h3>
-      <p><span>经度：</span>114.0571°E</p>
-      <p><span>纬度：</span>22.5431°N</p>
-      <p><span>降雨强度：</span>18.4 mm/h</p>
-      <p><span>1小时降雨：</span>14.2 mm</p>
-      <p><span>温度：</span>28.6°C</p>
-      <p><span>湿度：</span>81%</p>
-      <p><span>风速：</span>4.8 m/s</p>
-      <p><span>预警：</span><strong>黄色暴雨预警</strong></p>
+    <article v-if="mapStore.popup" class="weather-map-panel__popup" @click.stop>
+      <button type="button" aria-label="关闭" @click="mapStore.closePopup()">×</button>
+      <h3>{{ mapStore.popup.label ?? '点击位置' }}</h3>
+      <p><span>时间：</span>{{ timelineStore.currentFrameTime }}</p>
+      <p><span>经度：</span>{{ mapStore.popup.longitude.toFixed(4) }}°E</p>
+      <p><span>纬度：</span>{{ mapStore.popup.latitude.toFixed(4) }}°N</p>
+      <p><span>降雨等级：</span>{{ rainfallLevel }}</p>
+      <p><span>降雨强度：</span>{{ mapStore.popup.rainfallIntensity.toFixed(1) }} mm/h</p>
+      <p><span>1小时降雨：</span>{{ mapStore.popup.rainfall1h.toFixed(1) }} mm</p>
+      <p><span>温度：</span>{{ mapStore.popup.temperature.toFixed(1) }}°C</p>
+      <p><span>湿度：</span>{{ mapStore.popup.humidity }}%</p>
+      <p><span>风速：</span>{{ mapStore.popup.windSpeed.toFixed(1) }} m/s</p>
+      <p><span>风向：</span>{{ mapStore.popup.windDirection }}</p>
+      <p v-if="mapStore.popup.alertTitle"><span>预警：</span><strong>{{ mapStore.popup.alertTitle }}</strong></p>
     </article>
 
     <div class="weather-map-panel__controls" aria-label="地图控制">
-      <button type="button">＋</button>
-      <button type="button">－</button>
-      <button type="button">◈</button>
-      <button type="button">⌖</button>
+      <button type="button" aria-label="放大" @click="zoomMap(1)"><span>+</span></button>
+      <button type="button" aria-label="缩小" @click="zoomMap(-1)"><span>−</span></button>
+      <button type="button" aria-label="图层" :class="{ active: layerMenuOpen }" @click="layerMenuOpen = !layerMenuOpen"><UiIcon name="layers" /></button>
+      <button type="button" aria-label="定位" @click="resetMapView"><UiIcon name="locate" /></button>
+    </div>
+
+    <div v-if="layerMenuOpen" class="weather-map-panel__layer-menu">
+      <label><input v-model="layerStore.radarEnabled" type="checkbox" />降雨雷达</label>
+      <label><input v-model="layerStore.alertEnabled" type="checkbox" />预警区域</label>
+      <label><input v-model="layerStore.stationEnabled" type="checkbox" />监测站点</label>
     </div>
 
     <div class="weather-map-panel__scale">5 km</div>
@@ -34,22 +39,188 @@
 </template>
 
 <script setup lang="ts">
-import maplibregl, { type Map, type StyleSpecification } from 'maplibre-gl';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { MapboxOverlay } from '@deck.gl/mapbox';
+import type { FeatureCollection, Point, Polygon } from 'geojson';
+import maplibregl, { type Map, type MapMouseEvent, type StyleSpecification } from 'maplibre-gl';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useWeatherStore } from '@/stores/weather';
+import { useLayerStore } from '@/stores/layerStore';
+import { useMapStore } from '@/stores/mapStore';
+import { useTimelineStore } from '@/stores/timelineStore';
+import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
+import UiIcon from './UiIcon.vue';
 
 const shenzhenGeoJsonUrl = new URL('../../../shenzhen.json', import.meta.url).href;
 const shenzhenBounds: [[number, number], [number, number]] = [
   [113.75, 22.43],
   [114.65, 22.86],
 ];
+const radarBitmapBounds: RadarBitmapBounds = [113.68, 22.34, 114.68, 22.88];
 
 const store = useWeatherStore();
+const layerStore = useLayerStore();
+const mapStore = useMapStore();
+const timelineStore = useTimelineStore();
 const mapContainer = ref<HTMLDivElement | null>(null);
 const mapFailed = ref(false);
+const layerMenuOpen = ref(false);
 let map: Map | null = null;
+let deckOverlay: MapboxOverlay | null = null;
 let districtMarkers: maplibregl.Marker[] = [];
+let stationMarkers: maplibregl.Marker[] = [];
+let radarBitmap: HTMLCanvasElement | null = null;
+let mapResizeObserver: ResizeObserver | null = null;
+
+const rainfallLevel = computed(() => {
+  const intensity = mapStore.popup?.rainfallIntensity ?? 0;
+  if (intensity >= 32) return '大暴雨';
+  if (intensity >= 16) return '暴雨';
+  if (intensity >= 8) return '大雨';
+  if (intensity >= 2.5) return '中雨';
+  if (intensity > 0) return '小雨';
+  return '无雨';
+});
+
+const alertAreaGeoJson: FeatureCollection<Polygon, { id: string }> = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: { id: 'rain-yellow' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [113.88, 22.49], [114.2, 22.49], [114.26, 22.57],
+          [114.13, 22.64], [113.92, 22.59], [113.88, 22.49],
+        ]],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: { id: 'wind-blue' },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [114.18, 22.43], [114.61, 22.48], [114.64, 22.7],
+          [114.48, 22.78], [114.25, 22.65], [114.18, 22.43],
+        ]],
+      },
+    },
+  ],
+};
+
+const alertViewpoints: Record<string, { center: [number, number]; zoom: number }> = {
+  'rain-yellow': { center: [114.06, 22.55], zoom: 10.5 },
+  'wind-blue': { center: [114.4, 22.61], zoom: 10.15 },
+};
+
+const resetMapView = () => map?.fitBounds(shenzhenBounds, { padding: 24, duration: 350 });
+const zoomMap = (direction: 1 | -1) => map?.easeTo({ zoom: map.getZoom() + direction, duration: 250 });
+
+const showStationPopup = (stationId: string) => {
+  const station = store.stations.find((item) => item.id === stationId);
+  if (station) {
+    mapStore.selectStation(station);
+    map?.easeTo({ center: [station.longitude, station.latitude], duration: 350 });
+  }
+};
+
+const updateStationMarkers = () => {
+  stationMarkers.forEach((marker) => {
+    const element = marker.getElement();
+    element.style.display = layerStore.stationEnabled ? '' : 'none';
+    element.classList.toggle('active', element.dataset.stationId === mapStore.activeStationId);
+  });
+};
+
+const handleMapClick = (event: MapMouseEvent) => {
+  const { lng, lat } = event.lngLat;
+  const rainfallIntensity = sampleRadarIntensity({
+    points: createRadarFrame(),
+    bounds: radarBitmapBounds,
+    longitude: lng,
+    latitude: lat,
+  });
+  const rainFactor = Math.min(1, rainfallIntensity / 50);
+  mapStore.showPopup({
+    label: '点击位置',
+    longitude: lng,
+    latitude: lat,
+    rainfallIntensity,
+    rainfall1h: Number((rainfallIntensity * 0.72).toFixed(1)),
+    temperature: Number((29.7 - rainFactor * 2.3).toFixed(1)),
+    humidity: Math.round(76 + rainFactor * 13),
+    windSpeed: Number((3.6 + rainFactor * 2.8).toFixed(1)),
+    windDirection: rainFactor > 0.5 ? '东南风' : '偏东风',
+    alertTitle: layerStore.alertEnabled && rainfallIntensity >= 16 ? '黄色暴雨预警' : undefined,
+  });
+  map?.easeTo({ center: [lng, lat], duration: 350 });
+};
+
+const createRadarFrame = (): FeatureCollection<Point, { intensity?: number }> => {
+  const frameOffset = timelineStore.currentFrameIndex - 12;
+  const longitudeShift = frameOffset * 0.0024;
+  const latitudeShift = Math.sin(frameOffset * 0.42) * 0.005;
+  const intensityScale = 0.92 + Math.cos(frameOffset * 0.36) * 0.08;
+  const structuralSeeds = [
+    ...store.radarBandsGeoJson.features.flatMap((feature) => feature.geometry.coordinates[0].filter((_, index) => index % 2 === 0).map((coordinates) => ({
+      type: 'Feature' as const,
+      properties: { intensity: feature.properties.intensity * 0.34 },
+      geometry: { type: 'Point' as const, coordinates },
+    }))),
+    ...store.radarRibbonsGeoJson.features.flatMap((feature) => feature.geometry.coordinates.map((coordinates) => ({
+      type: 'Feature' as const,
+      properties: { intensity: feature.properties.intensity * 0.46 },
+      geometry: { type: 'Point' as const, coordinates },
+    }))),
+    ...store.radarFragmentsGeoJson.features.map((feature) => {
+      const ring = feature.geometry.coordinates[0];
+      const coordinates: [number, number] = [
+        ring.reduce((sum, point) => sum + point[0], 0) / ring.length,
+        ring.reduce((sum, point) => sum + point[1], 0) / ring.length,
+      ];
+      return {
+        type: 'Feature' as const,
+        properties: { intensity: feature.properties.intensity * 0.62 },
+        geometry: { type: 'Point' as const, coordinates },
+      };
+    }),
+  ];
+
+  return {
+    type: 'FeatureCollection',
+    features: [...structuralSeeds, ...store.radarGeoJson.features, ...store.radarSpecklesGeoJson.features].map((feature) => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        intensity: Math.max(1, (feature.properties.intensity ?? 1) * intensityScale),
+      },
+      geometry: {
+        ...feature.geometry,
+        coordinates: [
+          feature.geometry.coordinates[0] + longitudeShift,
+          feature.geometry.coordinates[1] + latitudeShift,
+        ],
+      },
+    })),
+  };
+};
+
+const updateRadarLayer = (rebuildBitmap = false) => {
+  if (rebuildBitmap || !radarBitmap) {
+    radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
+  }
+  if (!deckOverlay || !radarBitmap) return;
+  deckOverlay.setProps({
+    layers: [createRainRadarBitmapLayer({
+      image: radarBitmap,
+      bounds: radarBitmapBounds,
+      opacity: layerStore.radarOpacity / 100,
+      visible: layerStore.radarEnabled,
+    })],
+  });
+};
 
 type LineFeatureCollection = {
   type: 'FeatureCollection';
@@ -216,15 +387,6 @@ const districtLabels = [
   { name: '大鹏新区', coordinates: [114.5032, 22.6154] },
 ] satisfies Array<{ name: string; coordinates: [number, number] }>;
 
-const stations = [
-  { name: '宝安', left: '18%', top: '55%' },
-  { name: '南山', left: '27%', top: '72%' },
-  { name: '福田', left: '33%', top: '56%' },
-  { name: '罗湖', left: '47%', top: '57%', active: true },
-  { name: '盐田', left: '63%', top: '64%' },
-  { name: '坪山', left: '74%', top: '38%' },
-];
-
 onMounted(() => {
   if (!mapContainer.value) {
     return;
@@ -235,7 +397,7 @@ onMounted(() => {
       container: mapContainer.value,
       center: store.center,
       zoom: 10.2,
-      interactive: false,
+      interactive: true,
       attributionControl: false,
       style: {
         version: 8,
@@ -266,25 +428,9 @@ onMounted(() => {
             type: 'geojson',
             data: urbanTextureGeoJson,
           },
-          radarBands: {
+          alertArea: {
             type: 'geojson',
-            data: store.radarBandsGeoJson,
-          },
-          radarFragments: {
-            type: 'geojson',
-            data: store.radarFragmentsGeoJson,
-          },
-          radarRibbons: {
-            type: 'geojson',
-            data: store.radarRibbonsGeoJson,
-          },
-          radar: {
-            type: 'geojson',
-            data: store.radarGeoJson,
-          },
-          radarSpeckles: {
-            type: 'geojson',
-            data: store.radarSpecklesGeoJson,
+            data: alertAreaGeoJson,
           },
         },
         layers: [
@@ -301,10 +447,10 @@ onMounted(() => {
             source: 'darkBase',
             paint: {
               'raster-opacity': 0.98,
-              'raster-saturation': -0.08,
-              'raster-brightness-min': 0,
-              'raster-brightness-max': 0.86,
-              'raster-contrast': 0.1,
+              'raster-saturation': -0.18,
+              'raster-brightness-min': 0.1,
+              'raster-brightness-max': 0.94,
+              'raster-contrast': 0.04,
             },
           },
           {
@@ -406,233 +552,6 @@ onMounted(() => {
             },
           },
           {
-            id: 'radar-blue-wash',
-            type: 'fill',
-            source: 'radarBands',
-            filter: ['==', ['get', 'tier'], 'base'],
-            paint: {
-              'fill-color': 'rgba(44, 140, 248, 0.76)',
-              'fill-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.1, 4, 0.2, 8, 0.32],
-            },
-          },
-          {
-            id: 'radar-band-surface',
-            type: 'fill',
-            source: 'radarBands',
-            filter: ['!=', ['get', 'tier'], 'base'],
-            paint: {
-              'fill-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(75, 163, 255, 0.86)',
-                'moderate',
-                'rgba(55, 214, 122, 0.86)',
-                'heavy',
-                'rgba(244, 208, 63, 0.9)',
-                'storm',
-                'rgba(245, 158, 66, 0.9)',
-                'severeStorm',
-                'rgba(232, 76, 136, 0.92)',
-                'rgba(75, 163, 255, 0.82)',
-              ],
-              'fill-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.05, 8, 0.12, 16, 0.2, 32, 0.28, 48, 0.32],
-            },
-          },
-          {
-            id: 'radar-band-feather',
-            type: 'line',
-            source: 'radarBands',
-            filter: ['!=', ['get', 'tier'], 'base'],
-            paint: {
-              'line-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(118, 198, 255, 0.5)',
-                'moderate',
-                'rgba(106, 235, 157, 0.52)',
-                'heavy',
-                'rgba(255, 226, 92, 0.6)',
-                'storm',
-                'rgba(255, 177, 92, 0.62)',
-                'severeStorm',
-                'rgba(255, 105, 160, 0.66)',
-                'rgba(118, 198, 255, 0.48)',
-              ],
-              'line-width': ['interpolate', ['linear'], ['get', 'intensity'], 0, 2, 16, 4, 40, 7],
-              'line-blur': 5,
-              'line-opacity': 0.1,
-            },
-          },
-          {
-            id: 'radar-ribbon-outer',
-            type: 'line',
-            source: 'radarRibbons',
-            filter: ['==', ['get', 'tier'], 'outer'],
-            layout: {
-              'line-cap': 'round',
-              'line-join': 'round',
-            },
-            paint: {
-              'line-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(75, 163, 255, 0.88)',
-                'moderate',
-                'rgba(55, 214, 122, 0.84)',
-                'heavy',
-                'rgba(244, 208, 63, 0.86)',
-                'storm',
-                'rgba(245, 158, 66, 0.88)',
-                'severeStorm',
-                'rgba(232, 76, 136, 0.9)',
-                'rgba(75, 163, 255, 0.86)',
-              ],
-              'line-width': ['interpolate', ['linear'], ['get', 'intensity'], 0, 38, 8, 58, 16, 78, 32, 96],
-              'line-blur': ['interpolate', ['linear'], ['get', 'intensity'], 0, 18, 16, 22, 40, 28],
-              'line-opacity': 0.28,
-            },
-          },
-          {
-            id: 'radar-ribbon-core',
-            type: 'line',
-            source: 'radarRibbons',
-            filter: ['==', ['get', 'tier'], 'core'],
-            layout: {
-              'line-cap': 'round',
-              'line-join': 'round',
-            },
-            paint: {
-              'line-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(96, 196, 255, 0.9)',
-                'moderate',
-                'rgba(64, 225, 129, 0.88)',
-                'heavy',
-                'rgba(255, 220, 70, 0.9)',
-                'storm',
-                'rgba(255, 155, 54, 0.92)',
-                'severeStorm',
-                'rgba(234, 65, 131, 0.86)',
-                'rgba(96, 196, 255, 0.9)',
-              ],
-              'line-width': ['interpolate', ['linear'], ['get', 'intensity'], 0, 10, 8, 16, 16, 24, 32, 34, 48, 40],
-              'line-blur': ['interpolate', ['linear'], ['get', 'intensity'], 0, 7, 16, 10, 40, 13],
-              'line-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.24, 16, 0.2, 30, 0.1, 44, 0.05],
-            },
-          },
-          {
-            id: 'radar-rainfall',
-            type: 'heatmap',
-            source: 'radar',
-            maxzoom: 13,
-            paint: {
-              'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 8, 0.28, 16, 0.56, 32, 0.88, 45, 1],
-              'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 8, 0.98, 12, 1.92],
-              'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 26, 10, 52, 12, 88],
-              'heatmap-opacity': 0.42,
-              'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0,
-                'rgba(0, 83, 170, 0)',
-                0.04,
-                'rgba(16, 110, 234, 0.24)',
-                0.14,
-                'rgba(26, 181, 222, 0.38)',
-                0.3,
-                'rgba(54, 214, 123, 0.54)',
-                0.5,
-                'rgba(242, 213, 64, 0.66)',
-                0.68,
-                'rgba(255, 142, 52, 0.72)',
-                0.86,
-                'rgba(225, 72, 138, 0.78)',
-                1,
-                'rgba(156, 91, 226, 0.84)',
-              ],
-            },
-          },
-          {
-            id: 'radar-fragment-cells',
-            type: 'fill',
-            source: 'radarFragments',
-            paint: {
-              'fill-antialias': false,
-              'fill-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(44, 141, 245, 0.86)',
-                'moderate',
-                'rgba(57, 197, 112, 0.88)',
-                'heavy',
-                'rgba(245, 209, 63, 0.9)',
-                'storm',
-                'rgba(242, 143, 56, 0.92)',
-                'severeStorm',
-                'rgba(224, 61, 126, 0.94)',
-                'rgba(44, 141, 245, 0.84)',
-              ],
-              'fill-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.16, 6, 0.26, 12, 0.4, 20, 0.54, 36, 0.66, 48, 0.7],
-            },
-          },
-          {
-            id: 'radar-fragment-soft-edge',
-            type: 'line',
-            source: 'radarFragments',
-            paint: {
-              'line-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                'rgba(89, 183, 255, 0.78)',
-                'moderate',
-                'rgba(97, 234, 147, 0.78)',
-                'heavy',
-                'rgba(255, 225, 84, 0.82)',
-                'storm',
-                'rgba(255, 171, 80, 0.84)',
-                'severeStorm',
-                'rgba(255, 103, 157, 0.86)',
-                'rgba(89, 183, 255, 0.76)',
-              ],
-              'line-width': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.3, 16, 0.55, 40, 0.85],
-              'line-blur': 0.9,
-              'line-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.08, 16, 0.13, 40, 0.18],
-            },
-          },
-          {
-            id: 'radar-speckle-noise',
-            type: 'circle',
-            source: 'radarSpeckles',
-            paint: {
-              'circle-color': [
-                'match',
-                ['get', 'level'],
-                'light',
-                '#72c7ff',
-                'moderate',
-                '#6aeb9d',
-                'heavy',
-                '#ffe25c',
-                'storm',
-                '#ffad4d',
-                'severeStorm',
-                '#ff6ca6',
-                '#72c7ff',
-              ],
-              'circle-radius': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.7, 8, 1.25, 16, 1.9, 36, 2.8],
-              'circle-opacity': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0.18, 8, 0.42, 18, 0.56, 40, 0.68],
-              'circle-blur': 0.18,
-            },
-          },
-          {
             id: 'district-glow',
             type: 'line',
             source: 'districts',
@@ -653,16 +572,66 @@ onMounted(() => {
               'line-opacity': 0.82,
             },
           },
+          {
+            id: 'alert-area-fill',
+            type: 'fill',
+            source: 'alertArea',
+            filter: ['==', ['get', 'id'], mapStore.activeAlertId],
+            layout: {
+              visibility: layerStore.alertEnabled ? 'visible' : 'none',
+            },
+            paint: {
+              'fill-color': mapStore.activeAlertId === 'wind-blue' ? '#3b82f6' : '#facc15',
+              'fill-opacity': layerStore.alertOpacity / 100 * 0.14,
+            },
+          },
+          {
+            id: 'alert-area-outline',
+            type: 'line',
+            source: 'alertArea',
+            filter: ['==', ['get', 'id'], mapStore.activeAlertId],
+            layout: {
+              visibility: layerStore.alertEnabled ? 'visible' : 'none',
+            },
+            paint: {
+              'line-color': mapStore.activeAlertId === 'wind-blue' ? '#60a5fa' : '#facc15',
+              'line-width': 2,
+              'line-dasharray': [2, 1.5],
+              'line-opacity': layerStore.alertOpacity / 100,
+            },
+          },
         ],
       } as StyleSpecification,
     });
 
-    map.once('load', () => {
+    map.on('click', handleMapClick);
+
+    mapResizeObserver = new ResizeObserver(() => {
+      if (!map) return;
+      map.resize();
+      map.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
+    });
+    mapResizeObserver.observe(mapContainer.value);
+
+    map.once('style.load', () => {
       map?.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
 
       if (!map) {
         return;
       }
+
+      radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
+
+      deckOverlay = new MapboxOverlay({
+        interleaved: false,
+        layers: [createRainRadarBitmapLayer({
+          image: radarBitmap,
+          bounds: radarBitmapBounds,
+          opacity: layerStore.radarOpacity / 100,
+          visible: layerStore.radarEnabled,
+        })],
+      });
+      map.addControl(deckOverlay);
 
       districtMarkers = districtLabels.map((district) => {
         const element = document.createElement('span');
@@ -674,15 +643,82 @@ onMounted(() => {
           anchor: 'center',
         }).setLngLat(district.coordinates).addTo(map as Map);
       });
+
+      stationMarkers = store.stations.map((station) => {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'weather-map-panel__station-marker';
+        element.dataset.stationId = station.id;
+        element.title = `${station.name}监测站`;
+        element.setAttribute('aria-label', `${station.name}监测站，24小时降雨${station.rainfall24h}毫米`);
+        element.addEventListener('click', (event) => {
+          event.stopPropagation();
+          showStationPopup(station.id);
+        });
+        return new maplibregl.Marker({ element, anchor: 'center' })
+          .setLngLat([station.longitude, station.latitude])
+          .addTo(map as Map);
+      });
+      updateStationMarkers();
     });
   } catch {
     mapFailed.value = true;
   }
 });
 
+watch(
+  () => [layerStore.radarEnabled, layerStore.radarOpacity],
+  () => updateRadarLayer(),
+);
+
+watch(() => timelineStore.currentFrameIndex, () => {
+  updateRadarLayer(true);
+  mapStore.syncPopup({
+    rainfallIntensity: store.currentWeather.maxRainIntensity,
+    rainfall1h: store.currentWeather.rainfall1h,
+    temperature: store.currentWeather.temperature,
+    humidity: store.currentWeather.humidity,
+    windSpeed: store.currentWeather.windSpeed,
+  });
+});
+
+watch(() => [layerStore.stationEnabled, mapStore.activeStationId], updateStationMarkers);
+
+watch(() => layerStore.alertEnabled, (enabled) => {
+  if (!map?.getLayer('alert-area-fill')) return;
+  const visibility = enabled ? 'visible' : 'none';
+  map.setLayoutProperty('alert-area-fill', 'visibility', visibility);
+  map.setLayoutProperty('alert-area-outline', 'visibility', visibility);
+});
+
+watch(() => layerStore.alertOpacity, (opacity) => {
+  if (!map?.getLayer('alert-area-fill')) return;
+  map.setPaintProperty('alert-area-fill', 'fill-opacity', opacity / 100 * 0.14);
+  map.setPaintProperty('alert-area-outline', 'line-opacity', opacity / 100);
+});
+
+watch(() => mapStore.activeAlertId, (alertId) => {
+  if (!map?.getLayer('alert-area-fill')) return;
+  const isBlue = alertId === 'wind-blue';
+  const filter = ['==', ['get', 'id'], alertId] as maplibregl.FilterSpecification;
+  map.setFilter('alert-area-fill', filter);
+  map.setFilter('alert-area-outline', filter);
+  map.setPaintProperty('alert-area-fill', 'fill-color', isBlue ? '#3b82f6' : '#facc15');
+  map.setPaintProperty('alert-area-outline', 'line-color', isBlue ? '#60a5fa' : '#facc15');
+  const viewpoint = alertViewpoints[alertId ?? ''];
+  if (viewpoint) map.easeTo({ center: viewpoint.center, zoom: viewpoint.zoom, duration: 450 });
+});
+
 onBeforeUnmount(() => {
+  mapResizeObserver?.disconnect();
+  mapResizeObserver = null;
   districtMarkers.forEach((marker) => marker.remove());
   districtMarkers = [];
+  stationMarkers.forEach((marker) => marker.remove());
+  stationMarkers = [];
+  deckOverlay?.finalize();
+  deckOverlay = null;
+  map?.off('click', handleMapClick);
   map?.remove();
   map = null;
 });

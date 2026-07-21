@@ -18,7 +18,7 @@ The first version should include:
 - Map-centered rainfall visualization
 - A first-screen composition matching `docs/image.png`
 - MapLibre GL + OSM raster tile map
-- Rainfall radar overlay
+- deck.gl rainfall radar overlay
 - Weather station points
 - Weather alert area
 - Layer control panel
@@ -59,11 +59,11 @@ Use mock data for the MVP.
 
 Mock data should be structured as if it came from a real API, so a real backend can be added later without rewriting components.
 
-## 7. Current Map Decision
+## 7. Current Map and Radar Decision
 
 The current project already contains a MapLibre GL + OSM tile implementation.
 
-Keep it for the current milestone, but restyle it so it matches the RainScope visual direction:
+Keep MapLibre GL + OSM as the base map for the current milestone, but use deck.gl for the rainfall radar overlay on the `deckGL` branch. This keeps the existing map foundation while moving the weather visualization layer to a renderer that is better suited to animated, data-driven overlays.
 
 - Dark dashboard surface
 - Quiet basemap
@@ -71,14 +71,20 @@ Keep it for the current milestone, but restyle it so it matches the RainScope vi
 - Clear weather station points
 - Dashboard-style controls and legends
 
+MapLibre should own the basemap, viewport, controls, and map lifecycle. deck.gl should own radar rendering, radar opacity, radar frame updates, and future weather overlay layers that need WebGL performance.
+
 The map can be replaced by a custom simulated Shenzhen map later if needed.
+
+For the first version, do not introduce a real weather API, do not introduce Three.js, and do not replace the whole map with a generic deck.gl-only map. The intended direction is MapLibre base map + deck.gl weather overlay.
 
 ## 8. Success Criteria
 
 - The first viewport clearly reads as RainScope 深圳天气可视化大屏.
 - The map is the largest and most important visual region.
 - The overall screen composition should follow `docs/image.png`: header at top, left control column, central map and trend area, right metrics/alerts/distribution column, and full-width timeline at bottom.
+- `docs/image.png` is a 1536x1024 effect reference. At this size, the dashboard should still show the complete desktop composition without hiding side panels, trend charts, or timeline controls.
 - Rainfall is immediately visible and uses meaningful colors.
+- The rainfall radar is rendered through deck.gl while preserving the MapLibre + OSM base map.
 - All dashboard data comes from mock data and Pinia stores.
 - Timeline changes update map, header, metrics, and charts.
 - The page works at 1920x1080 and remains usable at 1440px.

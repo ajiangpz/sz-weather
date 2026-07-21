@@ -17,6 +17,7 @@ The dashboard should focus on Shenzhen weather visualization.
 
 Use a 1920×1080 dashboard layout as the primary design target.
 Use `docs/image.png` as the primary visual reference for spacing, density, hierarchy, and panel placement.
+The reference image is 1536×1024. Treat it as the desktop effect baseline for proportions and density, not as a pixel-perfect template. The same full dashboard composition must remain visible at 1536×1024 and 1440px width.
 
 ```txt
 ┌──────────────────────────────────────────────────────────────────────────────┐
@@ -53,6 +54,16 @@ Page padding:
 ```
 16px
 ```
+
+Reference image interpretation:
+
+- Header, main three-column dashboard, trend charts, and bottom timeline are all visible in one viewport.
+- The map occupies the dominant center area and visually outweighs every panel.
+- The left column is compact and contains three stacked panels.
+- The right column is compact and contains metrics, two alert cards, and rainfall distribution.
+- The center trend panel shows three chart groups in a single row.
+- The bottom timeline spans the full width and keeps the current marker visually prominent.
+- Use the reference for relative density and hierarchy; do not copy every pixel mechanically.
 
 ## 3. Header
 
@@ -151,7 +162,9 @@ In the reference image, the map is the largest single area and should occupy mos
 MVP decision:
 
 The current project already uses MapLibre GL with OSM raster tiles. Keep this implementation for now.
-The OSM basemap must be visually restyled through container styling, layer paint settings, overlays, and CSS filters so it reads as a dark professional dashboard map.
+On the `deckGL` branch, the rainfall radar overlay should be implemented with deck.gl on top of the existing MapLibre map.
+
+The OSM basemap must be visually restyled through container styling, layer paint settings, overlays, and CSS filters so it reads as a dark professional dashboard map. deck.gl should render the rainfall radar layer above the subdued basemap.
 
 Do not make the product feel like a normal map/weather query app. The rainfall radar layer, station data, alert areas, and timeline state should remain the main visual story.
 
@@ -207,6 +220,19 @@ MapLibre styling requirements:
 - Map controls should match the dashboard style where practical.
 - Rainfall polygons/blobs should use semi-transparent continuous bands, not administrative blocks.
 - Future replacement with a simulated SVG/Canvas Shenzhen map is allowed, but not required for the current milestone.
+
+deck.gl radar overlay requirements:
+
+- Use the MapLibre map as the camera and interaction source.
+- Prefer `MapboxOverlay` from `@deck.gl/mapbox` for integration with MapLibre.
+- Use overlaid rendering for the first milestone; consider interleaved rendering only if layer ordering with vector map labels becomes necessary.
+- Initial radar rendering can use mock GeoJSON/cell data through deck.gl layers such as `GeoJsonLayer`, `PolygonLayer`, `PathLayer`, `ScatterplotLayer`, or `HeatmapLayer`.
+- The radar should visually match the reference image: broad blue/cyan rainfall fields, green/yellow/orange/red high-intensity cores, many small echo fragments, and softened irregular edges.
+- A later refinement may generate a raster radar texture per frame and render it with `BitmapLayer` if smoother radar bands are needed.
+- Radar opacity must be controlled by layer state.
+- Timeline frame changes should update deck.gl layer props rather than rebuilding the whole map.
+- deck.gl picking can be used for radar inspection later, but the MVP point popup may continue to use the MapLibre click coordinate.
+- Do not add WeatherLayers GL for the first pass unless the project starts consuming meteorological raster/tile data instead of mock data.
 
 ## 6. Right Panel
 

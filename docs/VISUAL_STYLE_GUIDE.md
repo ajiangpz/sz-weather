@@ -4,6 +4,7 @@
 
 RainScope uses a dark professional weather dashboard style.
 `docs/image.png` is the primary visual reference for the first dashboard pass.
+The image is a 1536×1024 effect reference and should guide the dashboard's density, proportions, and first-screen hierarchy.
 
 The visual priority is:
 
@@ -174,6 +175,9 @@ Rainfall layer requirements:
 - Semi-transparent overlay
 - Must not fully cover the map
 - Must update when timeline frame changes
+- On the `deckGL` branch, render the rainfall layer with deck.gl over the MapLibre base map.
+- Use deck.gl blending, opacity, and data-driven color to keep radar bands continuous rather than blocky.
+- Match the reference image's radar texture: broad translucent precipitation fields plus high-density irregular fragments and stronger warm-color cores.
 
 ## 8. Map Style
 
@@ -202,6 +206,10 @@ For the current MapLibre + OSM implementation:
 - Use blue and cyan for low intensity, green and yellow for mid intensity, and orange/red/purple for strong rainfall.
 - Popup panels should use the same dark translucent card style as the dashboard.
 - Map zoom buttons should be square, compact, and placed on the right edge of the map.
+- deck.gl radar overlays should sit visually above the basemap but below popups, controls, station emphasis, and active-alert emphasis.
+- If using point aggregation, tune radius/intensity per zoom so the radar reads as a weather field, not as isolated dots.
+- If using polygon/isoband data, soften edges through alpha, overlapping bands, and restrained blur-like layering instead of hard administrative fills.
+- If using a generated bitmap radar frame, keep the image transparent outside rainfall areas and preserve the same rainfall color scale.
 
 ## 9. Alert Colors
 
@@ -271,9 +279,10 @@ The first implementation should visually resemble `docs/image.png`:
 - Dark navy page background.
 - Top header with brand, city, current weather, metric chips, update time, and actions.
 - Left column: 图层控制, 降雨强度图例, 监测站点.
-- Center: large MapLibre map with rainfall radar overlay, district labels, popup, map controls, and scale bar.
+- Center: large MapLibre map with deck.gl rainfall radar overlay, district labels, popup, map controls, and scale bar.
 - Center bottom: 趋势分析 panel with compact ECharts.
 - Right column: 实时指标, 天气预警, 降雨强度分布.
 - Bottom: full-width playback timeline.
+- At the 1536×1024 reference size, all of the above should fit in one viewport with no vertical scrolling.
 
 Do not copy every pixel mechanically. Match the composition, density, color mood, and dashboard hierarchy.

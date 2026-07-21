@@ -5,8 +5,59 @@ export interface RainfallPoint {
   value: number;
 }
 
+export interface DashboardTrendData {
+  times: string[];
+  rainfall: number[];
+  accumulatedRainfall: number[];
+  temperature: number[];
+  humidity: number[];
+  windSpeed: number[];
+}
+
+export interface RainDistributionItem {
+  label: string;
+  value: number;
+  color: string;
+}
+
 export interface WeatherStation {
   id: string;
   name: string;
-  rainfall: number;
+  district: string;
+  longitude: number;
+  latitude: number;
+  rainfall1h: number;
+  rainfall24h: number;
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+}
+
+export type AlertLevel = 'blue' | 'yellow' | 'orange' | 'red';
+
+export interface WeatherAlert {
+  id: string;
+  title: string;
+  level: AlertLevel;
+  type: string;
+  district: string;
+  description: string;
+  issuedAt: string;
+  status: 'active' | 'expired';
+  affectedAreas: string[];
+  forecastPeriod: string;
+  icon: 'rain' | 'lightning';
+}
+
+export interface MapPointPopup {
+  label?: string;
+  longitude: number;
+  latitude: number;
+  rainfallIntensity: number;
+  rainfall1h: number;
+  temperature: number;
+  humidity: number;
+  windSpeed: number;
+  windDirection: string;
+  alertTitle?: string;
 }

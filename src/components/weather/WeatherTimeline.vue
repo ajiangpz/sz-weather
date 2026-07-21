@@ -1,32 +1,70 @@
 <template>
   <section class="dashboard-panel timeline-panel">
     <div class="timeline-panel__controls">
-      <button class="timeline-panel__play" type="button" aria-label="播放">▶</button>
-      <button type="button" aria-label="下一帧">▸|</button>
-      <button type="button">1x⌄</button>
+      <button class="timeline-panel__play" type="button" :aria-label="store.isPlaying ? '暂停' : '播放'" @click="togglePlayback">
+        <UiIcon :name="store.isPlaying ? 'pause' : 'play'" />
+      </button>
+      <button class="timeline-panel__step timeline-panel__step--previous" type="button" aria-label="上一帧" @click="store.stepFrame(-1)"><UiIcon name="step" /></button>
+      <button class="timeline-panel__step" type="button" aria-label="下一帧" @click="store.stepFrame(1)"><UiIcon name="step" /></button>
+      <button class="timeline-panel__speed" type="button" aria-label="播放速度" @click="store.cyclePlaybackSpeed()"><span>{{ store.playbackSpeed }}x</span><UiIcon name="chevron-down" /></button>
     </div>
 
     <div class="timeline-panel__rail" aria-label="时间轴">
       <div class="timeline-panel__track">
-        <span class="timeline-panel__progress"></span>
-        <span class="timeline-panel__forecast"></span>
-        <span class="timeline-panel__marker">
-          <i></i>
-          <strong>当前</strong>
+        <span class="timeline-panel__past"></span>
+        <span class="timeline-panel__forecast-zone"></span>
+        <span class="timeline-panel__progress" :class="`timeline-panel__progress--${store.currentFramePhase}`" :style="{ width: `${progress}%` }"></span>
+        <span class="timeline-panel__forecast" :style="{ left: '50%' }"></span>
+        <span class="timeline-panel__marker" :style="{ left: `${progress}%` }">
+          <i></i><strong>{{ phaseLabel }}</strong>
         </span>
       </div>
       <div class="timeline-panel__ticks">
-        <span v-for="time in times" :key="time">{{ time }}</span>
+        <button v-for="(time, index) in times" :key="time" type="button" :class="{ active: index === store.currentFrameIndex, past: index < 12, current: index === 12, forecast: index > 12 }" :aria-label="`${phaseName(index)} ${time}`" @click="store.setFrame(index)">
+          {{ time }}
+        </button>
       </div>
     </div>
 
     <div class="timeline-panel__quick">
-      <button type="button">‹ 近小时</button>
-      <button type="button">逐10分钟 ›</button>
+      <button type="button" @click="store.stepFrame(-1)"><UiIcon name="chevron-left" />近小时</button>
+      <button type="button" @click="store.stepFrame(1)">逐10分钟<UiIcon name="chevron-right" /></button>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-const times = ['12:30', '12:40', '12:50', '13:00', '13:10', '13:20', '13:30', '13:40', '14:00', '14:10', '14:20', '14:30', '14:40', '15:00', '15:20', '15:40', '16:00', '16:20', '16:30'];
+import { computed, onBeforeUnmount, watch } from 'vue';
+import { useTimelineStore } from '@/stores/timelineStore';
+import UiIcon from './UiIcon.vue';
+
+const store = useTimelineStore();
+const times = Array.from({ length: 25 }, (_, index) => {
+  const totalMinutes = 12 * 60 + 30 + index * 10;
+  return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
+});
+const progress = computed(() => (store.currentFrameIndex / (times.length - 1)) * 100);
+const phaseLabel = computed(() => ({ past: '过去', current: '当前', forecast: '预报' })[store.currentFramePhase]);
+const phaseName = (index: number) => index < 12 ? '过去时刻' : index > 12 ? '预报时刻' : '当前时刻';
+let playbackTimer: ReturnType<typeof setInterval> | null = null;
+
+const stopTimer = () => {
+  if (playbackTimer) clearInterval(playbackTimer);
+  playbackTimer = null;
+};
+
+const startTimer = () => {
+  stopTimer();
+  playbackTimer = setInterval(() => store.stepFrame(1), 1200 / store.playbackSpeed);
+};
+
+const togglePlayback = () => {
+  store.isPlaying = !store.isPlaying;
+};
+
+watch(() => [store.isPlaying, store.playbackSpeed], () => {
+  if (store.isPlaying) startTimer(); else stopTimer();
+});
+
+onBeforeUnmount(stopTimer);
 </script>

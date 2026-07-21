@@ -7,7 +7,7 @@
 - Use Pinia stores for shared state.
 - Use ECharts only through reusable chart components.
 - Keep data shape definitions in `types/weather.ts`.
-- Clean up MapLibre instances, ECharts instances, timers, and event listeners on unmount.
+- Clean up MapLibre instances, deck.gl overlays, ECharts instances, timers, and event listeners on unmount.
 
 ## 2. Target Structure
 
@@ -65,14 +65,15 @@ Suggested layout regions:
 
 ## 4. Map Component
 
-`WeatherMapPanel` owns MapLibre setup and teardown.
+`WeatherMapPanel` owns MapLibre setup, deck.gl radar overlay setup, and teardown.
 
 Responsibilities:
 
 - Initialize MapLibre.
+- Initialize the deck.gl MapboxOverlay used for rainfall radar rendering.
 - Load OSM raster tiles.
 - Apply dashboard map styling.
-- Render rainfall radar layer.
+- Render rainfall radar layer with deck.gl.
 - Render station points.
 - Render alert areas.
 - Show point popup on map click.
@@ -80,8 +81,15 @@ Responsibilities:
 - Render current frame time overlay.
 - Render map controls and scale bar.
 - Remove the map instance on unmount.
+- Finalize/remove the deck.gl overlay on unmount.
 
-The map component can use helper modules for layer definitions and GeoJSON generation.
+The map component can use helper modules for layer definitions, deck.gl layer factories, and GeoJSON/mock radar generation.
+
+Recommended ownership:
+
+- MapLibre: basemap, viewport, controls, scale, base click coordinate.
+- deck.gl: rainfall radar layers, radar opacity, frame-to-frame visual updates, optional radar picking.
+- Pinia stores: selected station, selected alert, active frame, enabled layers, opacity values.
 
 ## 5. Store Boundaries
 
@@ -139,4 +147,4 @@ At desktop size it may show rainfall, temperature/humidity, and wind charts toge
 - Map station click updates `mapStore.selectedStationId`.
 - Alert card click updates `mapStore.selectedAlertId`.
 - Timeline frame change updates current frame-dependent weather data.
-- Layer toggles update MapLibre layer visibility and opacity.
+- Layer toggles update MapLibre layer visibility for native map layers and deck.gl layer visibility/opacity for radar overlays.

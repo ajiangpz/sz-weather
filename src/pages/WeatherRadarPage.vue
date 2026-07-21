@@ -22,7 +22,7 @@
           <ul>
             <li v-for="station in store.stations" :key="station.id">
               <span>{{ station.name }}</span>
-              <strong>{{ station.rainfall }} mm/h</strong>
+              <strong>{{ station.rainfall1h }} mm/h</strong>
             </li>
           </ul>
         </div>

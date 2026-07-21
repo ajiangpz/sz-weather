@@ -15,6 +15,7 @@ The following layers can appear as disabled or UI-only in the MVP:
 - 湿度热力
 
 Rainfall opacity should be adjustable through store state even if the first UI only uses a fixed value.
+On the `deckGL` branch, this opacity should drive deck.gl radar layer props.
 The reference screen shows opacity sliders in the layer panel. Enabled visual layers should expose opacity controls when practical.
 
 ## 2. Station Interaction
@@ -78,7 +79,7 @@ Frame interval:
 When the current frame changes:
 
 - Header update time changes.
-- Map rainfall layer changes.
+- Map rainfall layer changes through deck.gl layer data/props.
 - Metrics update.
 - Charts highlight the current time.
 
@@ -92,4 +93,5 @@ Components must clean up:
 - ECharts instances
 - Window resize listeners
 - MapLibre map instances
+- deck.gl overlays and layer resources
 - Map event listeners registered manually

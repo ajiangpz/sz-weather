@@ -1,5 +1,12 @@
 import { createRadarFeature } from '@/utils/radar';
-import type { RadarLevel, RainfallPoint, WeatherStation } from '@/types/weather';
+import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson';
+import type {
+  DashboardTrendData,
+  RadarLevel,
+  RainDistributionItem,
+  RainfallPoint,
+  WeatherStation,
+} from '@/types/weather';
 
 export const mockRainfallTrend: RainfallPoint[] = [
   { time: '09:00', value: 0.8 },
@@ -11,11 +18,31 @@ export const mockRainfallTrend: RainfallPoint[] = [
   { time: '10:00', value: 1.9 },
 ];
 
+export const mockDashboardTrends: DashboardTrendData = {
+  times: ['14:00', '17:00', '20:00', '23:00', '02:00', '05:00', '08:00', '11:00', '14:00'],
+  rainfall: [5, 12, 28, 36, 18, 9, 13, 6, 2],
+  accumulatedRainfall: [6, 17, 38, 64, 74, 79, 84, 88, 90],
+  temperature: [29, 28, 26.5, 25.5, 25.2, 26, 28.5, 30, 29.2],
+  humidity: [70, 77, 73, 63, 53, 58, 72, 84, 76],
+  windSpeed: [7.2, 6.4, 7.5, 5.3, 8.6, 4.8, 3.9, 5.6, 5.1],
+};
+
+export const mockRainDistribution: RainDistributionItem[] = [
+  { label: '无雨', value: 18.6, color: '#8EA6C1' },
+  { label: '小雨', value: 32.4, color: '#4BA3FF' },
+  { label: '中雨', value: 23.7, color: '#37D67A' },
+  { label: '大雨', value: 15.6, color: '#F4D03F' },
+  { label: '暴雨', value: 6.2, color: '#F59E42' },
+  { label: '大暴雨', value: 2.8, color: '#E84C88' },
+  { label: '特大暴雨', value: 0.7, color: '#9B5DE5' },
+];
+
 export const mockStations: WeatherStation[] = [
-  { id: 'ft', name: '福田站', rainfall: 4.8 },
-  { id: 'ns', name: '南山站', rainfall: 6.1 },
-  { id: 'lh', name: '罗湖站', rainfall: 2.4 },
-  { id: 'ba', name: '宝安站', rainfall: 1.7 },
+  { id: 'wt', name: '大梧桐', district: '罗湖区', longitude: 114.214, latitude: 22.584, rainfall1h: 8.6, rainfall24h: 36.8, temperature: 26.8, humidity: 89, windSpeed: 6.1 },
+  { id: 'lh', name: '罗湖', district: '罗湖区', longitude: 114.123, latitude: 22.555, rainfall1h: 14.2, rainfall24h: 28.6, temperature: 28.6, humidity: 81, windSpeed: 4.8 },
+  { id: 'ns', name: '南山', district: '南山区', longitude: 113.929, latitude: 22.531, rainfall1h: 9.8, rainfall24h: 24.3, temperature: 28.9, humidity: 83, windSpeed: 5.4 },
+  { id: 'ft', name: '福田', district: '福田区', longitude: 114.051, latitude: 22.541, rainfall1h: 11.5, rainfall24h: 20.1, temperature: 29.1, humidity: 82, windSpeed: 5.2 },
+  { id: 'ba', name: '宝安', district: '宝安区', longitude: 113.829, latitude: 22.654, rainfall1h: 7.3, rainfall24h: 18.5, temperature: 29.3, humidity: 78, windSpeed: 4.6 },
 ];
 
 type Coordinate = [number, number];
@@ -24,6 +51,28 @@ type RadarBandTier = 'base' | 'band';
 type RadarRibbonTier = 'outer' | 'core';
 type RadarFragmentCell = [RadarLevel, number, number, number, number];
 type FragmentSeed = [Coordinate, number, number];
+type RadarPointProperties = {
+  level: RadarLevel;
+  color: string;
+  intensity: number;
+};
+type RadarBandProperties = {
+  id: string;
+  tier: RadarBandTier;
+  level: RadarLevel;
+  intensity: number;
+};
+type RadarRibbonProperties = {
+  id: string;
+  tier: RadarRibbonTier;
+  level: RadarLevel;
+  intensity: number;
+};
+type RadarFragmentProperties = {
+  id: string;
+  level: RadarLevel;
+  intensity: number;
+};
 
 const baseRadarCells: RadarCell[] = [
   ['light', 113.78, 22.51, 4.6],
@@ -51,18 +100,18 @@ const baseRadarCells: RadarCell[] = [
   ['moderate', 114.41, 22.57, 14.8],
   ['light', 114.36, 22.53, 7.2],
   ['light', 114.29, 22.49, 5.8],
-  ['light', 113.8, 22.35, 5.3],
-  ['moderate', 113.86, 22.34, 10.1],
-  ['storm', 113.91, 22.32, 18.6],
-  ['moderate', 113.96, 22.35, 13.5],
-  ['light', 114.02, 22.39, 7.6],
-  ['moderate', 114.08, 22.43, 11.7],
-  ['moderate', 114.14, 22.47, 13.2],
-  ['storm', 114.18, 22.5, 20.6],
-  ['storm', 114.22, 22.52, 25.8],
-  ['moderate', 114.26, 22.55, 14.1],
-  ['light', 114.31, 22.58, 7.5],
-  ['light', 114.36, 22.61, 6.3],
+  ['light', 113.8, 22.39, 5.3],
+  ['moderate', 113.86, 22.39, 10.1],
+  ['heavy', 113.91, 22.4, 18.6],
+  ['moderate', 113.96, 22.41, 13.5],
+  ['light', 114.02, 22.43, 7.6],
+  ['moderate', 114.08, 22.47, 11.7],
+  ['moderate', 114.14, 22.51, 13.2],
+  ['storm', 114.18, 22.54, 20.6],
+  ['storm', 114.22, 22.56, 25.8],
+  ['moderate', 114.26, 22.59, 14.1],
+  ['light', 114.31, 22.62, 7.5],
+  ['light', 114.36, 22.64, 6.3],
   ['light', 113.88, 22.58, 6.7],
   ['moderate', 113.94, 22.56, 11.4],
   ['moderate', 114.0, 22.54, 12.9],
@@ -76,15 +125,18 @@ const baseRadarCells: RadarCell[] = [
   ['moderate', 114.48, 22.72, 14.4],
   ['light', 114.5, 22.68, 8.6],
   ['light', 114.47, 22.64, 6.9],
-  ['storm', 114.05, 22.45, 16.8],
+  ['moderate', 114.05, 22.45, 12.8],
   ['moderate', 114.1, 22.42, 12.5],
-  ['light', 114.16, 22.39, 8.4],
-  ['light', 114.24, 22.36, 6.2],
-  ['moderate', 114.31, 22.34, 10.2],
-  ['light', 114.38, 22.33, 6.6],
-  ['severeStorm', 114.19, 22.49, 37.4],
-  ['severeStorm', 114.22, 22.51, 42.6],
-  ['storm', 114.26, 22.54, 30.8],
+  ['light', 114.16, 22.43, 8.4],
+  ['light', 114.24, 22.42, 6.2],
+  ['moderate', 114.31, 22.42, 10.2],
+  ['light', 114.38, 22.42, 6.6],
+  ['severeStorm', 114.19, 22.53, 37.4],
+  ['severeStorm', 114.22, 22.55, 42.6],
+  ['storm', 114.26, 22.58, 30.8],
+  ['severeStorm', 114.38, 22.64, 36.8],
+  ['severeStorm', 114.42, 22.66, 39.6],
+  ['storm', 114.46, 22.68, 31.2],
 ];
 
 const broadOffsets = [
@@ -119,13 +171,13 @@ const westRainPath: Coordinate[] = [
 ];
 
 const southRainPath: Coordinate[] = [
-  [113.82, 22.34],
-  [113.9, 22.37],
-  [113.99, 22.42],
-  [114.09, 22.47],
-  [114.18, 22.51],
-  [114.27, 22.55],
-  [114.37, 22.59],
+  [113.82, 22.4],
+  [113.9, 22.43],
+  [113.99, 22.48],
+  [114.09, 22.53],
+  [114.18, 22.57],
+  [114.27, 22.6],
+  [114.37, 22.62],
 ];
 
 const eastRainPath: Coordinate[] = [
@@ -146,11 +198,10 @@ const northRainPath: Coordinate[] = [
 ];
 
 const stormCorePath: Coordinate[] = [
-  [114.02, 22.39],
-  [114.08, 22.43],
-  [114.15, 22.48],
-  [114.22, 22.51],
-  [114.29, 22.55],
+  [114.13, 22.525],
+  [114.165, 22.54],
+  [114.2, 22.552],
+  [114.23, 22.56],
 ];
 
 const createBandCells = (
@@ -180,12 +231,13 @@ const mockRadarCells: RadarCell[] = [
   ...createBandCells('moderate', 10.8, westRainPath, coreOffsets),
   ...createBandCells('light', 6.2, northRainPath, broadOffsets),
   ...createBandCells('moderate', 12.4, northRainPath, coreOffsets),
-  ...createBandCells('moderate', 13.8, southRainPath, broadOffsets),
-  ...createBandCells('heavy', 17.6, southRainPath, coreOffsets),
+  ...createBandCells('light', 5.8, southRainPath, broadOffsets),
+  ...createBandCells('moderate', 10.6, southRainPath, coreOffsets),
   ...createBandCells('moderate', 12.6, eastRainPath, broadOffsets),
   ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
   ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
-  ...createBandCells('severeStorm', 39.2, [[114.16, 22.48], [114.21, 22.51], [114.26, 22.53]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.14, 22.525], [114.18, 22.54], [114.21, 22.555]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.37, 22.64], [114.41, 22.66], [114.45, 22.675]], coreOffsets),
 ];
 
 const mockRadarSpeckles: RadarCell[] = [
@@ -213,8 +265,8 @@ const ambientEchoCenters: Coordinate[] = [
   [114.37, 22.5],
   [114.25, 22.43],
   [114.13, 22.38],
-  [114.0, 22.34],
-  [113.88, 22.34],
+  [114.0, 22.37],
+  [113.88, 22.37],
   [113.79, 22.39],
   [113.72, 22.48],
 ];
@@ -346,8 +398,8 @@ const mockRadarFragments: RadarFragmentCell[] = [
   ...createFragmentCells('moderate', 11.4, eastRainPath, 0.017),
   ...createFragmentCells('heavy', 16.8, pingshanCoreCenters, 0.014),
   ...createFragmentCells('storm', 25.6, pingshanCoreCenters.slice(1, 4), 0.011),
-  ...createFragmentCells('moderate', 12.2, southRainPath, 0.017),
-  ...createFragmentCells('heavy', 17.2, southRainPath.slice(1, 6), 0.013),
+  ...createFragmentCells('light', 6.8, southRainPath, 0.016),
+  ...createFragmentCells('moderate', 10.2, southRainPath.slice(1, 6), 0.011),
   ...createFragmentCells('storm', 24.8, luohuCoreCenters, 0.012),
   ...createFragmentCells('severeStorm', 36.6, luohuCoreCenters.slice(1, 4), 0.009),
   ...createFragmentCells('severeStorm', 39.4, [[114.18, 22.495], [114.225, 22.512], [114.265, 22.535]], 0.008),
@@ -358,13 +410,13 @@ const mockRadarFragments: RadarFragmentCell[] = [
   ...createMicroFragmentCells('moderate', 9.6, toFragmentSeeds(westRainPath, 0.023, 0.018), 0.0052, 6),
   ...createMicroFragmentCells('moderate', 10.8, toFragmentSeeds(northRainPath, 0.028, 0.016), 0.005, 6),
   ...createMicroFragmentCells('moderate', 11.6, toFragmentSeeds(eastRainPath, 0.026, 0.021), 0.0054, 7),
-  ...createMicroFragmentCells('moderate', 11.8, toFragmentSeeds(southRainPath, 0.03, 0.02), 0.0056, 8),
+  ...createMicroFragmentCells('light', 6.8, toFragmentSeeds(southRainPath, 0.03, 0.02), 0.0054, 8),
   ...createMicroFragmentCells('light', 4.1, toFragmentSeeds(scatteredBlueCenters, 0.038, 0.024), 0.0048, 13),
   ...createMicroFragmentCells('moderate', 8.8, toFragmentSeeds(scatteredBlueCenters.slice(2, 11), 0.024, 0.018), 0.0046, 7),
   ...createMicroFragmentCells('moderate', 9.8, toFragmentSeeds(westernBurstCenters, 0.024, 0.018), 0.0048, 8),
   ...createMicroFragmentCells('heavy', 16.2, toFragmentSeeds(westernBurstCenters, 0.018, 0.014), 0.0044, 8),
   ...createMicroFragmentCells('heavy', 17.8, toFragmentSeeds(easternBurstCenters, 0.017, 0.013), 0.0042, 8),
-  ...createMicroFragmentCells('heavy', 16.8, toFragmentSeeds(southRainPath.slice(1, 6), 0.024, 0.016), 0.0048, 8),
+  ...createMicroFragmentCells('moderate', 10.8, toFragmentSeeds(southRainPath.slice(1, 6), 0.024, 0.016), 0.0046, 8),
   ...createMicroFragmentCells('heavy', 17.6, toFragmentSeeds(pingshanCoreCenters, 0.022, 0.017), 0.0048, 8),
   ...createMicroFragmentCells('heavy', 18.4, toFragmentSeeds(innerBurstCenters, 0.018, 0.013), 0.0044, 7),
   ...createMicroFragmentCells('storm', 25.8, toFragmentSeeds(luohuCoreCenters, 0.019, 0.014), 0.0044, 9),
@@ -398,7 +450,7 @@ const createRadarBandFeature = (
   level: RadarLevel,
   intensity: number,
   coordinates: Coordinate[],
-) => ({
+): Feature<Polygon, RadarBandProperties> => ({
   type: 'Feature',
   properties: {
     id,
@@ -418,7 +470,7 @@ const createRadarRibbonFeature = (
   level: RadarLevel,
   intensity: number,
   coordinates: Coordinate[],
-) => ({
+): Feature<LineString, RadarRibbonProperties> => ({
   type: 'Feature',
   properties: {
     id,
@@ -439,7 +491,7 @@ const createRadarFragmentFeature = (
   lat: number,
   intensity: number,
   radius: number,
-) => {
+): Feature<Polygon, RadarFragmentProperties> => {
   const skew = ((id.length % 5) - 2) * radius * 0.12;
   const wobble = ((id.charCodeAt(id.length - 1) % 7) - 3) * radius * 0.035;
   const coordinates: Coordinate[] = [
@@ -466,7 +518,7 @@ const createRadarFragmentFeature = (
   };
 };
 
-export const mockRadarBandsGeoJson = {
+export const mockRadarBandsGeoJson: FeatureCollection<Polygon, RadarBandProperties> = {
   type: 'FeatureCollection',
   features: [
     createRadarBandFeature('west-base', 'base', 'light', 3.8, [
@@ -480,16 +532,16 @@ export const mockRadarBandsGeoJson = {
       [113.74, 22.48],
     ]),
     createRadarBandFeature('south-base', 'base', 'light', 4.4, [
-      [113.76, 22.31],
-      [113.92, 22.36],
-      [114.1, 22.43],
-      [114.31, 22.53],
-      [114.51, 22.62],
-      [114.59, 22.54],
-      [114.39, 22.44],
-      [114.18, 22.36],
-      [113.95, 22.3],
-      [113.76, 22.31],
+      [113.76, 22.38],
+      [113.92, 22.43],
+      [114.1, 22.5],
+      [114.31, 22.6],
+      [114.51, 22.69],
+      [114.59, 22.61],
+      [114.39, 22.51],
+      [114.18, 22.43],
+      [113.95, 22.37],
+      [113.76, 22.38],
     ]),
     createRadarBandFeature('north-east-base', 'base', 'light', 3.6, [
       [113.86, 22.62],
@@ -523,16 +575,16 @@ export const mockRadarBandsGeoJson = {
       [113.91, 22.66],
     ]),
     createRadarBandFeature('south-green-band', 'band', 'moderate', 12.8, [
-      [113.83, 22.34],
-      [113.96, 22.39],
-      [114.1, 22.47],
-      [114.27, 22.56],
-      [114.41, 22.62],
-      [114.46, 22.56],
-      [114.31, 22.49],
-      [114.13, 22.39],
-      [113.92, 22.31],
-      [113.83, 22.34],
+      [113.83, 22.4],
+      [113.96, 22.45],
+      [114.1, 22.53],
+      [114.27, 22.61],
+      [114.41, 22.67],
+      [114.46, 22.61],
+      [114.31, 22.55],
+      [114.13, 22.45],
+      [113.92, 22.38],
+      [113.83, 22.4],
     ]),
     createRadarBandFeature('east-yellow-band', 'band', 'heavy', 17.6, [
       [114.22, 22.51],
@@ -544,48 +596,55 @@ export const mockRadarBandsGeoJson = {
       [114.25, 22.47],
       [114.22, 22.51],
     ]),
-    createRadarBandFeature('south-yellow-band', 'band', 'heavy', 18.4, [
-      [113.98, 22.38],
-      [114.08, 22.43],
-      [114.2, 22.51],
-      [114.31, 22.57],
-      [114.34, 22.52],
-      [114.22, 22.45],
-      [114.08, 22.36],
-      [113.98, 22.38],
+    createRadarBandFeature('luohu-yellow-core', 'band', 'heavy', 18.4, [
+      [114.07, 22.505],
+      [114.13, 22.525],
+      [114.22, 22.565],
+      [114.25, 22.545],
+      [114.18, 22.505],
+      [114.1, 22.49],
+      [114.07, 22.505],
     ]),
-    createRadarBandFeature('central-orange-core', 'band', 'storm', 28.8, [
-      [114.08, 22.43],
-      [114.15, 22.48],
-      [114.24, 22.53],
-      [114.3, 22.54],
-      [114.26, 22.48],
-      [114.17, 22.44],
-      [114.1, 22.4],
-      [114.08, 22.43],
+    createRadarBandFeature('luohu-orange-core', 'band', 'storm', 28.8, [
+      [114.095, 22.515],
+      [114.15, 22.535],
+      [114.205, 22.565],
+      [114.235, 22.545],
+      [114.19, 22.515],
+      [114.125, 22.5],
+      [114.095, 22.515],
     ]),
-    createRadarBandFeature('southern-orange-core', 'band', 'storm', 24.6, [
-      [113.88, 22.31],
-      [113.97, 22.35],
-      [114.05, 22.41],
-      [114.1, 22.38],
-      [114.02, 22.32],
-      [113.93, 22.29],
-      [113.88, 22.31],
+    createRadarBandFeature('pingshan-orange-core', 'band', 'storm', 26.8, [
+      [114.34, 22.62],
+      [114.39, 22.655],
+      [114.46, 22.69],
+      [114.5, 22.665],
+      [114.45, 22.625],
+      [114.38, 22.6],
+      [114.34, 22.62],
     ]),
-    createRadarBandFeature('central-red-core', 'band', 'severeStorm', 38.8, [
-      [114.15, 22.47],
-      [114.2, 22.5],
-      [114.25, 22.53],
-      [114.28, 22.51],
-      [114.23, 22.47],
-      [114.18, 22.45],
-      [114.15, 22.47],
+    createRadarBandFeature('luohu-red-core', 'band', 'severeStorm', 38.8, [
+      [114.14, 22.525],
+      [114.18, 22.548],
+      [114.22, 22.565],
+      [114.245, 22.545],
+      [114.205, 22.515],
+      [114.16, 22.508],
+      [114.14, 22.525],
+    ]),
+    createRadarBandFeature('pingshan-red-core', 'band', 'severeStorm', 37.6, [
+      [114.37, 22.635],
+      [114.405, 22.662],
+      [114.445, 22.678],
+      [114.47, 22.655],
+      [114.43, 22.628],
+      [114.39, 22.618],
+      [114.37, 22.635],
     ]),
   ],
-} as const;
+};
 
-export const mockRadarRibbonsGeoJson = {
+export const mockRadarRibbonsGeoJson: FeatureCollection<LineString, RadarRibbonProperties> = {
   type: 'FeatureCollection',
   features: [
     createRadarRibbonFeature('west-outer', 'outer', 'light', 5.2, [
@@ -615,19 +674,19 @@ export const mockRadarRibbonsGeoJson = {
       [114.47, 22.66],
     ]),
     createRadarRibbonFeature('south-outer', 'outer', 'moderate', 13.2, [
-      [113.78, 22.33],
-      [113.94, 22.38],
-      [114.1, 22.46],
-      [114.28, 22.55],
-      [114.47, 22.63],
-      [114.58, 22.57],
+      [113.78, 22.4],
+      [113.94, 22.45],
+      [114.1, 22.52],
+      [114.28, 22.6],
+      [114.47, 22.67],
+      [114.58, 22.61],
     ]),
-    createRadarRibbonFeature('south-core', 'core', 'heavy', 18.8, [
-      [113.88, 22.32],
-      [114.01, 22.38],
-      [114.14, 22.47],
-      [114.27, 22.54],
-      [114.39, 22.59],
+    createRadarRibbonFeature('coastal-texture', 'outer', 'light', 6.8, [
+      [113.88, 22.4],
+      [114.01, 22.46],
+      [114.16, 22.53],
+      [114.31, 22.59],
+      [114.44, 22.63],
     ]),
     createRadarRibbonFeature('east-outer', 'outer', 'moderate', 12.4, [
       [114.17, 22.45],
@@ -640,37 +699,42 @@ export const mockRadarRibbonsGeoJson = {
       [114.35, 22.57],
       [114.46, 22.65],
     ]),
-    createRadarRibbonFeature('storm-core', 'core', 'storm', 29.6, [
-      [114.06, 22.41],
-      [114.13, 22.46],
-      [114.21, 22.51],
-      [114.3, 22.55],
+    createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
+      [114.09, 22.515],
+      [114.14, 22.535],
+      [114.2, 22.555],
+      [114.24, 22.55],
     ]),
-    createRadarRibbonFeature('red-core', 'core', 'severeStorm', 39.4, [
-      [114.16, 22.47],
-      [114.21, 22.5],
-      [114.27, 22.53],
+    createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
+      [114.145, 22.525],
+      [114.19, 22.545],
+      [114.225, 22.555],
+    ]),
+    createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
+      [114.365, 22.635],
+      [114.41, 22.66],
+      [114.455, 22.675],
     ]),
   ],
-} as const;
+};
 
-export const mockRadarFragmentsGeoJson = {
+export const mockRadarFragmentsGeoJson: FeatureCollection<Polygon, RadarFragmentProperties> = {
   type: 'FeatureCollection',
   features: mockRadarFragments.map(([level, lng, lat, intensity, radius], index) =>
     createRadarFragmentFeature(`fragment-${index}`, level, lng, lat, intensity, radius),
   ),
-} as const;
+};
 
-export const mockRadarGeoJson = {
+export const mockRadarGeoJson: FeatureCollection<Point, RadarPointProperties> = {
   type: 'FeatureCollection',
   features: mockRadarCells.map(([level, lng, lat, intensity]) =>
     createRadarFeature(level, [lng, lat], intensity),
   ),
-} as const;
+};
 
-export const mockRadarSpecklesGeoJson = {
+export const mockRadarSpecklesGeoJson: FeatureCollection<Point, RadarPointProperties> = {
   type: 'FeatureCollection',
   features: mockRadarSpeckles.map(([level, lng, lat, intensity]) =>
     createRadarFeature(level, [lng, lat], intensity),
   ),
-} as const;
+};
