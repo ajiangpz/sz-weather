@@ -74,8 +74,11 @@ let districtMarkers: maplibregl.Marker[] = [];
 let stationMarkers: maplibregl.Marker[] = [];
 let radarBitmap: HTMLCanvasElement | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
-let windAnimationTimer: number | null = null;
+let windAnimationFrame: number | null = null;
 let windParticlePhase = 0;
+let windLastFrameTime = 0;
+let windLastRenderTime = 0;
+let currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
 
 const rainfallLevel = computed(() => {
   const intensity = mapStore.popup?.rainfallIntensity ?? 0;
@@ -226,13 +229,47 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
         visible: layerStore.radarEnabled,
       }),
       ...createWindFieldLayers({
-        streams: createMockWindStreams(timelineStore.currentFrameIndex),
+        streams: currentWindStreams,
         opacity: layerStore.windOpacity / 100,
         visible: layerStore.windEnabled,
         particlePhase: windParticlePhase,
       }),
     ],
   });
+};
+
+const stopWindAnimation = () => {
+  if (windAnimationFrame !== null) window.cancelAnimationFrame(windAnimationFrame);
+  windAnimationFrame = null;
+  windLastFrameTime = 0;
+  windLastRenderTime = 0;
+};
+
+const animateWindParticles = (timestamp: number) => {
+  if (!layerStore.windEnabled || document.hidden) {
+    stopWindAnimation();
+    return;
+  }
+  if (windLastFrameTime === 0) windLastFrameTime = timestamp;
+  const deltaSeconds = Math.min(0.1, (timestamp - windLastFrameTime) / 1000);
+  windLastFrameTime = timestamp;
+
+  if (timestamp - windLastRenderTime >= 66) {
+    windParticlePhase += deltaSeconds;
+    windLastRenderTime = timestamp;
+    updateWeatherLayers();
+  }
+  windAnimationFrame = window.requestAnimationFrame(animateWindParticles);
+};
+
+const startWindAnimation = () => {
+  if (windAnimationFrame !== null || !layerStore.windEnabled || document.hidden) return;
+  windAnimationFrame = window.requestAnimationFrame(animateWindParticles);
+};
+
+const handleVisibilityChange = () => {
+  if (document.hidden) stopWindAnimation();
+  else startWindAnimation();
 };
 
 type LineFeatureCollection = {
@@ -635,6 +672,7 @@ onMounted(() => {
 
       radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
 
+      currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
       deckOverlay = new MapboxOverlay({
         interleaved: false,
         layers: [
@@ -645,7 +683,7 @@ onMounted(() => {
             visible: layerStore.radarEnabled,
           }),
           ...createWindFieldLayers({
-            streams: createMockWindStreams(timelineStore.currentFrameIndex),
+            streams: currentWindStreams,
             opacity: layerStore.windOpacity / 100,
             visible: layerStore.windEnabled,
             particlePhase: windParticlePhase,
@@ -681,13 +719,9 @@ onMounted(() => {
           .addTo(map as Map);
       });
       updateStationMarkers();
-
-      windAnimationTimer = window.setInterval(() => {
-        if (!layerStore.windEnabled || document.hidden) return;
-        windParticlePhase += 1;
-        updateWeatherLayers();
-      }, 280);
+      startWindAnimation();
     });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   } catch {
     mapFailed.value = true;
   }
@@ -700,10 +734,15 @@ watch(
 
 watch(
   () => [layerStore.windEnabled, layerStore.windOpacity],
-  () => updateWeatherLayers(),
+  ([enabled]) => {
+    updateWeatherLayers();
+    if (enabled) startWindAnimation();
+    else stopWindAnimation();
+  },
 );
 
 watch(() => timelineStore.currentFrameIndex, () => {
+  currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
   updateWeatherLayers(true);
   mapStore.syncPopup({
     rainfallIntensity: store.currentWeather.maxRainIntensity,
@@ -742,8 +781,8 @@ watch(() => mapStore.activeAlertId, (alertId) => {
 });
 
 onBeforeUnmount(() => {
-  if (windAnimationTimer !== null) window.clearInterval(windAnimationTimer);
-  windAnimationTimer = null;
+  stopWindAnimation();
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
   mapResizeObserver?.disconnect();
   mapResizeObserver = null;
   districtMarkers.forEach((marker) => marker.remove());
