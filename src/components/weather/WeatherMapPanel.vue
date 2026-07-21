@@ -32,6 +32,7 @@
       <label><input v-model="layerStore.radarEnabled" type="checkbox" />降雨雷达</label>
       <label><input v-model="layerStore.alertEnabled" type="checkbox" />预警区域</label>
       <label><input v-model="layerStore.stationEnabled" type="checkbox" />监测站点</label>
+      <label><input v-model="layerStore.windEnabled" type="checkbox" />风场流线</label>
     </div>
 
     <div class="weather-map-panel__scale">5 km</div>
@@ -45,10 +46,12 @@ import maplibregl, { type Map, type MapMouseEvent, type StyleSpecification } fro
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useWeatherStore } from '@/stores/weather';
+import { createMockWindStreams } from '@/mock/windField';
 import { useLayerStore } from '@/stores/layerStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
+import { createWindFieldLayer } from '@/utils/windDeckLayers';
 import UiIcon from './UiIcon.vue';
 
 const shenzhenGeoJsonUrl = new URL('../../../shenzhen.json', import.meta.url).href;
@@ -207,18 +210,25 @@ const createRadarFrame = (): FeatureCollection<Point, { intensity?: number }> =>
   };
 };
 
-const updateRadarLayer = (rebuildBitmap = false) => {
+const updateWeatherLayers = (rebuildBitmap = false) => {
   if (rebuildBitmap || !radarBitmap) {
     radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
   }
   if (!deckOverlay || !radarBitmap) return;
   deckOverlay.setProps({
-    layers: [createRainRadarBitmapLayer({
-      image: radarBitmap,
-      bounds: radarBitmapBounds,
-      opacity: layerStore.radarOpacity / 100,
-      visible: layerStore.radarEnabled,
-    })],
+    layers: [
+      createRainRadarBitmapLayer({
+        image: radarBitmap,
+        bounds: radarBitmapBounds,
+        opacity: layerStore.radarOpacity / 100,
+        visible: layerStore.radarEnabled,
+      }),
+      createWindFieldLayer({
+        streams: createMockWindStreams(timelineStore.currentFrameIndex),
+        opacity: layerStore.windOpacity / 100,
+        visible: layerStore.windEnabled,
+      }),
+    ],
   });
 };
 
@@ -624,12 +634,19 @@ onMounted(() => {
 
       deckOverlay = new MapboxOverlay({
         interleaved: false,
-        layers: [createRainRadarBitmapLayer({
-          image: radarBitmap,
-          bounds: radarBitmapBounds,
-          opacity: layerStore.radarOpacity / 100,
-          visible: layerStore.radarEnabled,
-        })],
+        layers: [
+          createRainRadarBitmapLayer({
+            image: radarBitmap,
+            bounds: radarBitmapBounds,
+            opacity: layerStore.radarOpacity / 100,
+            visible: layerStore.radarEnabled,
+          }),
+          createWindFieldLayer({
+            streams: createMockWindStreams(timelineStore.currentFrameIndex),
+            opacity: layerStore.windOpacity / 100,
+            visible: layerStore.windEnabled,
+          }),
+        ],
       });
       map.addControl(deckOverlay);
 
@@ -668,11 +685,16 @@ onMounted(() => {
 
 watch(
   () => [layerStore.radarEnabled, layerStore.radarOpacity],
-  () => updateRadarLayer(),
+  () => updateWeatherLayers(),
+);
+
+watch(
+  () => [layerStore.windEnabled, layerStore.windOpacity],
+  () => updateWeatherLayers(),
 );
 
 watch(() => timelineStore.currentFrameIndex, () => {
-  updateRadarLayer(true);
+  updateWeatherLayers(true);
   mapStore.syncPopup({
     rainfallIntensity: store.currentWeather.maxRainIntensity,
     rainfall1h: store.currentWeather.rainfall1h,

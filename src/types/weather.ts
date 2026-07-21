@@ -33,6 +33,13 @@ export interface WeatherStation {
   windSpeed: number;
 }
 
+export interface WindStream {
+  id: string;
+  speed: number;
+  bearing: number;
+  path: Array<[number, number]>;
+}
+
 export type AlertLevel = 'blue' | 'yellow' | 'orange' | 'red';
 
 export interface WeatherAlert {
