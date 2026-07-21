@@ -51,7 +51,7 @@ import { useLayerStore } from '@/stores/layerStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
-import { createWindFieldLayer } from '@/utils/windDeckLayers';
+import { createWindFieldLayers } from '@/utils/windDeckLayers';
 import UiIcon from './UiIcon.vue';
 
 const shenzhenGeoJsonUrl = new URL('../../../shenzhen.json', import.meta.url).href;
@@ -223,7 +223,7 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
         opacity: layerStore.radarOpacity / 100,
         visible: layerStore.radarEnabled,
       }),
-      createWindFieldLayer({
+      ...createWindFieldLayers({
         streams: createMockWindStreams(timelineStore.currentFrameIndex),
         opacity: layerStore.windOpacity / 100,
         visible: layerStore.windEnabled,
@@ -641,7 +641,7 @@ onMounted(() => {
             opacity: layerStore.radarOpacity / 100,
             visible: layerStore.radarEnabled,
           }),
-          createWindFieldLayer({
+          ...createWindFieldLayers({
             streams: createMockWindStreams(timelineStore.currentFrameIndex),
             opacity: layerStore.windOpacity / 100,
             visible: layerStore.windEnabled,
