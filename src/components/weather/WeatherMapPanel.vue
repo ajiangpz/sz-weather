@@ -74,6 +74,8 @@ let districtMarkers: maplibregl.Marker[] = [];
 let stationMarkers: maplibregl.Marker[] = [];
 let radarBitmap: HTMLCanvasElement | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
+let windAnimationTimer: number | null = null;
+let windParticlePhase = 0;
 
 const rainfallLevel = computed(() => {
   const intensity = mapStore.popup?.rainfallIntensity ?? 0;
@@ -227,6 +229,7 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
         streams: createMockWindStreams(timelineStore.currentFrameIndex),
         opacity: layerStore.windOpacity / 100,
         visible: layerStore.windEnabled,
+        particlePhase: windParticlePhase,
       }),
     ],
   });
@@ -645,6 +648,7 @@ onMounted(() => {
             streams: createMockWindStreams(timelineStore.currentFrameIndex),
             opacity: layerStore.windOpacity / 100,
             visible: layerStore.windEnabled,
+            particlePhase: windParticlePhase,
           }),
         ],
       });
@@ -677,6 +681,12 @@ onMounted(() => {
           .addTo(map as Map);
       });
       updateStationMarkers();
+
+      windAnimationTimer = window.setInterval(() => {
+        if (!layerStore.windEnabled || document.hidden) return;
+        windParticlePhase += 1;
+        updateWeatherLayers();
+      }, 280);
     });
   } catch {
     mapFailed.value = true;
@@ -732,6 +742,8 @@ watch(() => mapStore.activeAlertId, (alertId) => {
 });
 
 onBeforeUnmount(() => {
+  if (windAnimationTimer !== null) window.clearInterval(windAnimationTimer);
+  windAnimationTimer = null;
   mapResizeObserver?.disconnect();
   mapResizeObserver = null;
   districtMarkers.forEach((marker) => marker.remove());

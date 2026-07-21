@@ -7,6 +7,7 @@ export interface WindFieldLayerInput {
   streams: WindStream[];
   opacity: number;
   visible: boolean;
+  particlePhase?: number;
 }
 
 export const getWindStreamColor = (speed: number): [number, number, number, number] => {
@@ -22,8 +23,11 @@ interface WindDirectionParticle {
   speed: number;
 }
 
-const createDirectionParticles = (streams: WindStream[]): WindDirectionParticle[] => streams.map((stream, index) => {
-  const pointIndex = 5 + index % 7;
+const createDirectionParticles = (streams: WindStream[], particlePhase: number): WindDirectionParticle[] => streams
+  .filter((_, index) => index % 3 === 0)
+  .map((stream, index) => {
+  const travelRange = Math.max(1, stream.path.length - 6);
+  const pointIndex = 3 + (Math.floor(particlePhase) + index * 5) % travelRange;
   const previous = stream.path[pointIndex - 1];
   const position = stream.path[pointIndex];
   const next = stream.path[pointIndex + 1];
@@ -31,17 +35,17 @@ const createDirectionParticles = (streams: WindStream[]): WindDirectionParticle[
   return { id: stream.id, position, angle, speed: stream.speed };
 });
 
-export const createWindFieldLayers = ({ streams, opacity, visible }: WindFieldLayerInput): Layer[] => [
+export const createWindFieldLayers = ({ streams, opacity, visible, particlePhase = 0 }: WindFieldLayerInput): Layer[] => [
   new PathLayer<WindStream>({
     id: 'deck-wind-streamlines-glow',
     data: streams,
     getPath: (stream) => stream.path,
-    getColor: [35, 151, 235, 72],
-    getWidth: 2.8,
+    getColor: [30, 142, 225, 48],
+    getWidth: 1.8,
     widthUnits: 'pixels',
     jointRounded: true,
     capRounded: true,
-    opacity: opacity * 0.7,
+    opacity: opacity * 0.45,
     visible,
     pickable: false,
   }),
@@ -50,10 +54,10 @@ export const createWindFieldLayers = ({ streams, opacity, visible }: WindFieldLa
     data: streams,
     getPath: (stream) => stream.path,
     getColor: (stream) => getWindStreamColor(stream.speed),
-    getWidth: (stream) => Math.min(1.35, 0.45 + stream.speed * 0.12),
+    getWidth: (stream) => Math.min(0.88, 0.32 + stream.speed * 0.075),
     widthUnits: 'pixels',
-    widthMinPixels: 0.55,
-    widthMaxPixels: 1.35,
+    widthMinPixels: 0.38,
+    widthMaxPixels: 0.88,
     jointRounded: true,
     capRounded: true,
     opacity,
@@ -62,18 +66,18 @@ export const createWindFieldLayers = ({ streams, opacity, visible }: WindFieldLa
   }),
   new TextLayer<WindDirectionParticle>({
     id: 'deck-wind-direction-particles',
-    data: createDirectionParticles(streams),
+    data: createDirectionParticles(streams, particlePhase),
     getPosition: (particle) => particle.position,
     getText: () => '➤',
     getAngle: (particle) => -particle.angle,
     getColor: (particle) => getWindStreamColor(particle.speed),
-    getSize: (particle) => 10 + particle.speed * 0.55,
+    getSize: (particle) => 5.5 + particle.speed * 0.32,
     sizeUnits: 'pixels',
     fontFamily: 'Arial, sans-serif',
     fontWeight: 700,
     characterSet: ['➤'],
     billboard: false,
-    opacity: Math.min(1, opacity * 1.35),
+    opacity: Math.min(1, opacity * 1.7),
     visible,
     pickable: false,
   }),
