@@ -1,0 +1,82 @@
+# Agent Issues
+
+## AGENT-001
+
+- Severity: Low
+- Source: Build
+- Affected file: `dist/assets/index-BKV_m1p7.js`
+- Problem description: Vite reports that the generated main JavaScript chunk is approximately 2.85 MB, above its 500 kB warning threshold.
+- Expected behavior: Production bundles should use intentional code splitting or an explicitly justified warning threshold so initial asset size remains controlled.
+- Status: Open
+
+## AGENT-002
+
+- Severity: High
+- Source: Visual QA
+- Affected file: `src/utils/radarDeckLayers.ts`
+- Problem description: The generated radar bitmap merges dense seeds into a broad severe-rain magenta field across much of central and eastern Shenzhen, masking district boundaries and making the overlay look like a smooth blob instead of weather radar.
+- Expected behavior: Low-intensity blue/cyan fields should remain broad, while yellow/orange/magenta cores stay localized and echo edges retain deterministic fragmented gaps without becoming isolated administrative blocks or dots.
+- Status: Verified
+
+## AGENT-003
+
+- Severity: High
+- Source: Test
+- Affected file: `src/utils/radarDeckLayers.ts`
+- Problem description: The first visual tuning pass reduced a 36 mm/h radar core to a sampled popup value of 14.1 mm/h, failing the existing severe-core threshold test.
+- Expected behavior: A 36 mm/h seed must still sample above 16 mm/h at its center while its warm-color footprint remains localized.
+- Status: Verified
+
+## AGENT-004
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/styles.css`
+- Problem description: The dashboard used a generic glossy circular logo, equally elevated panels, pill-shaped telemetry, and no explicit keyboard focus or reduced-motion treatment; the full header could also overflow between 1201px and 1320px.
+- Expected behavior: RainScope should read as a distinctive rainfall-monitoring instrument, keep the map visually dominant through quieter surrounding surfaces, expose visible keyboard focus, respect reduced motion, and preserve the full desktop header down to the tablet breakpoint.
+- Status: Verified
+
+## AGENT-005
+
+- Severity: High
+- Source: Review
+- Affected file: `src/styles.css`
+- Problem description: The first design pass added a repeating 96px vertical background line, creating a decorative grid pattern that conflicts with RainScope's restrained visual direction.
+- Expected behavior: The page background should remain calm and atmospheric, with the radar observation badge as the single signature element and no decorative grid.
+- Status: Verified
+
+## AGENT-006
+
+- Severity: High
+- Source: Review
+- Affected file: `.agent/state.json`
+- Problem description: `reviewResult` contained two identical `status` keys, making the execution state ambiguous for strict JSON consumers.
+- Expected behavior: Every state field must have exactly one unambiguous value.
+- Status: Verified
+
+## AGENT-007
+
+- Severity: Medium
+- Source: Review
+- Affected file: `src/styles.css`
+- Problem description: The design pass introduced `--color-surface-deep` and `--color-surface-raised` without using them, adding misleading design-system surface levels.
+- Expected behavior: Every design token should have a concrete consumer or be omitted until needed.
+- Status: Verified
+
+## AGENT-008
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/styles.css`
+- Problem description: At 1440×900, the fixed compact right-column row heights clip the humidity/wind metric values at the bottom, fully hide the metric panel's `查看详情` action, and clip the second alert card's `查看详情` action.
+- Expected behavior: Every visible metric and interactive action must remain fully inside its panel at the supported 1440px desktop width without being hidden by `overflow: hidden`.
+- Status: Verified
+
+## AGENT-009
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/styles.css`
+- Problem description: The timeline playback-speed button shrinks its chevron SVG to 1.5px wide at 1920×1080, 1536×1024, and 1440×900, making the icon nearly invisible.
+- Expected behavior: The speed dropdown chevron should retain its declared 13×13px size and remain clearly recognizable at every supported desktop size.
+- Status: Verified

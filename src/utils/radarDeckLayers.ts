@@ -50,10 +50,10 @@ const radarColors: Record<RadarLevel, [number, number, number]> = {
 
 const colorStops = [
   { value: 0.08, color: [22, 102, 205] },
-  { value: 0.22, color: radarColors.light },
-  { value: 0.4, color: radarColors.moderate },
-  { value: 0.58, color: radarColors.heavy },
-  { value: 0.76, color: radarColors.storm },
+  { value: 0.26, color: radarColors.light },
+  { value: 0.48, color: radarColors.moderate },
+  { value: 0.68, color: radarColors.heavy },
+  { value: 0.84, color: radarColors.storm },
   { value: 1, color: radarColors.severeStorm },
 ] as const;
 
@@ -96,9 +96,9 @@ const createRadarSeeds = (
       return {
         x: ((longitude - west) / (east - west)) * width,
         y: ((north - latitude) / (north - south)) * height,
-        strength: Math.min(1, intensity >= 32 ? 0.82 + (intensity - 32) * 0.012 : intensity < 16 ? intensity / 34 : Math.pow(intensity / 44, 1.5)),
-        radiusX: 9 + Math.sqrt(intensity) * 2.9 + (index % 3) * 1.7,
-        radiusY: 6 + Math.sqrt(intensity) * 1.9 + (index % 4) * 1.1,
+        strength: Math.min(0.98, intensity >= 32 ? 0.82 + (intensity - 32) * 0.01 : intensity < 16 ? intensity / 36 : Math.pow(intensity / 48, 1.55)),
+        radiusX: 8 + Math.sqrt(intensity) * 2.35 + (index % 3) * 1.4,
+        radiusY: 5 + Math.sqrt(intensity) * 1.55 + (index % 4) * 0.9,
         angle: -0.36 + Math.sin(index * 1.73) * 0.34,
       };
     })
@@ -123,12 +123,13 @@ const calculateRadarValue = (x: number, y: number, seeds: RadarSeed[]): number =
   }
 
   const density = 1 - Math.exp(-field * 0.13);
-  const baseValue = peak * 0.86 + density * 0.12;
+  const baseValue = peak * 0.84 + density * 0.1;
   const texture = echoTexture(x, y);
   const cellular = Math.sin(x * 0.73 + Math.cos(y * 0.19) * 2.1) * Math.cos(y * 0.61 - x * 0.08);
-  const breakup = cellular * 0.045 + textureNoise(x, y) * 1.35;
+  const fragments = Math.sin(x * 0.43 + y * 0.27) * Math.cos(y * 0.37 - x * 0.16);
+  const breakup = cellular * 0.055 + fragments * 0.025 + textureNoise(x, y) * 1.45;
   const value = Math.max(0, Math.min(1, baseValue + breakup * Math.min(1, field * 2.2)));
-  const edgeThreshold = 0.075 + texture * 0.032 + cellular * 0.012;
+  const edgeThreshold = 0.082 + texture * 0.038 + cellular * 0.016 + fragments * 0.012;
   if (value < edgeThreshold) return 0;
   return Math.max(0, Math.min(1, value * (0.9 + texture * 0.16 + cellular * 0.06)));
 };

@@ -37,6 +37,46 @@ describe('radarDeckLayers', () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps severe echoes localized while preserving transparent breakup around the field', () => {
+    const putImageData = vi.fn();
+    const width = 96;
+    const height = 64;
+    const imageData = { data: new Uint8ClampedArray(width * height * 4) };
+    const canvas = { width: 0, height: 0, getContext: () => ({ createImageData: () => imageData, putImageData }) };
+    vi.stubGlobal('document', { createElement: () => canvas });
+
+    createRadarBitmap({
+      points: {
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { intensity: 42 }, geometry: { type: 'Point', coordinates: [114.1, 22.55] } },
+          { type: 'Feature', properties: { intensity: 12 }, geometry: { type: 'Point', coordinates: [114.02, 22.58] } },
+          { type: 'Feature', properties: { intensity: 8 }, geometry: { type: 'Point', coordinates: [114.18, 22.51] } },
+        ],
+      },
+      bounds: [113.8, 22.4, 114.4, 22.8],
+      width,
+      height,
+    });
+
+    const pixels = Array.from({ length: width * height }, (_, index) => {
+      const offset = index * 4;
+      return {
+        red: imageData.data[offset],
+        blue: imageData.data[offset + 2],
+        alpha: imageData.data[offset + 3],
+      };
+    });
+    const visiblePixels = pixels.filter((pixel) => pixel.alpha > 0);
+    const warmCorePixels = visiblePixels.filter((pixel) => pixel.red > pixel.blue * 1.35);
+
+    expect(visiblePixels.length).toBeGreaterThan(40);
+    expect(visiblePixels.length).toBeLessThan(width * height * 0.45);
+    expect(warmCorePixels.length).toBeGreaterThan(0);
+    expect(warmCorePixels.length).toBeLessThan(visiblePixels.length * 0.35);
+    vi.unstubAllGlobals();
+  });
+
   it('samples popup intensity from the same radar field used by the bitmap', () => {
     const points = {
       type: 'FeatureCollection' as const,

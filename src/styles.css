@@ -14,9 +14,10 @@
   --color-success: #37d67a;
   --color-warning: #facc15;
   --color-danger: #ef4444;
+  --color-radar-cyan: #6dd3ff;
   --radius-card: 8px;
   --radius-panel: 8px;
-  --shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --shadow-panel: 0 14px 30px rgba(0, 5, 13, 0.22);
   color: var(--color-text);
   background: var(--color-bg);
   font-family: Inter, "DIN Alternate", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -47,6 +48,13 @@ select {
 
 button {
   color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-radar-cyan);
+  outline-offset: 3px;
 }
 
 input[type="checkbox"],
@@ -130,8 +138,7 @@ body {
   overflow: hidden;
   padding: 14px 16px 16px;
   background:
-    radial-gradient(circle at 30% 8%, rgba(42, 136, 255, 0.14), transparent 30%),
-    radial-gradient(circle at 78% 25%, rgba(75, 163, 255, 0.08), transparent 28%),
+    radial-gradient(ellipse at 48% -12%, rgba(75, 163, 255, 0.16), transparent 42%),
     linear-gradient(180deg, var(--color-bg-gradient-start) 0%, var(--color-bg-gradient-end) 100%);
   color: var(--color-text);
 }
@@ -141,18 +148,30 @@ body {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
-  background: var(--color-panel);
-  box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, rgba(10, 29, 49, 0.94), rgba(7, 23, 39, 0.92));
+  box-shadow: inset 0 1px rgba(199, 231, 255, 0.035), var(--shadow-panel);
+  backdrop-filter: blur(14px);
 }
 
 .panel-title {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 16px 8px;
+  padding: 12px 16px 9px 22px;
   border-bottom: 1px solid rgba(87, 164, 230, 0.12);
+}
+
+.panel-title::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 12px;
+  width: 3px;
+  height: 13px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--color-radar-cyan), var(--color-primary));
 }
 
 .panel-title h2,
@@ -189,20 +208,45 @@ body {
 }
 
 .weather-header__logo {
+  position: relative;
   display: grid;
   width: 50px;
   height: 50px;
   place-items: center;
   border: 1px solid rgba(75, 163, 255, 0.34);
-  border-radius: 50%;
+  border-radius: 14px;
   background:
-    radial-gradient(circle at 32% 30%, rgba(91, 192, 255, 0.9), transparent 24%),
-    linear-gradient(135deg, #0b63c7, #0a2445 74%);
+    radial-gradient(circle at center, rgba(109, 211, 255, 0.18) 0 2px, transparent 3px),
+    linear-gradient(145deg, #0c3154, #071827 72%);
   color: #bfe9ff;
   overflow: hidden;
 }
 
+.weather-header__logo::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(109, 211, 255, 0.42);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 7px rgba(109, 211, 255, 0.055), inset 0 0 0 14px rgba(109, 211, 255, 0.035);
+}
+
+.weather-header__logo::after {
+  content: "";
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-radar-cyan), transparent);
+  box-shadow: 0 0 8px rgba(109, 211, 255, 0.5);
+  transform: rotate(-28deg);
+  transform-origin: left center;
+}
+
 .weather-header__logo .weather-icon {
+  position: relative;
+  z-index: 1;
   width: 34px;
   height: 34px;
   transform: rotate(-10deg);
@@ -212,13 +256,17 @@ body {
   margin: 0;
   color: #f1f7ff;
   font-size: 24px;
+  font-family: "DIN Alternate", "Bahnschrift Condensed", Inter, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.035em;
   line-height: 1.05;
 }
 
 .weather-header p {
   margin: 5px 0 0;
-  color: #66c2ff;
-  font-size: 15px;
+  color: #79cfff;
+  font-size: 13px;
+  letter-spacing: 0.08em;
 }
 
 .weather-header__city,
@@ -297,21 +345,27 @@ body {
 .weather-header__chips {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: 28px;
-  background: rgba(11, 35, 61, 0.74);
+  gap: 0;
+  padding: 7px 10px;
+  border-block: 1px solid rgba(87, 164, 230, 0.14);
+  background: rgba(7, 23, 39, 0.48);
 }
 
 .weather-header__chips span {
+  padding-inline: 10px;
   color: var(--color-text-secondary);
   text-align: center;
   white-space: nowrap;
 }
 
+.weather-header__chips span + span {
+  border-left: 1px solid rgba(87, 164, 230, 0.16);
+}
+
 .weather-header__chips strong {
   color: #dcecff;
   font-size: 17px;
+  font-variant-numeric: tabular-nums;
 }
 
 .weather-header__time {
@@ -323,6 +377,8 @@ body {
 .weather-header__time strong {
   font-size: 15px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.025em;
 }
 
 .weather-header__time span {
@@ -1104,11 +1160,12 @@ body {
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
 }
 
 .trend-panel__tabs button.active {
   border-color: rgba(75, 163, 255, 0.28);
-  background: rgba(75, 163, 255, 0.24);
+  background: linear-gradient(180deg, rgba(75, 163, 255, 0.28), rgba(75, 163, 255, 0.14));
   color: #eaf4ff;
 }
 
@@ -1254,6 +1311,7 @@ body {
 }
 
 .timeline-panel__speed .ui-icon {
+  flex: 0 0 13px;
   width: 13px;
   height: 13px;
 }
@@ -1268,6 +1326,7 @@ body {
   height: 8px;
   border-radius: 999px;
   background: rgba(95, 120, 148, 0.34);
+  box-shadow: inset 0 1px 2px rgba(0, 5, 13, 0.6);
 }
 
 .timeline-panel__past,
@@ -1470,7 +1529,37 @@ body {
   }
 }
 
-@media (min-width: 1201px) and (max-width: 1400px) and (max-height: 950px) {
+@media (min-width: 1201px) and (max-width: 1320px) {
+  .weather-header {
+    grid-template-columns: 210px 112px 210px minmax(270px, 1fr) 168px 126px;
+    gap: 8px;
+  }
+
+  .weather-header__chips {
+    padding-inline: 4px;
+  }
+
+  .weather-header__chips span {
+    padding-inline: 6px;
+  }
+
+  .weather-header__actions button {
+    padding-inline: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (min-width: 1201px) and (max-width: 1500px) and (max-height: 950px) {
   .weather-dashboard__left {
     grid-template-rows: auto auto minmax(0, 1fr);
   }
