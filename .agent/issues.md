@@ -80,3 +80,12 @@
 - Problem description: The timeline playback-speed button shrinks its chevron SVG to 1.5px wide at 1920×1080, 1536×1024, and 1440×900, making the icon nearly invisible.
 - Expected behavior: The speed dropdown chevron should retain its declared 13×13px size and remain clearly recognizable at every supported desktop size.
 - Status: Verified
+
+## AGENT-010
+
+- Severity: Low
+- Source: Review
+- Affected file: `.gitignore`
+- Problem description: Daily optimization logs and reports would appear as untracked files after every scheduled run.
+- Expected behavior: Generated daily-run artifacts should remain available locally without polluting the repository working tree.
+- Status: Verified
