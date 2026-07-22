@@ -1,6 +1,0 @@
-- region "深圳降雨雷达地图" [ref=f1e1] [box=308,84,1244,515]:
-  - generic [ref=f1e2] [box=309,85,1242,513]
-  - generic [ref=f1e4] [box=325,99,201,35]: 当前时间：2026-07-09 14:30
-  - article [ref=f1e11] [box=1005,306,190,230]
-  - generic "地图控制" [ref=f1e23] [box=1493,356,40,184]
-  - generic [ref=f1e28] [box=329,544,64,36]: 5 km
