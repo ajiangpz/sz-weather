@@ -49,8 +49,17 @@ Development workflow:
 Validation:
 1. Run `pnpm install --frozen-lockfile` when dependencies are not already installed.
 2. Run `pnpm verify`.
-3. For UI/map/chart/responsive changes, perform the visual checks required by AGENTS.md when browser tooling is available.
-4. If validation fails, diagnose the root cause, fix it, and rerun the full applicable validation suite.
+3. For UI, map, chart, timeline, interaction, or responsive changes, run the Playwright E2E suite in Chromium when browser tooling is available.
+4. Verify the affected flow at the documented desktop widths: 1920×1080, 1536×1024, and 1440px wide.
+5. Treat uncaught browser page errors, failed Playwright assertions, and obvious broken layouts as validation failures.
+6. If validation fails, diagnose the root cause, fix it, and rerun the full applicable validation suite.
+
+Browser self-test:
+- Use `playwright.config.mjs` and `tests/e2e/` as the repository browser-test baseline.
+- If `@playwright/test` is not installed in the agent environment, install an ephemeral compatible runner without changing application dependencies when possible.
+- Run Chromium only for the standard autonomous loop unless the issue explicitly requires cross-browser behavior.
+- Preserve Playwright traces, screenshots, video, or reports when a browser test fails and use them during diagnosis.
+- Add focused E2E coverage for newly changed user-visible behavior instead of relying only on the smoke tests.
 
 Self review:
 1. Review the final diff and directly affected call chain.
@@ -70,6 +79,7 @@ When complete:
    - Changes
    - Tests
    - Validation results
+   - Browser/visual verification
    - Review findings and fixes
    - Risks / limitations
    - Manual verification
@@ -79,7 +89,7 @@ If the task cannot be completed safely, do not guess or bypass checks. Leave the
 
 ## Repository validation
 
-The repository exposes a single verification command:
+The repository exposes a single non-browser verification command:
 
 ```bash
 pnpm verify
@@ -95,9 +105,34 @@ vue-tsc --noEmit && vite build
 
 `--passWithNoTests` is temporary because the current repository does not yet contain a baseline Vitest suite. Once baseline tests are added, remove this flag so absence of tests becomes a CI failure.
 
+## Playwright E2E baseline
+
+The browser baseline is defined by:
+
+```text
+playwright.config.mjs
+tests/e2e/dashboard.spec.mjs
+```
+
+The baseline verifies that:
+
+- the RainScope dashboard renders;
+- the primary dashboard regions are visible;
+- no uncaught page-level JavaScript error occurs during the smoke test;
+- the dashboard remains renderable at 1920×1080, 1536×1024, and 1440px desktop widths.
+
+CI runs Chromium only. On failure, Playwright retains diagnostic artifacts such as traces, screenshots, video, and the HTML report when available.
+
+The current CI installs `@playwright/test` ephemerally for the E2E job so this infrastructure change does not rewrite the existing pnpm lockfile. When Playwright becomes a permanent local-development dependency, add it to `devDependencies` and regenerate `pnpm-lock.yaml` together in a dedicated dependency update.
+
 ## GitHub Actions
 
 Pull requests targeting `deckGL` are independently validated by `.github/workflows/ci.yml`.
+
+The workflow has two gates:
+
+1. `verify` — typecheck, Vitest, and production build.
+2. `e2e` — Chromium Playwright browser tests after `verify` succeeds.
 
 Codex validation and GitHub Actions are intentionally separate gates. A successful local/agent run does not replace CI.
 
