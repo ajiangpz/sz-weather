@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "vue-tsc --noEmit",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run src --passWithNoTests",
+    "verify": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",
