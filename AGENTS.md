@@ -159,6 +159,41 @@ Apply these project-specific checks when relevant:
 - Use mock data and do not require a live weather API for MVP validation.
 - Documentation-only changes do not require browser visual QA unless they alter visual assets or runnable examples.
 
+### Required Visual QA and Repair Loop
+
+For any task that changes UI, layout, map rendering, charts, timeline, wind field, rainfall radar, interaction, responsive behavior, animation, or any other user-visible behavior, functional tests are necessary but are not sufficient for completion. A green build, unit test suite, or Playwright smoke test must never be treated as proof that the visual result is correct.
+
+For these tasks, execute this visual loop after implementation and after every subsequent visual fix:
+
+1. Start the current development branch locally and render the actual changed page.
+2. Use Playwright Chromium to capture full-page screenshots at all supported desktop review sizes: `1920×1080`, `1536×1024`, and `1440×900`.
+3. Capture additional component or map-area screenshots when the changed behavior is easier to evaluate at a closer scale.
+4. Compare the rendered result against the current Issue background, goals, and acceptance criteria, plus `docs/image.png`, `docs/UI_DESIGN_SPEC.md`, `docs/VISUAL_STYLE_GUIDE.md`, and any directly relevant design document.
+5. Do not require pixel-perfect identity. Evaluate visual hierarchy, density, proportions, spacing, overlap, color balance, information readability, map dominance, rainfall prominence, and the task-specific visual intent.
+6. Record every visual finding in `.agent/issues.md` with source `Visual QA` and severity `Critical`, `High`, `Medium`, or `Low`.
+7. If any Critical, High, or Medium visual finding related to the active Issue remains unresolved, set `.agent/state.json` to `FIX`, change the implementation, and rerun the complete applicable validation suite plus the full visual QA loop.
+8. Mark a visual finding `Verified` only after a new render/screenshot confirms the fix. Code inspection alone is not visual verification.
+9. Repeat `TEST → VISUAL QA → REVIEW → FIX` until all active-Issue Critical/High/Medium visual findings are Verified.
+10. Require two consecutive complete `validation + visual QA + code review` cycles with no new blocking finding before entering `DONE`.
+
+For animated visual behavior such as wind particles, radar playback, chart animation, or timeline playback, a single static screenshot is not enough. Also inspect the running behavior across multiple time points or consecutive frames. Check at least:
+
+- motion direction is natural and consistent with the underlying data;
+- speed changes are visibly data-driven where applicable;
+- trails/particles are neither excessively long nor excessively dense;
+- animation does not visibly jump, blink, flicker, freeze, or reset unnaturally;
+- particles or trails do not terminate with distracting hard cutoffs at map boundaries;
+- animation does not obscure rainfall radar, district labels, station markers, alerts, or other higher-priority information;
+- the static appearance at a random captured frame still reads correctly.
+
+Use multiple timed Playwright screenshots, frame sampling, or another practical browser-observation method when needed. Do not approve animated behavior solely from source code or one screenshot.
+
+When an Issue already has an open PR or active development branch, continue that PR/branch for visual repair instead of creating a duplicate PR. Before declaring the task complete, read unresolved PR review threads and incorporate every valid finding related to the active Issue.
+
+For user-visible tasks, the following statement is a hard rule:
+
+> Test passing is not visual passing. PR creation is not task completion. A visually incorrect result must return to `FIX` and continue iterating.
+
 ### Review Checklist
 
 Review for:
@@ -175,6 +210,9 @@ Review for:
 10. Test completeness
 11. RainScope visual hierarchy and responsive behavior when UI is affected
 12. Resource cleanup when charts, maps, playback, or listeners are affected
+13. Visual QA evidence at 1920×1080, 1536×1024, and 1440×900 for user-visible changes
+14. Dynamic visual evidence for animations such as wind field and radar playback
+15. Unresolved PR review threads related to the active Issue
 
 ### Completion and Blocking
 
@@ -184,9 +222,11 @@ Enter `DONE` only when:
 2. Every available applicable validation command passes.
 3. Every unavailable required script is explicitly documented with its reason.
 4. No Critical or High issue remains unverified.
-5. Every resolved issue has been verified by an applicable test, build, or visual check.
-6. Two consecutive complete validation and review cycles produce no new blocking issue.
-7. A final completion report has been written.
+5. For user-visible tasks, no active-Issue Medium visual finding remains unverified.
+6. Every resolved issue has been verified by an applicable test, build, or visual check.
+7. For user-visible tasks, required screenshots and dynamic visual checks have been completed and recorded.
+8. Two consecutive complete validation, visual QA when applicable, and review cycles produce no new blocking issue.
+9. A final completion report has been written.
 
 Run no more than 10 repair iterations. If the limit is reached, set the state to `BLOCKED` and report unresolved problems, attempted fixes, relevant non-secret logs, suspected root cause, and the recommended next action. Never include credentials or secret environment-variable values in state, issues, logs, documentation, or the final report.
 
@@ -200,5 +240,7 @@ The completion report must include:
 4. Commands executed
 5. Validation results, including unavailable scripts
 6. Issues found, fixed, and verified
-7. Remaining limitations
-8. Evidence for each acceptance criterion
+7. Visual QA evidence and viewport conclusions for user-visible changes
+8. Dynamic animation observations when relevant
+9. Remaining limitations
+10. Evidence for each acceptance criterion
