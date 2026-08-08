@@ -157,3 +157,31 @@ Acceptance:
 - Panels collapse on small screens
 - Charts reflow correctly
 - Timeline is simplified on mobile
+
+---
+
+## Automation Queue
+
+This section is the task source for the scheduled GitHub Issue producer.
+
+Only unchecked Markdown items directly written in this format are eligible:
+
+```text
+- [ ] Short, implementation-ready task title
+```
+
+Rules:
+
+- Put the highest-priority task first.
+- Keep each queue item scoped so Codex can reasonably complete it in one development run.
+- Do not add `codex-ready` manually unless you want Codex to pick up an Issue outside this queue.
+- The scheduled workflow creates at most one Issue per run.
+- If any open Issue already has the `codex-ready` label, the workflow creates nothing.
+- After an Issue is created successfully, the corresponding queue item is changed from `[ ]` to `[x]` and committed back to the repository.
+- Checked items are historical records and will not be recreated.
+
+### Pending tasks
+
+<!-- Add implementation-ready tasks below this line. Example:
+- [ ] Add 0.5x, 1x, and 2x playback-speed controls to WeatherTimeline
+-->
