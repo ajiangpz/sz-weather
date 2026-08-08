@@ -8,7 +8,7 @@
     "typecheck": "vue-tsc --noEmit",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run src --passWithNoTests",
     "verify": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
