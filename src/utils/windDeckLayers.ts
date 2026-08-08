@@ -16,9 +16,10 @@ export const getWindStreamColor = (speed: number): [number, number, number, numb
   return [76, 139, 204, 105];
 };
 
-interface WindParticleStreak {
+export interface WindParticleStreak {
   id: string;
   path: Array<[number, number]>;
+  headPath: Array<[number, number]>;
   speed: number;
 }
 
@@ -31,61 +32,70 @@ const interpolatePoint = (path: Array<[number, number]>, progress: number): [num
   return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
 };
 
-const createParticleStreaks = (streams: WindStream[], particlePhase: number): WindParticleStreak[] => streams
-  .filter((_, index) => index % 6 === 0)
+export const getWindParticleRate = (speed: number) => 0.11 + Math.max(0, speed) * 0.017;
+
+export const createWindParticleStreaks = (
+  streams: WindStream[],
+  particlePhase: number,
+): WindParticleStreak[] => streams
+  .filter((stream, index) => index % 3 === 0 && stream.path.length >= 6)
   .map((stream, index) => {
-    const initialPhase = ((index * 0.61803398875) % 1);
-    const progress = (initialPhase + particlePhase * (0.045 + stream.speed * 0.004)) % 1;
-    const tailProgress = Math.max(0, progress - 0.028);
+    const initialPhase = (index * 0.61803398875) % 1;
+    const progress = (initialPhase + particlePhase * getWindParticleRate(stream.speed)) % 1;
+    const trailSpan = Math.min(0.052, 0.034 + stream.speed * 0.0026);
+    const sampleCount = 5;
+    const startProgress = Math.max(0, progress - trailSpan);
+    const path = Array.from({ length: sampleCount }, (_, sampleIndex) => {
+      const ratio = sampleIndex / (sampleCount - 1);
+      return interpolatePoint(stream.path, startProgress + (progress - startProgress) * ratio);
+    });
+
     return {
       id: stream.id,
       speed: stream.speed,
-      path: [interpolatePoint(stream.path, tailProgress), interpolatePoint(stream.path, progress)],
+      path,
+      headPath: path.slice(-2),
     };
   });
 
-export const createWindFieldLayers = ({ streams, opacity, visible, particlePhase = 0 }: WindFieldLayerInput): Layer[] => [
-  new PathLayer<WindStream>({
-    id: 'deck-wind-streamlines-glow',
-    data: streams,
-    getPath: (stream) => stream.path,
-    getColor: [26, 133, 214, 28],
-    getWidth: 1.25,
-    widthUnits: 'pixels',
-    jointRounded: true,
-    capRounded: true,
-    opacity: opacity * 0.35,
-    visible,
-    pickable: false,
-  }),
-  new PathLayer<WindStream>({
-    id: 'deck-wind-streamlines',
-    data: streams,
-    getPath: (stream) => stream.path,
-    getColor: (stream) => getWindStreamColor(stream.speed),
-    getWidth: (stream) => Math.min(0.68, 0.28 + stream.speed * 0.058),
-    widthUnits: 'pixels',
-    widthMinPixels: 0.32,
-    widthMaxPixels: 0.68,
-    jointRounded: true,
-    capRounded: true,
-    opacity: Math.min(1, opacity * 1.35),
-    visible,
-    pickable: false,
-  }),
-  new PathLayer<WindParticleStreak>({
-    id: 'deck-wind-particle-streaks',
-    data: createParticleStreaks(streams, particlePhase),
-    getPath: (particle) => particle.path,
-    getColor: (particle) => particle.speed >= 5 ? [178, 244, 255, 245] : [101, 218, 255, 225],
-    getWidth: (particle) => Math.min(1.35, 0.86 + particle.speed * 0.07),
-    widthUnits: 'pixels',
-    widthMinPixels: 0.9,
-    widthMaxPixels: 1.35,
-    jointRounded: true,
-    capRounded: true,
-    opacity: Math.min(1, opacity * 2),
-    visible,
-    pickable: false,
-  }),
-];
+export const createWindFieldLayers = ({ streams, opacity, visible, particlePhase = 0 }: WindFieldLayerInput): Layer[] => {
+  const particles = createWindParticleStreaks(streams, particlePhase);
+
+  return [
+    new PathLayer<WindParticleStreak>({
+      id: 'deck-wind-particle-trails',
+      data: particles,
+      getPath: (particle) => particle.path,
+      getColor: (particle) => {
+        const [red, green, blue] = getWindStreamColor(particle.speed);
+        return [red, green, blue, particle.speed >= 5 ? 105 : 78];
+      },
+      getWidth: (particle) => Math.min(0.86, 0.45 + particle.speed * 0.055),
+      widthUnits: 'pixels',
+      widthMinPixels: 0.45,
+      widthMaxPixels: 0.86,
+      jointRounded: true,
+      capRounded: true,
+      opacity: Math.min(0.7, opacity * 0.82),
+      visible,
+      pickable: false,
+    }),
+    new PathLayer<WindParticleStreak>({
+      id: 'deck-wind-particle-heads',
+      data: particles,
+      getPath: (particle) => particle.headPath,
+      getColor: (particle) => particle.speed >= 5
+        ? [188, 244, 255, 220]
+        : [104, 211, 248, 185],
+      getWidth: (particle) => Math.min(1.15, 0.72 + particle.speed * 0.065),
+      widthUnits: 'pixels',
+      widthMinPixels: 0.74,
+      widthMaxPixels: 1.15,
+      jointRounded: true,
+      capRounded: true,
+      opacity: Math.min(0.86, opacity * 1.08),
+      visible,
+      pickable: false,
+    }),
+  ];
+};
