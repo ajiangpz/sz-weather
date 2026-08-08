@@ -27,10 +27,20 @@ Use the following prompt for the scheduled Codex task:
 ```text
 Work on repository ajiangpz/sz-weather.
 
-Find open GitHub Issues labeled `codex-ready`.
-If there are none, report that there is no eligible task and make no code changes.
+FIRST STEP ONLY: query GitHub for open Issues labeled `codex-ready`.
+Do not read AGENTS.md, project docs, source files, tests, package.json, lockfiles, or any other repository file before this issue check completes.
+Do not install dependencies, start the app, run tests, run builds, inspect git history, or perform code search before this issue check completes.
 
-Select exactly one eligible issue. Prefer the oldest issue unless the issue text explicitly states a higher priority.
+If there are no open Issues labeled `codex-ready`:
+- stop immediately;
+- make no code or repository changes;
+- do not read the repository;
+- do not run any validation or browser tooling;
+- report only that there is no eligible task today.
+
+If one or more eligible issues exist, select exactly one. Prefer the oldest issue unless the issue text explicitly states a higher priority.
+
+Only after selecting an eligible issue may repository analysis begin.
 
 Before coding:
 1. Read AGENTS.md completely.
