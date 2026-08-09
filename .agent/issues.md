@@ -89,3 +89,12 @@
 - Problem description: Daily optimization logs and reports would appear as untracked files after every scheduled run.
 - Expected behavior: Generated daily-run artifacts should remain available locally without polluting the repository working tree.
 - Status: Verified
+
+## AGENT-011
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/utils/windDeckLayers.ts`, `src/components/weather/WeatherMapPanel.vue`
+- Problem description: Real Chromium screenshots at 1920×1080, 1536×1024, and 1440×900 show the post-PR #5 wind field as very sparse isolated cyan dashes. Across 0.9-second frame intervals the marks move, but the field does not read as a coherent flowing vector field; direction and speed are difficult to perceive and the fixed short segments resemble scratches/noise more than weather particles.
+- Expected behavior: Preserve rainfall as the primary visual layer while rendering a clearly readable low-density wind field with natural non-grid particle distribution, visibly continuous data-driven motion, short fading tails, and unobtrusive respawn at lifecycle boundaries.
+- Status: Verified
