@@ -1,19 +1,19 @@
 {
-  "status": "DONE",
-  "iteration": 4,
-  "lastCompletedAction": "Refined Issue #3 wind particles after real-browser visual rejection, verified the fix at 1920x1080, 1536x1024, and 1440x900, sampled 120ms and longer animation intervals, and completed two consecutive clean validation plus visual QA plus code-review cycles.",
-  "pendingIssueCount": 1,
+  "status": "BLOCKED",
+  "iteration": 1,
+  "lastCompletedAction": "Started Issue #4, reviewed the required RainScope docs and map call chain, then applied a first-pass basemap de-emphasis filter on branch fix/issue-4-quiet-basemap and confirmed the Vercel branch preview builds successfully.",
+  "pendingIssueCount": 2,
   "testResult": {
     "lint": "Unavailable: package.json has no lint script",
-    "typecheck": "Passed via pnpm verify in GitHub Actions runs 31287872172 and 31288003197",
-    "test": "Passed via pnpm verify in GitHub Actions runs 31287872172 and 31288003197, including wind density, lifecycle fade, segmented trail, and speed-rate coverage",
+    "typecheck": "Not run in this environment for Issue #4",
+    "test": "Not run in this environment for Issue #4",
     "test:integration": "Unavailable: package.json has no test:integration script",
-    "build": "Passed via pnpm verify in GitHub Actions runs 31287872172 and 31288003197",
-    "playwright": "Passed Chromium visual QA browser runs 31287872172 and 31288003197 with no page errors",
-    "visual": "Passed two real Chromium review cycles at 1920x1080, 1536x1024, and 1440x900. Multi-frame checks at 120ms, 240ms, 360ms, about 900ms, and about 1800ms show readable short flowing trails without restoring long streamlines; rainfall remains visually dominant."
+    "build": "Passed via Vercel Preview deployment dpl_DrhqQoNvGxNEWrwppvPMgNDMKRDr",
+    "playwright": "Blocked: this execution environment cannot launch/access a real Chromium session against the repository preview",
+    "visual": "Blocked: Vercel Preview is ready, but the required 1920x1080, 1536x1024, and 1440x900 rendered screenshot review cannot be performed from the available tools in this run"
   },
   "reviewResult": {
-    "status": "Passed",
-    "details": "Reviewed the full wind rendering call chain and updated tests. The fix replaces fixed every-third-stream dash sampling with deterministic non-grid particle selection, uses segmented alpha/width gradients for fading tails, preserves speed-dependent particle advancement, fades lifecycle boundaries, and does not add full-map long streamlines or unrelated refactors. AGENT-011 is Verified. Existing AGENT-001 low-severity Vite chunk warning remains unrelated to Issue #3."
+    "status": "Blocked",
+    "details": "Source review found that the basemap is a CARTO dark raster whose labels are baked into the same raster canvas as streets. The first pass reduces brightness, saturation, contrast, and opacity on the MapLibre canvas so deck.gl weather overlays and DOM district labels remain visually stronger. This must be judged in a real rendered browser before further tuning or DONE."
   }
 }
