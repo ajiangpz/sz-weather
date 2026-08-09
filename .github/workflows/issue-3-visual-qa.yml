@@ -1,0 +1,123 @@
+name: Issue 3 Wind Visual QA
+
+on:
+  push:
+    branches:
+      - feat/issue-3-wind-particles
+
+permissions:
+  contents: read
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      - name: Install Playwright
+        run: |
+          pnpm add --save-dev --lockfile=false @playwright/test@1.62.0
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Create visual QA test
+        run: |
+          cat > issue-3-visual-qa.spec.mjs <<'EOF'
+          import { test, expect } from '@playwright/test';
+
+          const targets = [
+            { name: '1920x1080', width: 1920, height: 1080 },
+            { name: '1536x1024', width: 1536, height: 1024 },
+            { name: '1440x900', width: 1440, height: 900 },
+          ];
+
+          for (const target of targets) {
+            test(`wind visual ${target.name}`, async ({ browser }) => {
+              const context = await browser.newContext({
+                viewport: { width: target.width, height: target.height },
+                deviceScaleFactor: 1,
+              });
+              const page = await context.newPage();
+              const browserErrors = [];
+              page.on('pageerror', (error) => browserErrors.push(error.message));
+
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+              await expect(page.getByRole('heading', { name: 'RainScope' })).toBeVisible();
+              await page.getByLabel('风场流线').first().check();
+              await page.waitForTimeout(1200);
+
+              const map = page.locator('.weather-map-panel');
+              await expect(map).toBeVisible();
+              await page.screenshot({ path: `visual-qa/${target.name}-full.png`, fullPage: true });
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-t0.png` });
+              await page.waitForTimeout(900);
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-t1.png` });
+              await page.waitForTimeout(900);
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-t2.png` });
+
+              expect(browserErrors, browserErrors.join('\n')).toEqual([]);
+              await context.close();
+            });
+          }
+          EOF
+
+          cat > issue-3-playwright.config.mjs <<'EOF'
+          export default {
+            testDir: '.',
+            testMatch: 'issue-3-visual-qa.spec.mjs',
+            timeout: 60000,
+            workers: 1,
+            use: {
+              headless: true,
+              launchOptions: {
+                args: ['--use-gl=swiftshader', '--enable-webgl', '--ignore-gpu-blocklist'],
+              },
+            },
+          };
+          EOF
+
+      - name: Start Vite
+        run: |
+          GITHUB_ACTIONS= pnpm exec vite --host 127.0.0.1 --port 4173 > /tmp/rainscope-vite.log 2>&1 &
+          echo $! > /tmp/rainscope-vite.pid
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/rainscope-vite.log
+          exit 1
+
+      - name: Capture visual QA evidence
+        run: pnpm exec playwright test --config=issue-3-playwright.config.mjs
+
+      - name: Upload visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-3-wind-visual-qa
+          path: |
+            visual-qa/
+            playwright-report/
+            test-results/
+            /tmp/rainscope-vite.log
+          if-no-files-found: ignore
+          retention-days: 14
