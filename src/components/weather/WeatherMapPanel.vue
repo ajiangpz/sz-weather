@@ -321,9 +321,9 @@ const createUrbanTextureLines = (): LineFeatureCollection['features'] => [
 ];
 
 const darkBaseTiles = [
-  'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-  'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+  'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+  'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+  'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
 ];
 
 const roadNetworkGeoJson: LineFeatureCollection = {

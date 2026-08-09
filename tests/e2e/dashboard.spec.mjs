@@ -17,7 +17,7 @@ test.describe('RainScope dashboard smoke tests', () => {
     expect(pageErrors, `Unexpected page errors: ${pageErrors.join('\n')}`).toEqual([]);
   });
 
-  test('keeps the dashboard usable at the documented desktop widths', async ({ page }) => {
+  test('keeps the dashboard usable at the documented desktop widths', async ({ page }, testInfo) => {
     for (const viewport of [
       { width: 1920, height: 1080 },
       { width: 1536, height: 1024 },
@@ -36,6 +36,12 @@ test.describe('RainScope dashboard smoke tests', () => {
       expect(box).not.toBeNull();
       expect(box.width).toBeGreaterThan(0);
       expect(box.height).toBeGreaterThan(0);
+
+      await page.waitForTimeout(1200);
+      await page.screenshot({
+        path: testInfo.outputPath(`visual-qa-${viewport.width}x${viewport.height}.png`),
+        fullPage: true,
+      });
     }
   });
 });
