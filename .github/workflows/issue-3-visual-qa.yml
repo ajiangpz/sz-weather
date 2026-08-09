@@ -70,7 +70,15 @@ jobs:
               await expect(map).toBeVisible();
               await page.screenshot({ path: `visual-qa/${target.name}-full.png`, fullPage: true });
               await map.screenshot({ path: `visual-qa/${target.name}-wind-t0.png` });
-              await page.waitForTimeout(900);
+
+              await page.waitForTimeout(120);
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-fast1.png` });
+              await page.waitForTimeout(120);
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-fast2.png` });
+              await page.waitForTimeout(120);
+              await map.screenshot({ path: `visual-qa/${target.name}-wind-fast3.png` });
+
+              await page.waitForTimeout(540);
               await map.screenshot({ path: `visual-qa/${target.name}-wind-t1.png` });
               await page.waitForTimeout(900);
               await map.screenshot({ path: `visual-qa/${target.name}-wind-t2.png` });
