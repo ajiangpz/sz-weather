@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: process.env.GITHUB_ACTIONS ? '/sz-weather/' : '/',
+  base: process.env.VITE_BASE_PATH ?? '/',
   plugins: [vue()],
   resolve: {
     alias: {
