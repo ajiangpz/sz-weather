@@ -33,8 +33,8 @@ jobs:
 
       - name: Install Playwright Chromium
         run: |
-          npm install --no-save --package-lock=false playwright@1.54.2
-          npx playwright install --with-deps chromium
+          pnpm add -D playwright@1.54.2 --lockfile=false
+          pnpm exec playwright install --with-deps chromium
 
       - name: Start preview
         run: |
@@ -49,7 +49,7 @@ jobs:
       - name: Capture real Chromium evidence
         run: |
           mkdir -p visual-evidence
-          cat > /tmp/issue14-visual.mjs <<'EOF'
+          cat > ./issue14-visual.mjs <<'EOF'
           import { chromium } from 'playwright';
           import { createHash } from 'node:crypto';
           import { readFileSync, writeFileSync } from 'node:fs';
@@ -116,7 +116,7 @@ jobs:
           if (new Set(hashes.map(x=>x.hash)).size < 5) throw new Error('Dynamic frame hashes are not all distinct');
           await browser.close();
           EOF
-          node /tmp/issue14-visual.mjs
+          node ./issue14-visual.mjs
           cat visual-evidence/results.json
 
       - name: Upload evidence
