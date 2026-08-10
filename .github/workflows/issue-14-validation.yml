@@ -1,0 +1,129 @@
+name: Issue 14 Validation
+
+on:
+  push:
+    branches:
+      - fix/issue-14-wind-density
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm verify
+        run: pnpm verify
+
+      - name: Install Playwright Chromium
+        run: |
+          pnpm add -D --ignore-workspace-root-check @playwright/test@1.55.0
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright Chromium E2E
+        run: pnpm exec playwright test --project chromium
+
+      - name: Capture Issue 14 visual QA evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-qa/desktop visual-qa/map visual-qa/wind
+          cp docs/image.png visual-qa/reference.png
+          pnpm dev --host 127.0.0.1 --port 4173 > /tmp/rainscope-vite.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid || true' EXIT
+
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:4173 >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:4173 >/dev/null
+
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import path from 'node:path';
+
+          const browser = await chromium.launch({ headless: true });
+          const root = process.cwd();
+          const url = 'http://127.0.0.1:4173';
+
+          async function readyPage(width, height) {
+            const page = await browser.newPage({ viewport: { width, height } });
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+            const windToggle = page.getByLabel('风场流线');
+            await windToggle.waitFor({ state: 'visible', timeout: 15_000 });
+            if (!(await windToggle.isChecked())) await windToggle.check();
+            await page.waitForTimeout(5_000);
+            if (errors.length) throw new Error(`Page errors: ${errors.join('\n')}`);
+            return page;
+          }
+
+          for (const [width, height] of [[1920, 1080], [1536, 1024], [1440, 900]]) {
+            const page = await readyPage(width, height);
+            await page.screenshot({
+              path: path.join(root, 'visual-qa', 'desktop', `${width}x${height}.png`),
+              fullPage: true,
+            });
+            await page.getByRole('region', { name: '深圳降雨雷达地图' }).screenshot({
+              path: path.join(root, 'visual-qa', 'map', `${width}x${height}.png`),
+            });
+            await page.close();
+          }
+
+          const windPage = await readyPage(1536, 1024);
+          const samples = [
+            ['0000ms', 0],
+            ['0120ms', 120],
+            ['0240ms', 120],
+            ['0600ms', 360],
+            ['1800ms', 1200],
+          ];
+          for (const [name, waitMs] of samples) {
+            if (waitMs) await windPage.waitForTimeout(waitMs);
+            await windPage.getByRole('region', { name: '深圳降雨雷达地图' }).screenshot({
+              path: path.join(root, 'visual-qa', 'wind', `frame-${name}.png`),
+            });
+          }
+          await windPage.close();
+          await browser.close();
+          NODE
+
+      - name: Sanity-check visual evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find visual-qa/desktop -name '*.png' | wc -l)" -eq 3
+          test "$(find visual-qa/map -name '*.png' | wc -l)" -eq 3
+          test "$(find visual-qa/wind -name '*.png' | wc -l)" -eq 5
+          unique_frames=$(sha256sum visual-qa/wind/*.png | awk '{print $1}' | sort -u | wc -l)
+          echo "Unique wind frames: $unique_frames"
+          test "$unique_frames" -eq 5
+
+      - name: Upload visual QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-14-visual-qa
+          path: visual-qa/
+          if-no-files-found: error
+          retention-days: 7
