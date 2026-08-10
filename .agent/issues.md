@@ -152,3 +152,21 @@
 - Problem description: Issue #15 identified a repeated diagonal/cross-hatch texture in the generated rainfall bitmap, most visible through the Luohu-Yantian and northeastern strong-echo bands. The repair replaces fixed-direction trigonometric texture terms with deterministic multi-scale value noise sampled at varied rotations. Manual inspection of real Chromium evidence from runs `31361983116` and `31362190638` at 1920×1080, 1536×1024, and 1440×900 found the repeating diagonal stripe/mesh pattern removed while broad blue/cyan echo fields, localized warm cores, irregular edge breakup, district labels, and station markers remained readable. Timeline-driven frames changed naturally without obvious texture flicker, hard reset, or newly introduced directional repetition.
 - Expected behavior: Radar echoes should retain continuous weather-field structure and localized strong cores without repeated diagonal bands, cross-hatch mesh, tile seams, or overly dominant texture; the result must remain stable across all supported desktop viewports and timeline-driven frame changes.
 - Status: Verified
+
+## AGENT-018
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/mock/weather.ts`
+- Problem description: Issue #18 identifies warm severe-rain cores whose mock seed centers and intensities form visually regular bead-like chains. The implementation changes only mock storm-core seed geometry to uneven deterministic two-dimensional clusters, with varied offsets and intensity peaks; `pnpm verify` passes with regression coverage, but the rendered visual result has not yet been verified in the required real Chromium viewports and timeline/wind frames.
+- Expected behavior: At 1920×1080, 1536×1024, and 1440×900, the Luohu/Yantian and Pingshan/eastern warm cores should read as irregular clustered weather echoes with merges and gaps rather than equally spaced beads, while broad blue/cyan fields, labels, stations, the Issue #15 value-noise texture, and auxiliary wind motion remain intact across timeline frames.
+- Status: In Progress
+
+## AGENT-019
+
+- Severity: High
+- Source: Visual QA
+- Affected file: `src/mock/weather.ts`, `src/components/weather/WeatherMapPanel.vue`
+- Problem description: The branch Preview is READY and `pnpm verify` passed in Vercel, but this automation runtime cannot perform the user-required real Playwright Chromium visual loop: local Chromium exists, yet the runtime has no network/DNS path to the Vercel Preview, and the connected Vercel tools can fetch deployment content but cannot drive or screenshot a real browser. A temporary branch GitHub Actions visual harness also did not produce a run/comment in this execution.
+- Expected behavior: Run the current `fix/issue-18-radar-seed` branch in network-capable Playwright Chromium, capture full-page and map screenshots at 1920×1080, 1536×1024, and 1440×900, enable wind, sample timeline playback at multiple timepoints, compare with Issue #18 and the design references, and complete two consecutive clean validation + Visual QA + full call-chain review cycles before creating or declaring the PR complete.
+- Status: Open
