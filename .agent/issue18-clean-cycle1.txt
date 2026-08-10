@@ -1,1 +1,0 @@
-Trigger clean Chromium Visual QA cycle 1 after removing obsolete Issue #18 repair workflows.
