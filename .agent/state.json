@@ -1,19 +1,19 @@
 {
-  "status": "TEST",
+  "status": "FIX",
   "iteration": 2,
-  "lastCompletedAction": "Resumed Issue #18 on the existing fix/issue-18-radar-seed branch. Confirmed there is still no open PR for the branch and switched the visual-validation strategy back to the proven Issue #15 pattern: GitHub-hosted Ubuntu + real Playwright Chromium + runner-local preview, avoiding Vercel Preview network access.",
-  "pendingIssueCount": 4,
+  "lastCompletedAction": "Completed the first real GitHub-hosted Chromium cycle in run 31376673563: pnpm verify passed, existing Chromium E2E passed, all three required viewports rendered, wind enabled successfully, and five timeline-driven radar+wind frames were captured with distinct frame times and no page errors. Manual Visual QA still found a Medium Issue #18 defect: strong warm cores remain visibly bead-like at rendered scale, so the task returns to FIX instead of counting this as a clean cycle.",
+  "pendingIssueCount": 5,
   "testResult": {
     "lint": "Unavailable: package.json has no lint script",
-    "typecheck": "Previously passed in Vercel preview build dpl_4AJ8UGmEzSUCA2q2Yx8L4qrc4hyx via pnpm verify; rerun pending in GitHub-hosted Chromium cycle",
-    "test": "Previously passed: 7 test files / 27 tests; rerun pending in GitHub-hosted Chromium cycle",
+    "typecheck": "Passed in GitHub Actions run 31376673563 via pnpm verify",
+    "test": "Passed in GitHub Actions run 31376673563: 7 test files / 27 tests",
     "test:integration": "Unavailable: package.json has no test:integration script",
-    "build": "Previously passed in Vercel preview build; rerun pending in GitHub-hosted Chromium cycle",
-    "playwright": "Pending: run existing Chromium E2E plus Issue #18 three-viewport and dynamic visual harness on GitHub-hosted Ubuntu",
-    "visual": "Pending: two consecutive real-Chromium cycles at 1920x1080, 1536x1024, 1440x900 plus timeline playback with wind enabled"
+    "build": "Passed in GitHub Actions run 31376673563; existing unrelated AGENT-001 chunk-size warning remains",
+    "playwright": "Passed in run 31376673563: existing Chromium E2E plus custom real-Chromium visual harness; wind control enabled in all three viewports and dynamic frame sampling produced 5 distinct screenshots / 5 distinct frame times",
+    "visual": "Failed acceptance: manual review of 1920x1080 and 1536x1024 screenshots still shows a rhythmic chain of similarly sized warm cores; AGENT-020 recorded as Medium and In Progress"
   },
   "reviewResult": {
-    "status": "Pending",
-    "details": "Product implementation remains unchanged from the previously reviewed Issue #18 repair. This resumed iteration is limited to completing the required real Chromium evidence, visual review, and final call-chain review before PR creation."
+    "status": "Fix Required",
+    "details": "The harness blocker is resolved, but the current mock strong-core geometry still renders too regularly because several near-linear centers are expanded with the same coreOffsets pattern. Apply a smaller geometry-only repair that produces fewer uneven two-dimensional clumps without changing radarDeckLayers, palette, opacity, layer ordering, labels, stations, or wind rendering."
   }
 }
