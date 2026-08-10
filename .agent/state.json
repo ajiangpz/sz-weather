@@ -1,19 +1,19 @@
 {
   "status": "DONE",
-  "iteration": 3,
-  "lastCompletedAction": "Completed two consecutive clean real-Playwright-Chromium validation + Visual QA + code-review cycles for Issue #14 on GitHub-hosted Ubuntu, verified AGENT-015, and removed all temporary Chromium workflow/trigger files. Product code was unchanged after the two clean visual cycles.",
+  "iteration": 2,
+  "lastCompletedAction": "Completed two consecutive clean Issue #15 validation + real Chromium Visual QA + full call-chain review cycles (runs 31361983116 and 31362190638), verified the temporary Playwright harness selector repair, verified removal of repeated diagonal/cross-hatch radar texture at all three desktop viewports and during timeline playback, and removed all temporary workflow/trigger files before PR creation.",
   "pendingIssueCount": 2,
   "testResult": {
     "lint": "Unavailable: package.json has no lint script",
-    "typecheck": "Passed in pnpm verify during both clean Chromium runs 31360266446 and 31360448871",
-    "test": "Passed in both clean runs: 7 test files / 25 tests, including wind field and particle continuity coverage",
+    "typecheck": "Passed in pnpm verify in both clean Chromium cycles",
+    "test": "Passed in both clean cycles: 7 test files / 26 tests, including deterministic irregular radar texture regression coverage",
     "test:integration": "Unavailable: package.json has no test:integration script",
-    "build": "Passed in both clean runs; existing unrelated AGENT-001 chunk-size warning remains",
-    "playwright": "Passed with real Playwright Chromium on GitHub-hosted Ubuntu in consecutive runs 31360266446 and 31360448871; wind control was enabled and all requested viewport/dynamic captures completed",
-    "visual": "Passed two consecutive manual visual reviews using real Chromium evidence at 1920x1080, 1536x1024, 1440x900 plus 0/120/240/600/1800 ms frames. Rainfall remains dominant; wind is denser and directionally readable without line-wall behavior, major empty holes, label/station obstruction, obvious flicker, jump, freeze, reset, or hard boundary cutoff. All five sampled frame hashes were distinct in both runs."
+    "build": "Passed in both clean cycles; existing unrelated AGENT-001 chunk-size warning remains",
+    "playwright": "Passed in real Playwright Chromium runs 31361983116 and 31362190638; each captured 1920x1080, 1536x1024, and 1440x900 full-page/map evidence plus timeline-driven radar samples",
+    "visual": "Passed two consecutive manual visual reviews. Repeating diagonal/cross-hatch texture is absent; broad blue/cyan echoes and localized warm cores remain continuous and readable; labels/stations remain visible. Dynamic samples at 0/600/1200/2400/3600 ms advanced through four or five distinct timeline states without obvious flicker, hard reset, or directional texture recurrence."
   },
   "reviewResult": {
-    "status": "Passed",
-    "details": "Reviewed the complete windField -> windDeckLayers -> WeatherMapPanel call chain and directly related tests, not only the diff. The scoped implementation remains limited to source density 1.0 -> 1.12, deterministic particle selection 0.46 -> 0.56, and short-trail sampling 7 -> 8 points / 0.12 -> 0.13 maximum span. Width and overall layer opacity remain constrained so rainfall stays visually primary. Timeline-driven field regeneration and speed-driven particle rate remain unchanged. No open PR or unresolved review threads existed before completion. Two consecutive validation + Visual QA + review cycles produced no new Issue-related Critical/High/Medium findings."
+    "status": "Passed two consecutive cycles",
+    "details": "Reviewed the complete radarDeckLayers -> WeatherMapPanel bitmap creation, timeline rebuild, deck.gl BitmapLayer, and popup sampling call chain rather than only the diff. The implementation removes fixed-direction trigonometric breakup terms and uses deterministic multi-scale rotated value noise while preserving seed geometry, color stops, severe-core localization, transparency, bucket indexing, layer ordering, and shared popup sampling. New unit coverage confirms deterministic output and varied alpha texture. Real Chromium playback remained responsive. AGENT-016 and AGENT-017 are Verified. Remaining pending items are pre-existing unrelated AGENT-001 (Low build warning) and AGENT-014 (Issue #10 visual task)."
   }
 }

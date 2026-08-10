@@ -134,3 +134,21 @@
 - Problem description: Issue #14 was previously blocked because Vercel could not provide a stable real-Chromium visual loop. The blocker was resolved by running the unchanged Issue #14 product implementation in GitHub-hosted Ubuntu with real Playwright Chromium. Two consecutive clean runs (`31360266446` and `31360448871`) each passed `pnpm verify`, opened the wind-field control, captured 1920×1080, 1536×1024, and 1440×900 full-page screenshots, and captured 0/120/240/600/1800 ms dynamic frames. Manual visual review found no Issue-related Critical/High/Medium problem: rainfall remains dominant, wind particles remain short and auxiliary, density has no large desktop holes or small-viewport line wall, labels/stations stay readable, and the sampled motion shows no obvious freeze, flicker, jump, reset, or hard boundary cutoff. All five dynamic frame hashes were distinct in both runs.
 - Expected behavior: Run `fix/issue-14-wind-density` in a stable real Chromium environment, execute Playwright Chromium validation, capture all three required desktop viewports plus the five requested wind timepoints, compare against Issue #14 and the design references, and complete two consecutive clean validation + Visual QA + Review cycles before creating a PR.
 - Status: Verified
+
+## AGENT-016
+
+- Severity: Medium
+- Source: Test
+- Affected file: `.github/workflows/issue-15-visual-qa.yml`
+- Problem description: The first Issue #15 real-Chromium validation run passed `pnpm verify`, installed Chromium, started the production preview, and captured all three static desktop screenshots, but the dynamic radar playback step failed because `getByRole('button', { name: '播放' })` also matched the `播放速度` button under Playwright strict mode.
+- Expected behavior: The temporary visual harness should target the exact play/pause control so timeline-driven radar frame sampling can complete without selector ambiguity.
+- Status: Verified
+
+## AGENT-017
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/utils/radarDeckLayers.ts`
+- Problem description: Issue #15 identified a repeated diagonal/cross-hatch texture in the generated rainfall bitmap, most visible through the Luohu-Yantian and northeastern strong-echo bands. The repair replaces fixed-direction trigonometric texture terms with deterministic multi-scale value noise sampled at varied rotations. Manual inspection of real Chromium evidence from runs `31361983116` and `31362190638` at 1920×1080, 1536×1024, and 1440×900 found the repeating diagonal stripe/mesh pattern removed while broad blue/cyan echo fields, localized warm cores, irregular edge breakup, district labels, and station markers remained readable. Timeline-driven frames changed naturally without obvious texture flicker, hard reset, or newly introduced directional repetition.
+- Expected behavior: Radar echoes should retain continuous weather-field structure and localized strong cores without repeated diagonal bands, cross-hatch mesh, tile seams, or overly dominant texture; the result must remain stable across all supported desktop viewports and timeline-driven frame changes.
+- Status: Verified
