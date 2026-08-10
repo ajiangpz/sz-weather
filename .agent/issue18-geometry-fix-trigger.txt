@@ -1,1 +1,1 @@
-Trigger the second Issue #18 geometry-only repair after post-fix Chromium review still found visible bead cadence. Temporary file; remove before PR.
+Retrigger the second Issue #18 geometry repair with workflow status reporting enabled. Temporary file; remove before PR.
