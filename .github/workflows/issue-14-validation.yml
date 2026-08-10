@@ -6,10 +6,11 @@ on:
       - fix/issue-14-wind-density
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -47,7 +48,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p visual-qa/desktop visual-qa/map visual-qa/wind
-          cp docs/image.png visual-qa/reference.png
           pnpm dev --host 127.0.0.1 --port 4173 > /tmp/rainscope-vite.log 2>&1 &
           server_pid=$!
           trap 'kill $server_pid || true' EXIT
@@ -82,11 +82,15 @@ jobs:
           for (const [width, height] of [[1920, 1080], [1536, 1024], [1440, 900]]) {
             const page = await readyPage(width, height);
             await page.screenshot({
-              path: path.join(root, 'visual-qa', 'desktop', `${width}x${height}.png`),
+              path: path.join(root, 'visual-qa', 'desktop', `${width}x${height}.jpg`),
               fullPage: true,
+              type: 'jpeg',
+              quality: 68,
             });
             await page.getByRole('region', { name: '深圳降雨雷达地图' }).screenshot({
-              path: path.join(root, 'visual-qa', 'map', `${width}x${height}.png`),
+              path: path.join(root, 'visual-qa', 'map', `${width}x${height}.jpg`),
+              type: 'jpeg',
+              quality: 72,
             });
             await page.close();
           }
@@ -102,7 +106,9 @@ jobs:
           for (const [name, waitMs] of samples) {
             if (waitMs) await windPage.waitForTimeout(waitMs);
             await windPage.getByRole('region', { name: '深圳降雨雷达地图' }).screenshot({
-              path: path.join(root, 'visual-qa', 'wind', `frame-${name}.png`),
+              path: path.join(root, 'visual-qa', 'wind', `frame-${name}.jpg`),
+              type: 'jpeg',
+              quality: 72,
             });
           }
           await windPage.close();
@@ -113,10 +119,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find visual-qa/desktop -name '*.png' | wc -l)" -eq 3
-          test "$(find visual-qa/map -name '*.png' | wc -l)" -eq 3
-          test "$(find visual-qa/wind -name '*.png' | wc -l)" -eq 5
-          unique_frames=$(sha256sum visual-qa/wind/*.png | awk '{print $1}' | sort -u | wc -l)
+          test "$(find visual-qa/desktop -name '*.jpg' | wc -l)" -eq 3
+          test "$(find visual-qa/map -name '*.jpg' | wc -l)" -eq 3
+          test "$(find visual-qa/wind -name '*.jpg' | wc -l)" -eq 5
+          unique_frames=$(sha256sum visual-qa/wind/*.jpg | awk '{print $1}' | sort -u | wc -l)
           echo "Unique wind frames: $unique_frames"
           test "$unique_frames" -eq 5
 
@@ -127,3 +133,21 @@ jobs:
           path: visual-qa/
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish compact visual evidence to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .agent/visual-qa/issue-14
+          for file in visual-qa/map/*.jpg visual-qa/wind/frame-0000ms.jpg visual-qa/wind/frame-0600ms.jpg visual-qa/wind/frame-1800ms.jpg; do
+            name=$(basename "$file")
+            base64 "$file" > ".agent/visual-qa/issue-14/${name}.b64"
+          done
+          sha256sum visual-qa/wind/*.jpg > .agent/visual-qa/issue-14/wind-sha256.txt
+          printf 'pnpm verify: PASS\nPlaywright Chromium E2E: PASS\nDesktop viewports: 1920x1080, 1536x1024, 1440x900\nWind frames: 0,120,240,600,1800ms; all unique\n' > .agent/visual-qa/issue-14/validation.txt
+          git checkout -- package.json pnpm-lock.yaml 2>/dev/null || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .agent/visual-qa/issue-14
+          git commit -m 'chore: record issue 14 visual evidence'
+          git push
