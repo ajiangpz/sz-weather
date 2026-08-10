@@ -1,1 +1,0 @@
-Trigger Issue #18 implementation and real Chromium Visual QA. Temporary file; remove before PR.
