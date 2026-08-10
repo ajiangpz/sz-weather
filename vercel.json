@@ -1,4 +1,4 @@
 {
-  "buildCommand": "pnpm verify && pnpm add -D --ignore-workspace-root-check @playwright/test@1.55.0 && pnpm exec playwright install chromium && node .agent/issue-14-visual-check.mjs",
+  "buildCommand": "pnpm verify && pnpm add -D --ignore-workspace-root-check @playwright/test@1.55.0 && pnpm exec playwright install --with-deps chromium && node .agent/issue-14-visual-check.mjs",
   "outputDirectory": "dist"
 }
