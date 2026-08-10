@@ -158,24 +158,33 @@
 - Severity: Medium
 - Source: Visual QA
 - Affected file: `src/mock/weather.ts`
-- Problem description: Issue #18 identifies warm severe-rain cores whose mock seed centers and intensities form visually regular bead-like chains. The implementation changes only mock storm-core seed geometry to uneven deterministic two-dimensional clusters, with varied offsets and intensity peaks; `pnpm verify` passes with regression coverage, but the rendered visual result has not yet been verified in the required real Chromium viewports and timeline/wind frames.
+- Problem description: Issue #18 identified warm severe-rain cores whose mock seed centers and intensities formed visually regular bead-like chains. After the geometry-only repair, two final committed-geometry Chromium cycles (`31386087042` and `31386466832`) passed `pnpm verify`, existing Chromium E2E, all three required desktop viewports, wind-enabled captures, and timeline-driven multi-frame sampling. Manual review found the Luohu/Yantian and Pingshan/eastern strong echoes reading as fewer uneven two-dimensional clumps with gaps and local overlap while broad blue/cyan fields, labels, stations, Issue #15 texture, and auxiliary wind remained intact.
 - Expected behavior: At 1920×1080, 1536×1024, and 1440×900, the Luohu/Yantian and Pingshan/eastern warm cores should read as irregular clustered weather echoes with merges and gaps rather than equally spaced beads, while broad blue/cyan fields, labels, stations, the Issue #15 value-noise texture, and auxiliary wind motion remain intact across timeline frames.
-- Status: In Progress
+- Status: Verified
 
 ## AGENT-019
 
 - Severity: High
 - Source: Visual QA
 - Affected file: `src/mock/weather.ts`, `src/components/weather/WeatherMapPanel.vue`
-- Problem description: The branch Preview is READY and `pnpm verify` passed in Vercel, but this automation runtime cannot perform the user-required real Playwright Chromium visual loop: local Chromium exists, yet the runtime has no network/DNS path to the Vercel Preview, and the connected Vercel tools can fetch deployment content but cannot drive or screenshot a real browser. A temporary branch GitHub Actions visual harness also did not produce a run/comment in this execution.
+- Problem description: The original automation runtime could not reach the Vercel Preview with local Chromium. The blocker was removed by running the current branch on GitHub-hosted Ubuntu, serving the production preview locally on the runner, and driving it with real Playwright Chromium. The final clean cycles `31386087042` and `31386466832` both completed end-to-end with visual artifacts and no page errors.
 - Expected behavior: Run the current `fix/issue-18-radar-seed` branch in network-capable Playwright Chromium, capture full-page and map screenshots at 1920×1080, 1536×1024, and 1440×900, enable wind, sample timeline playback at multiple timepoints, compare with Issue #18 and the design references, and complete two consecutive clean validation + Visual QA + full call-chain review cycles before creating or declaring the PR complete.
-- Status: Resolved
+- Status: Verified
 
 ## AGENT-020
 
 - Severity: Medium
 - Source: Visual QA
 - Affected file: `src/mock/weather.ts`
-- Problem description: First real-Chromium cycle `31376673563` successfully validated the harness, but manual review of the 1920×1080 and especially 1536×1024 map screenshots still shows the Luohu/Yantian and Pingshan/eastern warm cores as a visibly rhythmic chain of similarly sized yellow/orange ovals. The seed coordinates vary numerically, yet repeated `coreOffsets` around several near-linear strong centers preserve a bead-like cadence at rendered scale.
+- Problem description: First real-Chromium cycle `31376673563` showed that numerical seed variation alone still rendered as rhythmic similarly sized warm-core beads. The follow-up geometry repair consolidated repeated strong centers into fewer uneven clusters, varied peak positions/intensities, and reduced duplicated severe fragment centers. In committed-geometry runs `31386087042` and `31386466832`, manual review at all three viewports and five timeline samples per cycle found no obvious equal-spacing/equal-size bead chain; the eastern core reads as a compact irregular cluster with a broader green/blue continuation, while the central core reads as a few uneven overlapping clumps.
 - Expected behavior: Strong rainfall should form fewer, uneven two-dimensional clumps with deliberately varied gaps, local merges, off-axis lobes, and non-uniform peak intensity, while the broad blue/cyan field and existing Issue #15 texture remain unchanged.
-- Status: In Progress
+- Status: Verified
+
+## AGENT-021
+
+- Severity: Medium
+- Source: Test
+- Affected file: `.github/workflows/issue-18-visual-qa.yml`, `.github/workflows/issue-18-refine-geometry.yml`
+- Problem description: Temporary Issue #18 validation harness iterations encountered invalid YAML/heredoc quoting, stale exact-replacement failures, and a final Issue-comment command that returned exit code 2 even after the browser/test steps had passed. The harness was simplified to external helper scripts plus a robust `gh issue comment` invocation, then rerun against committed product geometry.
+- Expected behavior: The temporary real-Chromium harness should parse successfully, execute `pnpm verify`, Chromium E2E, three-view static and wind captures, dynamic timeline captures, artifact upload, and result reporting without a harness-only failure masking product validation.
+- Status: Verified
