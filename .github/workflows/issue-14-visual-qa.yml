@@ -1,0 +1,161 @@
+name: Issue 14 Visual QA
+
+on:
+  push:
+    branches:
+      - fix/issue-14-wind-density
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Start preview
+        run: |
+          pnpm preview --host 127.0.0.1 --port 4173 > /tmp/rainscope-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/rainscope-preview.log
+          exit 1
+
+      - name: Capture real Chromium evidence
+        run: |
+          mkdir -p visual-evidence
+          cat > /tmp/issue14-visual.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const browser = await chromium.launch({headless:true});
+          const baseURL = 'http://127.0.0.1:4173/';
+          const results = [];
+
+          async function enableWind(page) {
+            const candidates = page.getByText(/风场|wind/i);
+            const count = await candidates.count();
+            for (let i = 0; i < count; i++) {
+              const item = candidates.nth(i);
+              if (!(await item.isVisible().catch(() => false))) continue;
+              const text = (await item.innerText().catch(() => '')).trim();
+              if (!/风场|wind/i.test(text)) continue;
+              const clickable = item.locator('xpath=ancestor-or-self::button | ancestor-or-self::label | ancestor-or-self::*[@role="button"]').first();
+              if (await clickable.count()) {
+                await clickable.click({force:true}).catch(() => {});
+                await page.waitForTimeout(300);
+                return text;
+              }
+              await item.click({force:true}).catch(() => {});
+              await page.waitForTimeout(300);
+              return text;
+            }
+            const checkboxes = page.locator('input[type="checkbox"]');
+            const cbCount = await checkboxes.count();
+            if (cbCount) {
+              const cb = checkboxes.nth(cbCount - 1);
+              if (!(await cb.isChecked().catch(() => false))) await cb.check({force:true});
+              await page.waitForTimeout(300);
+              return 'checkbox-fallback';
+            }
+            throw new Error('Unable to locate wind-field control');
+          }
+
+          for (const [width,height] of [[1920,1080],[1536,1024],[1440,900]]) {
+            const page = await browser.newPage({viewport:{width,height}});
+            await page.goto(baseURL,{waitUntil:'networkidle'});
+            const control = await enableWind(page);
+            await page.waitForTimeout(700);
+            await page.screenshot({path:`visual-evidence/viewport-${width}x${height}.png`,fullPage:true});
+            results.push({kind:'viewport',width,height,control});
+            await page.close();
+          }
+
+          const page = await browser.newPage({viewport:{width:1536,height:1024}});
+          await page.goto(baseURL,{waitUntil:'networkidle'});
+          const control = await enableWind(page);
+          const times = [0,120,240,600,1800];
+          let elapsed = 0;
+          const hashes = [];
+          for (const t of times) {
+            await page.waitForTimeout(t - elapsed);
+            elapsed = t;
+            const path = `visual-evidence/wind-${t}ms.png`;
+            await page.screenshot({path,fullPage:true});
+            const hash = createHash('sha256').update(readFileSync(path)).digest('hex');
+            hashes.push({t,hash});
+          }
+          results.push({kind:'dynamic',control,hashes,distinct:new Set(hashes.map(x=>x.hash)).size});
+          writeFileSync('visual-evidence/results.json', JSON.stringify(results,null,2));
+          if (new Set(hashes.map(x=>x.hash)).size < 5) throw new Error('Dynamic frame hashes are not all distinct');
+          await browser.close();
+          EOF
+          node /tmp/issue14-visual.mjs
+          cat visual-evidence/results.json
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-14-visual-evidence-${{ github.run_id }}
+          path: |
+            visual-evidence
+            /tmp/rainscope-preview.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Comment run result on Issue 14
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -f visual-evidence/results.json ]; then
+            RESULT="$(cat visual-evidence/results.json)"
+          else
+            RESULT="visual evidence was not produced"
+          fi
+          BODY=$(cat <<EOF
+          ## Issue #14 Chromium Visual QA harness
+
+          Run ID: \`$RUN_ID\`  
+          Attempt: \`$RUN_ATTEMPT\`  
+          Job status: \`$JOB_STATUS\`
+
+          Real Playwright Chromium was installed with host dependencies on GitHub Actions. The run executed \`pnpm verify\`, captured 1920×1080 / 1536×1024 / 1440×900 screenshots, and sampled wind animation frames at 0 / 120 / 240 / 600 / 1800 ms.
+
+          Results:
+          \`\`\`json
+          $RESULT
+          \`\`\`
+          EOF
+          )
+          gh api repos/${{ github.repository }}/issues/14/comments -f body="$BODY"
