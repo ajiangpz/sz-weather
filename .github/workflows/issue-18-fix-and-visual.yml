@@ -1,0 +1,272 @@
+name: Issue 18 Fix And Visual
+
+on:
+  push:
+    branches:
+      - fix/issue-18-radar-seed
+    paths:
+      - .agent/issue18-fix-and-visual-trigger.txt
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  fix-and-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue-18-radar-seed
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Apply second geometry repair in test workspace
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/mock/weather.ts')
+          text = path.read_text()
+          replacements = [
+            ("""const stormCorePath: Coordinate[] = [
+  [114.102, 22.516],
+  [114.131, 22.555],
+  [114.176, 22.537],
+  [114.191, 22.568],
+  [114.248, 22.532],
+];""", """const stormCorePath: Coordinate[] = [
+  [114.108, 22.532],
+  [114.128, 22.558],
+  [114.198, 22.552],
+  [114.222, 22.532],
+];"""),
+            ("""  ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
+  ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.126, 22.553], [114.188, 22.568], [114.236, 22.526]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.337, 22.618], [114.382, 22.679], [114.459, 22.641]], coreOffsets),""", """  ...createBandCells('heavy', 18.8, [[114.205, 22.495], [114.318, 22.58], [114.374, 22.642], [114.487, 22.662]], coreOffsets),
+  ...createBandCells('storm', 27.6, [[114.112, 22.54], [114.202, 22.55]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.129, 22.552], [114.199, 22.557]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.356, 22.646], [114.447, 22.651]], coreOffsets),"""),
+            ("""const luohuCoreCenters: Coordinate[] = [
+  [114.094, 22.518],
+  [114.124, 22.558],
+  [114.168, 22.538],
+  [114.187, 22.568],
+  [114.238, 22.527],
+];""", """const luohuCoreCenters: Coordinate[] = [
+  [114.104, 22.528],
+  [114.129, 22.558],
+  [114.198, 22.553],
+  [114.225, 22.528],
+];"""),
+            ("""const pingshanCoreCenters: Coordinate[] = [
+  [114.319, 22.607],
+  [114.351, 22.658],
+  [114.397, 22.681],
+  [114.421, 22.646],
+  [114.474, 22.634],
+];""", """const pingshanCoreCenters: Coordinate[] = [
+  [114.342, 22.628],
+  [114.365, 22.662],
+  [114.438, 22.646],
+  [114.463, 22.674],
+];"""),
+            ("""const easternBurstCenters: Coordinate[] = [
+  [114.329, 22.606],
+  [114.361, 22.656],
+  [114.418, 22.641],
+  [114.476, 22.682],
+];""", """const easternBurstCenters: Coordinate[] = [
+  [114.336, 22.621],
+  [114.363, 22.658],
+  [114.441, 22.644],
+  [114.468, 22.678],
+];"""),
+            ("""  ...createFragmentCells('severeStorm', 39.4, [[114.166, 22.503], [114.211, 22.534], [114.263, 22.517]], 0.008),""", """  ...createFragmentCells('severeStorm', 39.4, [[114.124, 22.551], [114.198, 22.554], [114.219, 22.529]], 0.008),"""),
+            ("""        [114.157, 22.496],
+        [114.203, 22.531],
+        [114.258, 22.516],
+        [114.334, 22.613],""", """        [114.119, 22.545],
+        [114.207, 22.552],
+        [114.227, 22.527],
+        [114.349, 22.638],"""),
+            ("""    createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
+      [114.09, 22.515],
+      [114.14, 22.535],
+      [114.2, 22.555],
+      [114.24, 22.55],
+    ]),
+    createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
+      [114.145, 22.525],
+      [114.19, 22.545],
+      [114.225, 22.555],
+    ]),
+    createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
+      [114.365, 22.635],
+      [114.41, 22.66],
+      [114.455, 22.675],
+    ]),""", """    createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
+      [114.104, 22.532],
+      [114.13, 22.556],
+      [114.199, 22.552],
+      [114.224, 22.532],
+    ]),
+    createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
+      [114.124, 22.551],
+      [114.143, 22.565],
+      [114.201, 22.548],
+      [114.219, 22.558],
+    ]),
+    createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
+      [114.348, 22.638],
+      [114.367, 22.662],
+      [114.44, 22.646],
+      [114.459, 22.674],
+    ]),"""),
+          ]
+          for old, new in replacements:
+            if old not in text:
+              raise SystemExit(f'Expected geometry block not found:\n{old}')
+            text = text.replace(old, new, 1)
+          path.write_text(text)
+          PY
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      - name: Install Playwright Chromium
+        run: |
+          pnpm add -D @playwright/test@1.54.2 playwright@1.54.2 --lockfile=false
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Run Chromium E2E
+        env:
+          CI: "1"
+        run: pnpm exec playwright test tests/e2e/dashboard.spec.mjs --config=playwright.config.mjs --project=chromium
+
+      - name: Start production preview
+        run: |
+          pnpm preview --host 127.0.0.1 --port 4173 > /tmp/rainscope-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/rainscope-preview.log
+          exit 1
+
+      - name: Capture real Chromium evidence
+        run: |
+          mkdir -p visual-evidence
+          cat > ./issue18-fix-visual.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          const browser = await chromium.launch({ headless: true });
+          const baseURL = 'http://127.0.0.1:4173/';
+          const results = [];
+          async function enableWind(page) {
+            await page.getByRole('button', { name: '图层', exact: true }).click();
+            const checkbox = page.getByRole('checkbox', { name: /风场流线/ });
+            if (!(await checkbox.isChecked())) await checkbox.check({ force: true });
+            return await checkbox.isChecked();
+          }
+          for (const [width, height] of [[1920,1080],[1536,1024],[1440,900]]) {
+            const page = await browser.newPage({ viewport: { width, height } });
+            const errors = [];
+            page.on('pageerror', e => errors.push(e.message));
+            await page.goto(baseURL, { waitUntil: 'networkidle' });
+            await page.waitForTimeout(1000);
+            const map = page.locator('.weather-map-panel');
+            await page.screenshot({ path: `visual-evidence/viewport-${width}x${height}.png`, fullPage: true });
+            await map.screenshot({ path: `visual-evidence/map-${width}x${height}.png` });
+            const wind = await enableWind(page);
+            await page.waitForTimeout(900);
+            await map.screenshot({ path: `visual-evidence/map-wind-${width}x${height}.png` });
+            results.push({ kind: 'viewport', width, height, wind, errors, mapBox: await map.boundingBox() });
+            if (errors.length) throw new Error(errors.join(' | '));
+            await page.close();
+          }
+          const page = await browser.newPage({ viewport: { width: 1536, height: 1024 } });
+          const errors = [];
+          page.on('pageerror', e => errors.push(e.message));
+          await page.goto(baseURL, { waitUntil: 'networkidle' });
+          await page.waitForTimeout(800);
+          await enableWind(page);
+          await page.waitForTimeout(500);
+          await page.getByRole('button', { name: '播放', exact: true }).click();
+          const times = [0,600,1200,2400,3600];
+          let elapsed = 0;
+          const frames = [];
+          for (const t of times) {
+            await page.waitForTimeout(t - elapsed); elapsed = t;
+            const p = `visual-evidence/radar-wind-playback-${t}ms.png`;
+            await page.locator('.weather-map-panel').screenshot({ path: p });
+            frames.push({ t, hash: createHash('sha256').update(readFileSync(p)).digest('hex'), frameTime: await page.locator('.weather-map-panel__time').innerText() });
+          }
+          await page.getByRole('button', { name: '暂停', exact: true }).click();
+          const distinctHashes = new Set(frames.map(x => x.hash)).size;
+          const distinctTimes = new Set(frames.map(x => x.frameTime)).size;
+          results.push({ kind: 'dynamic', frames, distinctHashes, distinctTimes, errors });
+          writeFileSync('visual-evidence/results.json', JSON.stringify(results, null, 2));
+          if (errors.length || distinctHashes < 4 || distinctTimes < 4) throw new Error('Dynamic visual assertions failed');
+          await browser.close();
+          EOF
+          node ./issue18-fix-visual.mjs
+          cat visual-evidence/results.json
+
+      - name: Commit validated geometry candidate
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/mock/weather.ts
+          git commit -m "fix(radar): merge warm cores into irregular clumps"
+          git push origin HEAD:fix/issue-18-radar-seed
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-18-fix-visual-${{ github.run_id }}
+          path: |
+            visual-evidence
+            playwright-report
+            test-results
+            /tmp/rainscope-preview.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Comment result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -f visual-evidence/results.json ]; then RESULT="$(cat visual-evidence/results.json)"; else RESULT="visual evidence was not produced"; fi
+          BODY=$(cat <<EOF
+          ## Issue #18 second geometry repair + Chromium validation
+
+          Run ID: \`$RUN_ID\`  
+          Job status: \`$JOB_STATUS\`
+
+          This run applied the AGENT-020 follow-up geometry repair in the runner workspace, ran \`pnpm verify\`, existing Chromium E2E, all three required viewports with wind enabled, and five timeline-driven radar+wind frames. On success it committed the exact tested product geometry back to \`fix/issue-18-radar-seed\`.
+
+          Results:
+          \`\`\`json
+          $RESULT
+          \`\`\`
+          EOF
+          )
+          gh api repos/${{ github.repository }}/issues/18/comments -f body="$BODY"
