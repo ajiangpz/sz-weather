@@ -169,4 +169,13 @@
 - Affected file: `src/mock/weather.ts`, `src/components/weather/WeatherMapPanel.vue`
 - Problem description: The branch Preview is READY and `pnpm verify` passed in Vercel, but this automation runtime cannot perform the user-required real Playwright Chromium visual loop: local Chromium exists, yet the runtime has no network/DNS path to the Vercel Preview, and the connected Vercel tools can fetch deployment content but cannot drive or screenshot a real browser. A temporary branch GitHub Actions visual harness also did not produce a run/comment in this execution.
 - Expected behavior: Run the current `fix/issue-18-radar-seed` branch in network-capable Playwright Chromium, capture full-page and map screenshots at 1920×1080, 1536×1024, and 1440×900, enable wind, sample timeline playback at multiple timepoints, compare with Issue #18 and the design references, and complete two consecutive clean validation + Visual QA + full call-chain review cycles before creating or declaring the PR complete.
-- Status: Open
+- Status: Resolved
+
+## AGENT-020
+
+- Severity: Medium
+- Source: Visual QA
+- Affected file: `src/mock/weather.ts`
+- Problem description: First real-Chromium cycle `31376673563` successfully validated the harness, but manual review of the 1920×1080 and especially 1536×1024 map screenshots still shows the Luohu/Yantian and Pingshan/eastern warm cores as a visibly rhythmic chain of similarly sized yellow/orange ovals. The seed coordinates vary numerically, yet repeated `coreOffsets` around several near-linear strong centers preserve a bead-like cadence at rendered scale.
+- Expected behavior: Strong rainfall should form fewer, uneven two-dimensional clumps with deliberately varied gaps, local merges, off-axis lobes, and non-uniform peak intensity, while the broad blue/cyan field and existing Issue #15 texture remain unchanged.
+- Status: In Progress
