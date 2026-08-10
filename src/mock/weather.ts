@@ -131,12 +131,12 @@ const baseRadarCells: RadarCell[] = [
   ['light', 114.24, 22.42, 6.2],
   ['moderate', 114.31, 22.42, 10.2],
   ['light', 114.38, 22.42, 6.6],
-  ['severeStorm', 114.19, 22.53, 37.4],
-  ['severeStorm', 114.22, 22.55, 42.6],
-  ['storm', 114.26, 22.58, 30.8],
-  ['severeStorm', 114.38, 22.64, 36.8],
-  ['severeStorm', 114.42, 22.66, 39.6],
-  ['storm', 114.46, 22.68, 31.2],
+  ['severeStorm', 114.132, 22.519, 34.6],
+  ['severeStorm', 114.176, 22.557, 42.8],
+  ['storm', 114.223, 22.536, 28.4],
+  ['severeStorm', 114.348, 22.627, 35.2],
+  ['severeStorm', 114.401, 22.674, 41.3],
+  ['storm', 114.456, 22.646, 30.1],
 ];
 
 const broadOffsets = [
@@ -198,10 +198,11 @@ const northRainPath: Coordinate[] = [
 ];
 
 const stormCorePath: Coordinate[] = [
-  [114.13, 22.525],
-  [114.165, 22.54],
-  [114.2, 22.552],
-  [114.23, 22.56],
+  [114.105, 22.522],
+  [114.146, 22.556],
+  [114.181, 22.53],
+  [114.219, 22.567],
+  [114.251, 22.544],
 ];
 
 const createBandCells = (
@@ -236,8 +237,8 @@ const mockRadarCells: RadarCell[] = [
   ...createBandCells('moderate', 12.6, eastRainPath, broadOffsets),
   ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
   ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
-  ...createBandCells('severeStorm', 39.2, [[114.14, 22.525], [114.18, 22.54], [114.21, 22.555]], coreOffsets),
-  ...createBandCells('severeStorm', 37.8, [[114.37, 22.64], [114.41, 22.66], [114.45, 22.675]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.129, 22.515], [114.174, 22.556], [114.218, 22.535]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.346, 22.626], [114.397, 22.675], [114.454, 22.646]], coreOffsets),
 ];
 
 const mockRadarSpeckles: RadarCell[] = [
@@ -272,30 +273,30 @@ const ambientEchoCenters: Coordinate[] = [
 ];
 
 const luohuCoreCenters: Coordinate[] = [
-  [114.095, 22.525],
-  [114.118, 22.545],
-  [114.145, 22.535],
-  [114.166, 22.555],
-  [114.19, 22.525],
+  [114.092, 22.518],
+  [114.121, 22.551],
+  [114.151, 22.532],
+  [114.181, 22.562],
+  [114.213, 22.526],
 ];
 
 const pingshanCoreCenters: Coordinate[] = [
-  [114.315, 22.59],
-  [114.345, 22.625],
-  [114.382, 22.642],
-  [114.41, 22.675],
-  [114.455, 22.655],
+  [114.313, 22.586],
+  [114.341, 22.632],
+  [114.378, 22.646],
+  [114.409, 22.681],
+  [114.459, 22.649],
 ];
 
 const innerBurstCenters: Coordinate[] = [
-  [114.075, 22.505],
-  [114.104, 22.526],
-  [114.137, 22.548],
-  [114.198, 22.548],
-  [114.258, 22.565],
-  [114.333, 22.612],
-  [114.382, 22.638],
-  [114.428, 22.66],
+  [114.074, 22.499],
+  [114.111, 22.532],
+  [114.142, 22.552],
+  [114.194, 22.54],
+  [114.263, 22.572],
+  [114.328, 22.606],
+  [114.386, 22.651],
+  [114.435, 22.655],
 ];
 
 const scatteredBlueCenters: Coordinate[] = [
