@@ -1,0 +1,1 @@
+Trigger the active Issue #18 Chromium workflow that applies, validates, and persists the pending AGENT-020 geometry repair. Temporary file; remove before PR.
