@@ -1,5 +1,6 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
+import './district-labels.css';
 
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
