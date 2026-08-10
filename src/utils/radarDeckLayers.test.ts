@@ -77,6 +77,47 @@ describe('radarDeckLayers', () => {
     vi.unstubAllGlobals();
   });
 
+  it('produces deterministic but irregular multi-scale echo texture', () => {
+    const width = 112;
+    const height = 72;
+    const rendered: Uint8ClampedArray[] = [];
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        createImageData: () => ({ data: new Uint8ClampedArray(width * height * 4) }),
+        putImageData: (imageData: { data: Uint8ClampedArray }) => rendered.push(new Uint8ClampedArray(imageData.data)),
+      }),
+    };
+    vi.stubGlobal('document', { createElement: () => canvas });
+    const options = {
+      points: {
+        type: 'FeatureCollection' as const,
+        features: [
+          { type: 'Feature' as const, properties: { intensity: 44 }, geometry: { type: 'Point' as const, coordinates: [114.18, 22.57] } },
+          { type: 'Feature' as const, properties: { intensity: 28 }, geometry: { type: 'Point' as const, coordinates: [114.1, 22.53] } },
+          { type: 'Feature' as const, properties: { intensity: 18 }, geometry: { type: 'Point' as const, coordinates: [114.27, 22.61] } },
+          { type: 'Feature' as const, properties: { intensity: 10 }, geometry: { type: 'Point' as const, coordinates: [114.03, 22.59] } },
+        ],
+      },
+      bounds: [113.8, 22.4, 114.4, 22.8] as [number, number, number, number],
+      width,
+      height,
+    };
+
+    createRadarBitmap(options);
+    createRadarBitmap(options);
+
+    expect(rendered).toHaveLength(2);
+    expect(rendered[0]).toEqual(rendered[1]);
+
+    const alphaValues = Array.from({ length: width * height }, (_, index) => rendered[0][index * 4 + 3]).filter((alpha) => alpha > 0);
+    const roundedAlphaLevels = new Set(alphaValues.map((alpha) => Math.round(alpha / 8)));
+    expect(alphaValues.length).toBeGreaterThan(100);
+    expect(roundedAlphaLevels.size).toBeGreaterThan(8);
+    vi.unstubAllGlobals();
+  });
+
   it('samples popup intensity from the same radar field used by the bitmap', () => {
     const points = {
       type: 'FeatureCollection' as const,
