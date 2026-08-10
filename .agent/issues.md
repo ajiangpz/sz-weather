@@ -116,3 +116,12 @@
 - Problem description: The current execution environment cannot capture or inspect the required real Chromium screenshots for the Issue #4 Vercel Preview, so the visual result of the first basemap repair cannot be verified safely in this run.
 - Expected behavior: Run the branch preview in Chromium at 1920×1080, 1536×1024, and 1440×900, compare against Issue #4 and the design references, and only mark the repair Verified when the rendered hierarchy is correct.
 - Status: Verified
+
+## AGENT-014
+
+- Severity: High
+- Source: Visual QA
+- Affected file: `src/district-labels.css`, `tests/e2e/dashboard.spec.mjs`
+- Problem description: Issue #10 implementation and `pnpm verify` pass on the Vercel branch build, but this automation runtime has no usable Chromium/agent-browser executable and cannot inspect the authenticated branch Preview at 1920×1080, 1536×1024, and 1440×900. Therefore label overlap, strong-rain readability, and restrained halo appearance cannot be visually verified in the required two clean cycles.
+- Expected behavior: Render the `fix/issue-10-district-labels` branch in real Chromium at all three desktop viewports, inspect all ten district labels against rainfall/stations/boundaries, confirm no distracting glow or overlap, and complete two clean validation + visual QA + review cycles before creating the PR.
+- Status: Open
