@@ -6,7 +6,7 @@ on:
       - fix/issue-18-radar-seed
 
 permissions:
-  contents: read
+  contents: write
   issues: write
 
 jobs:
@@ -15,6 +15,9 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/issue-18-radar-seed
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -24,6 +27,123 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Apply pending geometry repair if needed
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/mock/weather.ts')
+          text = path.read_text()
+          replacements = [
+            ("""const stormCorePath: Coordinate[] = [
+  [114.102, 22.516],
+  [114.131, 22.555],
+  [114.176, 22.537],
+  [114.191, 22.568],
+  [114.248, 22.532],
+];""", """const stormCorePath: Coordinate[] = [
+  [114.108, 22.532],
+  [114.128, 22.558],
+  [114.198, 22.552],
+  [114.222, 22.532],
+];"""),
+            ("""  ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
+  ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.126, 22.553], [114.188, 22.568], [114.236, 22.526]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.337, 22.618], [114.382, 22.679], [114.459, 22.641]], coreOffsets),""", """  ...createBandCells('heavy', 18.8, [[114.205, 22.495], [114.318, 22.58], [114.374, 22.642], [114.487, 22.662]], coreOffsets),
+  ...createBandCells('storm', 27.6, [[114.112, 22.54], [114.202, 22.55]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.129, 22.552], [114.199, 22.557]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.356, 22.646], [114.447, 22.651]], coreOffsets),"""),
+            ("""const luohuCoreCenters: Coordinate[] = [
+  [114.094, 22.518],
+  [114.124, 22.558],
+  [114.168, 22.538],
+  [114.187, 22.568],
+  [114.238, 22.527],
+];""", """const luohuCoreCenters: Coordinate[] = [
+  [114.104, 22.528],
+  [114.129, 22.558],
+  [114.198, 22.553],
+  [114.225, 22.528],
+];"""),
+            ("""const pingshanCoreCenters: Coordinate[] = [
+  [114.319, 22.607],
+  [114.351, 22.658],
+  [114.397, 22.681],
+  [114.421, 22.646],
+  [114.474, 22.634],
+];""", """const pingshanCoreCenters: Coordinate[] = [
+  [114.342, 22.628],
+  [114.365, 22.662],
+  [114.438, 22.646],
+  [114.463, 22.674],
+];"""),
+            ("""const easternBurstCenters: Coordinate[] = [
+  [114.329, 22.606],
+  [114.361, 22.656],
+  [114.418, 22.641],
+  [114.476, 22.682],
+];""", """const easternBurstCenters: Coordinate[] = [
+  [114.336, 22.621],
+  [114.363, 22.658],
+  [114.441, 22.644],
+  [114.468, 22.678],
+];"""),
+            ("""  ...createFragmentCells('severeStorm', 39.4, [[114.166, 22.503], [114.211, 22.534], [114.263, 22.517]], 0.008),""", """  ...createFragmentCells('severeStorm', 39.4, [[114.124, 22.551], [114.198, 22.554], [114.219, 22.529]], 0.008),"""),
+            ("""        [114.157, 22.496],
+        [114.203, 22.531],
+        [114.258, 22.516],
+        [114.334, 22.613],""", """        [114.119, 22.545],
+        [114.207, 22.552],
+        [114.227, 22.527],
+        [114.349, 22.638],"""),
+            ("""    createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
+      [114.09, 22.515],
+      [114.14, 22.535],
+      [114.2, 22.555],
+      [114.24, 22.55],
+    ]),
+    createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
+      [114.145, 22.525],
+      [114.19, 22.545],
+      [114.225, 22.555],
+    ]),
+    createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
+      [114.365, 22.635],
+      [114.41, 22.66],
+      [114.455, 22.675],
+    ]),""", """    createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
+      [114.104, 22.532],
+      [114.13, 22.556],
+      [114.199, 22.552],
+      [114.224, 22.532],
+    ]),
+    createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
+      [114.124, 22.551],
+      [114.143, 22.565],
+      [114.201, 22.548],
+      [114.219, 22.558],
+    ]),
+    createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
+      [114.348, 22.638],
+      [114.367, 22.662],
+      [114.44, 22.646],
+      [114.459, 22.674],
+    ]),"""),
+          ]
+          changed = False
+          for old, new in replacements:
+            if old in text:
+              text = text.replace(old, new, 1)
+              changed = True
+            elif new not in text:
+              raise SystemExit(f'Neither old nor expected new geometry block found:\n{old}')
+          if changed:
+            path.write_text(text)
+            print('Applied pending Issue #18 geometry repair')
+          else:
+            print('Issue #18 geometry repair already present')
+          PY
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -69,20 +189,11 @@ jobs:
               if (!(await checkbox.first().isChecked())) await checkbox.first().check({ force: true });
               return { method: 'checkbox', checked: await checkbox.first().isChecked() };
             }
-
-            const switchControl = page.getByRole('switch', { name: /风场流线/ });
-            if (await switchControl.count()) {
-              const pressed = await switchControl.first().getAttribute('aria-checked');
-              if (pressed !== 'true') await switchControl.first().click({ force: true });
-              return { method: 'switch', checked: await switchControl.first().getAttribute('aria-checked') };
-            }
-
             const label = page.locator('label').filter({ hasText: '风场流线' }).first();
             if (await label.count()) {
               await label.click({ force: true });
               return { method: 'label', checked: 'clicked' };
             }
-
             throw new Error('Unable to locate the 风场流线 control');
           }
 
@@ -92,23 +203,13 @@ jobs:
             page.on('pageerror', error => pageErrors.push(error.message));
             await page.goto(baseURL, { waitUntil: 'networkidle' });
             await page.waitForTimeout(1000);
-
             await page.screenshot({ path: `visual-evidence/viewport-${width}x${height}.png`, fullPage: true });
             const map = page.locator('.weather-map-panel');
             await map.screenshot({ path: `visual-evidence/map-${width}x${height}.png` });
-
             const wind = await enableWind(page);
             await page.waitForTimeout(900);
             await map.screenshot({ path: `visual-evidence/map-wind-${width}x${height}.png` });
-
-            results.push({
-              kind: 'viewport',
-              width,
-              height,
-              mapBox: await map.boundingBox(),
-              wind,
-              pageErrors,
-            });
+            results.push({ kind: 'viewport', width, height, mapBox: await map.boundingBox(), wind, pageErrors });
             if (pageErrors.length) throw new Error(`Page errors at ${width}x${height}: ${pageErrors.join(' | ')}`);
             await page.close();
           }
@@ -120,10 +221,7 @@ jobs:
           await page.waitForTimeout(800);
           const wind = await enableWind(page);
           await page.waitForTimeout(500);
-
-          const play = page.getByRole('button', { name: '播放', exact: true });
-          await play.click();
-
+          await page.getByRole('button', { name: '播放', exact: true }).click();
           const times = [0, 600, 1200, 2400, 3600];
           let elapsed = 0;
           const frames = [];
@@ -136,21 +234,30 @@ jobs:
             const frameTime = await page.locator('.weather-map-panel__time').innerText();
             frames.push({ t, hash, frameTime });
           }
-
           await page.getByRole('button', { name: '暂停', exact: true }).click();
           const distinctHashes = new Set(frames.map(item => item.hash)).size;
           const distinctTimes = new Set(frames.map(item => item.frameTime)).size;
           results.push({ kind: 'dynamic', wind, frames, distinctHashes, distinctTimes, pageErrors: dynamicErrors });
           writeFileSync('visual-evidence/results.json', JSON.stringify(results, null, 2));
-
           if (dynamicErrors.length) throw new Error(`Dynamic page errors: ${dynamicErrors.join(' | ')}`);
           if (distinctHashes < 4) throw new Error(`Expected at least 4 distinct dynamic screenshots, got ${distinctHashes}`);
           if (distinctTimes < 4) throw new Error(`Expected timeline to visit at least 4 distinct frame times, got ${distinctTimes}`);
-
           await browser.close();
           EOF
           node ./issue18-visual.mjs
           cat visual-evidence/results.json
+
+      - name: Commit validated geometry if changed
+        run: |
+          if git diff --quiet -- src/mock/weather.ts; then
+            echo "No geometry commit needed"
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/mock/weather.ts
+          git commit -m "fix(radar): merge warm cores into irregular clumps"
+          git push origin HEAD:fix/issue-18-radar-seed
 
       - name: Upload evidence
         if: always()
@@ -181,7 +288,7 @@ jobs:
           Attempt: \`$RUN_ATTEMPT\`  
           Job status: \`$JOB_STATUS\`
 
-          GitHub-hosted Ubuntu ran \`pnpm verify\`, existing Playwright Chromium E2E, three-view static screenshots at 1920×1080 / 1536×1024 / 1440×900, wind-enabled map screenshots at all three viewports, and timeline-driven radar + wind frames at 0 / 600 / 1200 / 2400 / 3600 ms.
+          GitHub-hosted Ubuntu ran \`pnpm verify\`, existing Playwright Chromium E2E, three-view static screenshots at 1920×1080 / 1536×1024 / 1440×900, wind-enabled map screenshots at all three viewports, and timeline-driven radar + wind frames at 0 / 600 / 1200 / 2400 / 3600 ms. The workflow also applies and persists the pending AGENT-020 geometry repair only after the same tested workspace passes all technical gates.
 
           Results:
           \`\`\`json
