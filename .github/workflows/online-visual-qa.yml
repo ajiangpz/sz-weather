@@ -1,0 +1,120 @@
+name: Online Visual QA Evidence
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/online-visual-qa.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_URL: https://ajiangpz.github.io/sz-weather/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rainscope-visual-qa
+          cd /tmp/rainscope-visual-qa
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture online visual QA evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/visual-qa/desktop" "$GITHUB_WORKSPACE/visual-qa/wind"
+          cd /tmp/rainscope-visual-qa
+
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import path from 'node:path';
+
+          const targetUrl = process.env.TARGET_URL;
+          const workspace = process.env.GITHUB_WORKSPACE;
+          const browser = await chromium.launch({ headless: true });
+
+          async function openReadyPage(width, height) {
+            const page = await browser.newPage({ viewport: { width, height } });
+            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+            await page.waitForTimeout(8_000);
+
+            const windToggle = page.getByLabel('风场流线');
+            await windToggle.waitFor({ state: 'visible', timeout: 15_000 });
+            if (!(await windToggle.isChecked())) {
+              await windToggle.check();
+            }
+            await page.waitForTimeout(600);
+            return page;
+          }
+
+          for (const [width, height] of [[1920, 1080], [1536, 1024], [1440, 900]]) {
+            const page = await openReadyPage(width, height);
+            await page.screenshot({
+              path: path.join(workspace, 'visual-qa', 'desktop', `${width}x${height}.png`),
+              fullPage: true,
+            });
+            await page.close();
+          }
+
+          const windPage = await openReadyPage(1536, 1024);
+          const samples = [
+            ['0000ms', 0],
+            ['0120ms', 120],
+            ['0240ms', 120],
+            ['0600ms', 360],
+            ['1800ms', 1200],
+          ];
+
+          for (const [name, waitMs] of samples) {
+            if (waitMs > 0) await windPage.waitForTimeout(waitMs);
+            await windPage.screenshot({
+              path: path.join(workspace, 'visual-qa', 'wind', `frame-${name}.png`),
+              fullPage: true,
+            });
+          }
+
+          await windPage.close();
+          await browser.close();
+          NODE
+
+      - name: Sanity-check screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=8
+          actual=$(find visual-qa -type f -name '*.png' | wc -l)
+          test "$actual" -eq "$expected"
+
+          while IFS= read -r file; do
+            size=$(stat -c%s "$file")
+            echo "$file: $size bytes"
+            test "$size" -gt 50000
+          done < <(find visual-qa -type f -name '*.png' | sort)
+
+          unique_wind_frames=$(sha256sum visual-qa/wind/*.png | awk '{print $1}' | sort -u | wc -l)
+          echo "Unique wind frames: $unique_wind_frames"
+          test "$unique_wind_frames" -ge 2
+
+      - name: Upload visual QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: online-visual-qa-evidence
+          path: visual-qa/
+          if-no-files-found: error
+          retention-days: 7
