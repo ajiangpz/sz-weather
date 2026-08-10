@@ -1,0 +1,173 @@
+name: Issue 18 Final Visual QA
+
+on:
+  push:
+    branches:
+      - fix/issue-18-radar-seed
+    paths:
+      - .agent/issue18-final-visual-trigger.txt
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue-18-radar-seed
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify
+        run: pnpm verify
+
+      - name: Install Playwright Chromium
+        run: |
+          pnpm add -D @playwright/test@1.54.2 playwright@1.54.2 --lockfile=false
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Run Chromium E2E
+        env:
+          CI: "1"
+        run: pnpm exec playwright test tests/e2e/dashboard.spec.mjs --config=playwright.config.mjs --project=chromium
+
+      - name: Start production preview
+        run: |
+          pnpm preview --host 127.0.0.1 --port 4173 > /tmp/rainscope-preview.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/rainscope-preview.log
+          exit 1
+
+      - name: Capture real Chromium evidence
+        run: |
+          mkdir -p visual-evidence
+          cat > ./issue18-final-visual.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import { createHash } from 'node:crypto';
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const browser = await chromium.launch({ headless: true });
+          const baseURL = 'http://127.0.0.1:4173/';
+          const results = [];
+
+          async function enableWind(page) {
+            const checkbox = page.getByRole('checkbox', { name: /风场流线/ });
+            if (await checkbox.count()) {
+              if (!(await checkbox.first().isChecked())) await checkbox.first().check({ force: true });
+              return { method: 'checkbox', checked: await checkbox.first().isChecked() };
+            }
+            const switchControl = page.getByRole('switch', { name: /风场流线/ });
+            if (await switchControl.count()) {
+              const checked = await switchControl.first().getAttribute('aria-checked');
+              if (checked !== 'true') await switchControl.first().click({ force: true });
+              return { method: 'switch', checked: await switchControl.first().getAttribute('aria-checked') };
+            }
+            throw new Error('Unable to locate the 风场流线 control');
+          }
+
+          for (const [width, height] of [[1920,1080],[1536,1024],[1440,900]]) {
+            const page = await browser.newPage({ viewport: { width, height } });
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            await page.goto(baseURL, { waitUntil: 'networkidle' });
+            await page.waitForTimeout(1000);
+            await page.screenshot({ path: `visual-evidence/viewport-${width}x${height}.png`, fullPage: true });
+            const map = page.locator('.weather-map-panel');
+            await map.screenshot({ path: `visual-evidence/map-${width}x${height}.png` });
+            const wind = await enableWind(page);
+            await page.waitForTimeout(900);
+            await map.screenshot({ path: `visual-evidence/map-wind-${width}x${height}.png` });
+            results.push({ kind: 'viewport', width, height, mapBox: await map.boundingBox(), wind, pageErrors });
+            if (pageErrors.length) throw new Error(`Page errors at ${width}x${height}: ${pageErrors.join(' | ')}`);
+            await page.close();
+          }
+
+          const page = await browser.newPage({ viewport: { width: 1536, height: 1024 } });
+          const dynamicErrors = [];
+          page.on('pageerror', error => dynamicErrors.push(error.message));
+          await page.goto(baseURL, { waitUntil: 'networkidle' });
+          await page.waitForTimeout(800);
+          const wind = await enableWind(page);
+          await page.waitForTimeout(500);
+          await page.getByRole('button', { name: '播放', exact: true }).click();
+          const times = [0, 600, 1200, 2400, 3600];
+          let elapsed = 0;
+          const frames = [];
+          for (const t of times) {
+            await page.waitForTimeout(t - elapsed);
+            elapsed = t;
+            const path = `visual-evidence/radar-wind-playback-${t}ms.png`;
+            await page.locator('.weather-map-panel').screenshot({ path });
+            const hash = createHash('sha256').update(readFileSync(path)).digest('hex');
+            const frameTime = await page.locator('.weather-map-panel__time').innerText();
+            frames.push({ t, hash, frameTime });
+          }
+          await page.getByRole('button', { name: '暂停', exact: true }).click();
+          const distinctHashes = new Set(frames.map(item => item.hash)).size;
+          const distinctTimes = new Set(frames.map(item => item.frameTime)).size;
+          results.push({ kind: 'dynamic', wind, frames, distinctHashes, distinctTimes, pageErrors: dynamicErrors });
+          writeFileSync('visual-evidence/results.json', JSON.stringify(results, null, 2));
+          if (dynamicErrors.length) throw new Error(`Dynamic page errors: ${dynamicErrors.join(' | ')}`);
+          if (distinctHashes < 4) throw new Error(`Expected at least 4 distinct dynamic screenshots, got ${distinctHashes}`);
+          if (distinctTimes < 4) throw new Error(`Expected timeline to visit at least 4 distinct frame times, got ${distinctTimes}`);
+          await browser.close();
+          EOF
+          node ./issue18-final-visual.mjs
+          cat visual-evidence/results.json
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-18-final-visual-${{ github.run_id }}
+          path: |
+            visual-evidence
+            playwright-report
+            test-results
+            /tmp/rainscope-preview.log
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Comment run result on Issue 18
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          if [ -f visual-evidence/results.json ]; then RESULT="$(cat visual-evidence/results.json)"; else RESULT="visual evidence was not produced"; fi
+          BODY=$(cat <<EOF
+          ## Issue #18 final Chromium Visual QA
+
+          Run ID: \`$RUN_ID\`  
+          Attempt: \`$RUN_ATTEMPT\`  
+          Job status: \`$JOB_STATUS\`
+
+          This clean cycle ran \`pnpm verify\`, existing Playwright Chromium E2E, three-view static screenshots at 1920×1080 / 1536×1024 / 1440×900, wind-enabled map screenshots at all three viewports, and timeline-driven radar + wind frames at 0 / 600 / 1200 / 2400 / 3600 ms against the already-committed Issue #18 geometry.
+
+          Results:
+          \`\`\`json
+          $RESULT
+          \`\`\`
+          EOF
+          )
+          gh api repos/${{ github.repository }}/issues/18/comments -f body="$BODY"
