@@ -1,1 +1,0 @@
-Trigger the simplified Issue #18 geometry refinement workflow after removing the fragile inline base64 command.
