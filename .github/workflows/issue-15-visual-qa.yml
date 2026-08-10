@@ -72,7 +72,7 @@ jobs:
           const page = await browser.newPage({ viewport: { width: 1536, height: 1024 } });
           await page.goto(baseURL, { waitUntil: 'networkidle' });
           await page.waitForTimeout(700);
-          await page.getByRole('button', { name: '播放' }).click();
+          await page.getByRole('button', { name: '播放', exact: true }).click();
           const times = [0, 600, 1200, 2400, 3600];
           let elapsed = 0;
           const hashes = [];
@@ -85,7 +85,7 @@ jobs:
             const frameTime = await page.locator('.weather-map-panel__time').innerText();
             hashes.push({ t, hash, frameTime });
           }
-          await page.getByRole('button', { name: '暂停' }).click();
+          await page.getByRole('button', { name: '暂停', exact: true }).click();
           results.push({ kind: 'dynamic', hashes, distinct: new Set(hashes.map((item) => item.hash)).size, distinctTimes: new Set(hashes.map((item) => item.frameTime)).size });
           writeFileSync('visual-evidence/results.json', JSON.stringify(results, null, 2));
           if (new Set(hashes.map((item) => item.hash)).size < 4) throw new Error('Radar playback frames did not change sufficiently');
