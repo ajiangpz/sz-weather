@@ -1,19 +1,19 @@
 {
-  "status": "DONE",
-  "iteration": 3,
-  "lastCompletedAction": "Completed two consecutive clean real-Playwright-Chromium validation + Visual QA + code-review cycles for Issue #14 on GitHub-hosted Ubuntu, verified AGENT-015, and removed all temporary Chromium workflow/trigger files. Product code was unchanged after the two clean visual cycles.",
-  "pendingIssueCount": 2,
+  "status": "PLAN",
+  "iteration": 1,
+  "lastCompletedAction": "Selected Issue #15 because its Medium severity is explicitly higher priority than the earlier Low-severity Issue #10; confirmed no existing open PR or development branch, read AGENTS.md, .agent/state.json, required project docs, package.json, and inspected the radar bitmap implementation/tests.",
+  "pendingIssueCount": 3,
   "testResult": {
     "lint": "Unavailable: package.json has no lint script",
-    "typecheck": "Passed in pnpm verify during both clean Chromium runs 31360266446 and 31360448871",
-    "test": "Passed in both clean runs: 7 test files / 25 tests, including wind field and particle continuity coverage",
+    "typecheck": "Not run yet for Issue #15",
+    "test": "Not run yet for Issue #15",
     "test:integration": "Unavailable: package.json has no test:integration script",
-    "build": "Passed in both clean runs; existing unrelated AGENT-001 chunk-size warning remains",
-    "playwright": "Passed with real Playwright Chromium on GitHub-hosted Ubuntu in consecutive runs 31360266446 and 31360448871; wind control was enabled and all requested viewport/dynamic captures completed",
-    "visual": "Passed two consecutive manual visual reviews using real Chromium evidence at 1920x1080, 1536x1024, 1440x900 plus 0/120/240/600/1800 ms frames. Rainfall remains dominant; wind is denser and directionally readable without line-wall behavior, major empty holes, label/station obstruction, obvious flicker, jump, freeze, reset, or hard boundary cutoff. All five sampled frame hashes were distinct in both runs."
+    "build": "Not run yet for Issue #15",
+    "playwright": "Not run yet for Issue #15",
+    "visual": "Not run yet for Issue #15"
   },
   "reviewResult": {
-    "status": "Passed",
-    "details": "Reviewed the complete windField -> windDeckLayers -> WeatherMapPanel call chain and directly related tests, not only the diff. The scoped implementation remains limited to source density 1.0 -> 1.12, deterministic particle selection 0.46 -> 0.56, and short-trail sampling 7 -> 8 points / 0.12 -> 0.13 maximum span. Width and overall layer opacity remain constrained so rainfall stays visually primary. Timeline-driven field regeneration and speed-driven particle rate remain unchanged. No open PR or unresolved review threads existed before completion. Two consecutive validation + Visual QA + review cycles produced no new Issue-related Critical/High/Medium findings."
+    "status": "Pending",
+    "details": "Plan: replace directionally repetitive trigonometric radar breakup with deterministic multi-scale non-periodic value-noise texture while preserving existing seed geometry, color scale, localized severe cores, transparency, layer ordering, and popup sampling from the same scalar field; add regression coverage for deterministic natural texture and validate visually at all three desktop viewports with two consecutive clean Chromium cycles."
   }
 }
