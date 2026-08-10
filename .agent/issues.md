@@ -103,7 +103,7 @@
 
 - Severity: Medium
 - Source: Visual QA
-- Affected file: `src/components/weather/WeatherMapPanel.vue`, `index.html`
+- Affected file: `src/styles.css`
 - Problem description: Issue #4 reports that baked CARTO/OSM labels and road detail remain too prominent relative to rainfall and custom district labels. The first repair pass reduces the MapLibre canvas brightness, saturation, contrast, and opacity while leaving deck.gl weather overlays and DOM labels outside that filter.
 - Expected behavior: At 1920×1080, 1536×1024, and 1440×900 the basemap should read as quiet geographic context; rainfall and custom Shenzhen district labels should clearly dominate while water/major-road context remains usable.
 - Status: Verified
@@ -124,4 +124,13 @@
 - Affected file: `src/district-labels.css`, `tests/e2e/dashboard.spec.mjs`
 - Problem description: Issue #10 implementation and `pnpm verify` pass on the Vercel branch build, but this automation runtime has no usable Chromium/agent-browser executable and cannot inspect the authenticated branch Preview at 1920×1080, 1536×1024, and 1440×900. Therefore label overlap, strong-rain readability, and restrained halo appearance cannot be visually verified in the required two clean cycles.
 - Expected behavior: Render the `fix/issue-10-district-labels` branch in real Chromium at all three desktop viewports, inspect all ten district labels against rainfall/stations/boundaries, confirm no distracting glow or overlap, and complete two clean validation + visual QA + review cycles before creating the PR.
+- Status: Open
+
+## AGENT-015
+
+- Severity: High
+- Source: Visual QA
+- Affected file: `src/mock/windField.ts`, `src/utils/windDeckLayers.ts`
+- Problem description: Issue #14 has a scoped implementation and `pnpm verify` repeatedly passes on the branch Vercel build, but the required branch-level real-Chromium visual loop cannot be completed safely in this automation run. Standard Playwright Chromium cannot install required host libraries in the Vercel build image because `apt-get` is unavailable. A serverless Chromium fallback launched successfully but terminated when creating a subsequent browser context; a single-context fallback then remained stuck in the Vercel build and did not produce inspectable 1920×1080, 1536×1024, 1440×900 or 0/120/240/600/1800 ms evidence. Temporary validation harness files were removed after the failed attempts.
+- Expected behavior: Run `fix/issue-14-wind-density` in a stable real Chromium environment, execute Playwright Chromium E2E, capture all three required desktop viewports plus the five requested wind timepoints, compare against Issue #14 and the design references, and complete two consecutive clean validation + Visual QA + Review cycles before creating a PR.
 - Status: Open
