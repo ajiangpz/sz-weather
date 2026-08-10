@@ -1,1 +1,1 @@
-Trigger the Issue #18 geometry-only repair workflow after first real Chromium Visual QA found AGENT-020. Temporary file; remove before PR.
+Trigger the second Issue #18 geometry-only repair after post-fix Chromium review still found visible bead cadence. Temporary file; remove before PR.
