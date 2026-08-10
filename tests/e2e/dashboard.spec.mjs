@@ -44,4 +44,38 @@ test.describe('RainScope dashboard smoke tests', () => {
       });
     }
   });
+
+  test('keeps district labels compact and readable on supported desktop viewports', async ({ page }) => {
+    const expectedMaximumFontSize = new Map([
+      [1920, 15],
+      [1536, 14],
+      [1440, 13.5],
+    ]);
+
+    for (const viewport of [
+      { width: 1920, height: 1080 },
+      { width: 1536, height: 1024 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+
+      const labels = page.locator('.weather-map-panel__district-label');
+      await expect(labels).toHaveCount(10);
+
+      const styles = await labels.evaluateAll(elements => elements.map(element => {
+        const computed = getComputedStyle(element);
+        return {
+          fontSize: Number.parseFloat(computed.fontSize),
+          textShadow: computed.textShadow,
+        };
+      }));
+
+      for (const style of styles) {
+        expect(style.fontSize).toBeLessThanOrEqual(expectedMaximumFontSize.get(viewport.width));
+        expect(style.fontSize).toBeGreaterThanOrEqual(13.5);
+        expect(style.textShadow).not.toBe('none');
+      }
+    }
+  });
 });
