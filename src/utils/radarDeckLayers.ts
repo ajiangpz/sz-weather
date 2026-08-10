@@ -71,14 +71,39 @@ const interpolateColor = (value: number): [number, number, number] => {
   return upper.color.map((channel, index) => Math.round(lower.color[index] + (channel - lower.color[index]) * ratio)) as [number, number, number];
 };
 
-const textureNoise = (x: number, y: number): number => {
-  const broad = Math.sin(x * 0.083 + y * 0.047) * 0.045;
-  const fine = Math.sin(x * 0.31 - y * 0.19) * Math.cos(y * 0.23) * 0.025;
-  return broad + fine;
+const smoothstep = (value: number): number => value * value * (3 - 2 * value);
+
+const hashNoise = (x: number, y: number, seed: number): number => {
+  let hash = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(seed, 1442695041);
+  hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+  hash ^= hash >>> 16;
+  return ((hash >>> 0) / 4294967295) * 2 - 1;
 };
 
-const echoTexture = (x: number, y: number): number =>
-  (Math.sin(x * 0.17 + y * 0.09) + Math.cos(y * 0.21 - x * 0.04) + Math.sin((x + y) * 0.071)) / 3;
+const valueNoise = (x: number, y: number, cellSize: number, seed: number): number => {
+  const gridX = x / cellSize;
+  const gridY = y / cellSize;
+  const x0 = Math.floor(gridX);
+  const y0 = Math.floor(gridY);
+  const tx = smoothstep(gridX - x0);
+  const ty = smoothstep(gridY - y0);
+  const top = hashNoise(x0, y0, seed) * (1 - tx) + hashNoise(x0 + 1, y0, seed) * tx;
+  const bottom = hashNoise(x0, y0 + 1, seed) * (1 - tx) + hashNoise(x0 + 1, y0 + 1, seed) * tx;
+  return top * (1 - ty) + bottom * ty;
+};
+
+const rotatedNoise = (x: number, y: number, cellSize: number, angle: number, seed: number): number => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return valueNoise(x * cos - y * sin, x * sin + y * cos, cellSize, seed);
+};
+
+const sampleRadarTexture = (x: number, y: number): { broad: number; detail: number; fragments: number } => {
+  const broad = rotatedNoise(x, y, 46, 0.31, 17) * 0.6 + rotatedNoise(x, y, 24, -0.57, 29) * 0.4;
+  const detail = rotatedNoise(x, y, 13, 0.83, 43) * 0.62 + rotatedNoise(x, y, 7, -1.07, 71) * 0.38;
+  const fragments = rotatedNoise(x, y, 9, 1.21, 97) * 0.55 + rotatedNoise(x, y, 5, -0.36, 131) * 0.45;
+  return { broad, detail, fragments };
+};
 
 const createRadarSeeds = (
   points: FeatureCollection<Point, RadarPointProperties>,
@@ -124,14 +149,12 @@ const calculateRadarValue = (x: number, y: number, seeds: RadarSeed[]): number =
 
   const density = 1 - Math.exp(-field * 0.13);
   const baseValue = peak * 0.84 + density * 0.1;
-  const texture = echoTexture(x, y);
-  const cellular = Math.sin(x * 0.73 + Math.cos(y * 0.19) * 2.1) * Math.cos(y * 0.61 - x * 0.08);
-  const fragments = Math.sin(x * 0.43 + y * 0.27) * Math.cos(y * 0.37 - x * 0.16);
-  const breakup = cellular * 0.055 + fragments * 0.025 + textureNoise(x, y) * 1.45;
+  const { broad, detail, fragments } = sampleRadarTexture(x, y);
+  const breakup = broad * 0.05 + detail * 0.038 + fragments * 0.024;
   const value = Math.max(0, Math.min(1, baseValue + breakup * Math.min(1, field * 2.2)));
-  const edgeThreshold = 0.082 + texture * 0.038 + cellular * 0.016 + fragments * 0.012;
+  const edgeThreshold = 0.082 + broad * 0.026 + detail * 0.018 + fragments * 0.012;
   if (value < edgeThreshold) return 0;
-  return Math.max(0, Math.min(1, value * (0.9 + texture * 0.16 + cellular * 0.06)));
+  return Math.max(0, Math.min(1, value * (0.93 + broad * 0.08 + detail * 0.05)));
 };
 
 const normalizedValueToRainfall = (value: number): number => {
