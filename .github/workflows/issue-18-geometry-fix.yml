@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   apply-fix:
@@ -163,3 +164,12 @@ jobs:
           git add src/mock/weather.ts
           git commit -m "fix(radar): merge warm cores into irregular clumps"
           git push origin HEAD:fix/issue-18-radar-seed
+
+      - name: Report geometry workflow
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          gh api repos/${{ github.repository }}/issues/18/comments -f body="Issue #18 geometry repair workflow run \`$RUN_ID\`: **$JOB_STATUS**."
