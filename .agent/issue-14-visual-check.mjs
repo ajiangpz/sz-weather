@@ -104,6 +104,10 @@ try {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Issue 14 Visual QA</title><style>body{font-family:sans-serif;background:#111;color:#eee;margin:20px}figure{margin:0 0 24px}img{max-width:100%;height:auto;border:1px solid #444}figcaption{margin:8px 0}</style></head><body><h1>Issue 14 Visual QA</h1>${screenshots.map(item => `<figure><figcaption>${item.name}</figcaption><img src="data:${item.mime};base64,${item.data}"></figure>`).join('')}<pre>${JSON.stringify(validation, null, 2)}</pre></body></html>`;
   await writeFile(path.join(root, 'dist', 'issue-14-visual-qa.html'), html);
   await writeFile(path.join(root, 'dist', 'issue-14-validation.json'), JSON.stringify(validation, null, 2));
+  console.log(`Issue 14 Chromium QA passed: ${validation.uniqueWindFrames} unique wind frames`);
 } finally {
-  server.kill('SIGTERM');
+  server.kill('SIGKILL');
+  server.unref();
 }
+
+process.exit(0);
