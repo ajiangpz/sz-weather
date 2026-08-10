@@ -48,7 +48,7 @@ const interpolatePoint = (path: Array<[number, number]>, progress: number): [num
   return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
 };
 
-export const shouldRenderWindParticle = (index: number) => particleNoise(index, 1.7) < 0.46;
+export const shouldRenderWindParticle = (index: number) => particleNoise(index, 1.7) < 0.56;
 
 // WeatherMapPanel currently redraws the wind layer on a throttled cadence. Keep the
 // phase rate high enough that the visible particle speed still tracks wind speed.
@@ -68,8 +68,8 @@ export const createWindParticleStreaks = (
 
   const initialPhase = particleNoise(streamIndex, 3.1);
   const progress = (initialPhase + particlePhase * getWindParticleRate(stream.speed)) % 1;
-  const trailSpan = Math.min(0.12, 0.072 + stream.speed * 0.007);
-  const sampleCount = 7;
+  const trailSpan = Math.min(0.13, 0.08 + stream.speed * 0.0075);
+  const sampleCount = 8;
   const startProgress = Math.max(0, progress - trailSpan);
   const path = Array.from({ length: sampleCount }, (_, sampleIndex) => {
     const ratio = sampleIndex / (sampleCount - 1);
