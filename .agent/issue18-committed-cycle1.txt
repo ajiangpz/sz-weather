@@ -1,0 +1,1 @@
+Trigger committed-geometry Chromium Visual QA clean cycle 1 for Issue #18.
