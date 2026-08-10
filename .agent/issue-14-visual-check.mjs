@@ -1,5 +1,7 @@
-import { chromium } from '@playwright/test';
+import { chromium as playwrightChromium } from 'playwright-core';
+import serverlessChromium from '@sparticuz/chromium';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -29,6 +31,7 @@ async function waitForServer() {
 
 const screenshots = [];
 const validation = {
+  e2e: {},
   viewports: [],
   windFrames: [],
   pageErrors: [],
@@ -36,32 +39,53 @@ const validation = {
 
 try {
   await waitForServer();
-  const browser = await chromium.launch({ headless: true });
+  const browser = await playwrightChromium.launch({
+    args: serverlessChromium.args,
+    executablePath: await serverlessChromium.executablePath(),
+    headless: true,
+  });
 
   async function openReadyPage(width, height) {
-    const page = await browser.newPage({ viewport: { width, height } });
+    const context = await browser.newContext({ viewport: { width, height } });
+    const page = await context.newPage();
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+    await page.getByRole('region', { name: 'RainScope 深圳天气可视化大屏' }).waitFor({ state: 'visible', timeout: 15_000 });
+    await page.getByRole('complementary', { name: '图层与站点' }).waitFor({ state: 'visible', timeout: 15_000 });
+    await page.getByRole('complementary', { name: '实时指标与预警' }).waitFor({ state: 'visible', timeout: 15_000 });
     const windToggle = page.getByLabel('风场流线');
     await windToggle.waitFor({ state: 'visible', timeout: 15_000 });
     if (!(await windToggle.isChecked())) await windToggle.check();
     await page.waitForTimeout(4500);
     validation.pageErrors.push(...pageErrors);
-    return page;
+    return { context, page };
   }
 
+  const e2ePage = await openReadyPage(1440, 900);
+  const labels = e2ePage.page.locator('.weather-map-panel__district-label');
+  const labelCount = await labels.count();
+  if (labelCount !== 10) throw new Error(`Expected 10 district labels, got ${labelCount}`);
+  validation.e2e = {
+    dashboardVisible: await e2ePage.page.getByRole('region', { name: 'RainScope 深圳天气可视化大屏' }).isVisible(),
+    leftPanelVisible: await e2ePage.page.getByRole('complementary', { name: '图层与站点' }).isVisible(),
+    rightPanelVisible: await e2ePage.page.getByRole('complementary', { name: '实时指标与预警' }).isVisible(),
+    districtLabelCount: labelCount,
+    windEnabled: await e2ePage.page.getByLabel('风场流线').isChecked(),
+  };
+  await e2ePage.context.close();
+
   for (const [width, height] of [[1920, 1080], [1536, 1024], [1440, 900]]) {
-    const page = await openReadyPage(width, height);
+    const { context, page } = await openReadyPage(width, height);
     const map = page.getByRole('region', { name: '深圳降雨雷达地图' });
     const image = await map.screenshot({ type: 'jpeg', quality: 72 });
     screenshots.push({ name: `${width}x${height}`, mime: 'image/jpeg', data: image.toString('base64') });
     validation.viewports.push({ width, height, mapVisible: await map.isVisible() });
-    await page.close();
+    await context.close();
   }
 
-  const windPage = await openReadyPage(1536, 1024);
-  const windMap = windPage.getByRole('region', { name: '深圳降雨雷达地图' });
+  const windSession = await openReadyPage(1536, 1024);
+  const windMap = windSession.page.getByRole('region', { name: '深圳降雨雷达地图' });
   const samples = [
     ['0000ms', 0],
     ['0120ms', 120],
@@ -70,9 +94,8 @@ try {
     ['1800ms', 1200],
   ];
   const hashes = new Set();
-  const { createHash } = await import('node:crypto');
   for (const [name, waitMs] of samples) {
-    if (waitMs) await windPage.waitForTimeout(waitMs);
+    if (waitMs) await windSession.page.waitForTimeout(waitMs);
     const image = await windMap.screenshot({ type: 'jpeg', quality: 72 });
     const hash = createHash('sha256').update(image).digest('hex');
     hashes.add(hash);
@@ -82,11 +105,14 @@ try {
     }
   }
   validation.uniqueWindFrames = hashes.size;
-  await windPage.close();
+  await windSession.context.close();
   await browser.close();
 
   if (validation.pageErrors.length) throw new Error(`Page errors: ${validation.pageErrors.join('\n')}`);
   if (validation.uniqueWindFrames !== 5) throw new Error(`Expected 5 unique wind frames, got ${validation.uniqueWindFrames}`);
+  if (!validation.e2e.dashboardVisible || !validation.e2e.leftPanelVisible || !validation.e2e.rightPanelVisible || !validation.e2e.windEnabled) {
+    throw new Error(`Playwright Chromium E2E checks failed: ${JSON.stringify(validation.e2e)}`);
+  }
 
   const reference = await readFile(path.join(root, 'docs', 'image.png'));
   screenshots.push({ name: 'reference', mime: 'image/png', data: reference.toString('base64') });
