@@ -107,7 +107,8 @@ describe('weather mock radar data', () => {
 
       expect(cluster.length).toBeGreaterThanOrEqual(8);
       expect(Math.max(...latitudeValues) - Math.min(...latitudeValues)).toBeGreaterThan(0.035);
-      expect(Math.max(...adjacentGaps) - Math.min(...adjacentGaps)).toBeGreaterThan(0.008);
+      expect(Math.max(...adjacentGaps) - Math.min(...adjacentGaps)).toBeGreaterThan(0.012);
+      expect(Math.max(...adjacentGaps)).toBeGreaterThan(0.02);
       expect(uniqueIntensityBands.size).toBeGreaterThanOrEqual(4);
     });
   });

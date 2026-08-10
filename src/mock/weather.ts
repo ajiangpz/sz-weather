@@ -131,12 +131,12 @@ const baseRadarCells: RadarCell[] = [
   ['light', 114.24, 22.42, 6.2],
   ['moderate', 114.31, 22.42, 10.2],
   ['light', 114.38, 22.42, 6.6],
-  ['severeStorm', 114.132, 22.519, 34.6],
-  ['severeStorm', 114.176, 22.557, 42.8],
-  ['storm', 114.223, 22.536, 28.4],
-  ['severeStorm', 114.348, 22.627, 35.2],
-  ['severeStorm', 114.401, 22.674, 41.3],
-  ['storm', 114.456, 22.646, 30.1],
+  ['storm', 114.112, 22.512, 29.8],
+  ['severeStorm', 114.163, 22.565, 43.4],
+  ['storm', 114.232, 22.533, 26.7],
+  ['storm', 114.333, 22.612, 28.5],
+  ['severeStorm', 114.389, 22.681, 42.1],
+  ['storm', 114.468, 22.638, 27.6],
 ];
 
 const broadOffsets = [
@@ -182,10 +182,11 @@ const southRainPath: Coordinate[] = [
 
 const eastRainPath: Coordinate[] = [
   [114.17, 22.45],
-  [114.25, 22.51],
-  [114.34, 22.57],
-  [114.43, 22.63],
-  [114.51, 22.7],
+  [114.238, 22.522],
+  [114.331, 22.566],
+  [114.398, 22.642],
+  [114.493, 22.676],
+  [114.525, 22.712],
 ];
 
 const northRainPath: Coordinate[] = [
@@ -198,11 +199,11 @@ const northRainPath: Coordinate[] = [
 ];
 
 const stormCorePath: Coordinate[] = [
-  [114.105, 22.522],
-  [114.146, 22.556],
-  [114.181, 22.53],
-  [114.219, 22.567],
-  [114.251, 22.544],
+  [114.102, 22.516],
+  [114.131, 22.555],
+  [114.176, 22.537],
+  [114.191, 22.568],
+  [114.248, 22.532],
 ];
 
 const createBandCells = (
@@ -237,8 +238,8 @@ const mockRadarCells: RadarCell[] = [
   ...createBandCells('moderate', 12.6, eastRainPath, broadOffsets),
   ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
   ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
-  ...createBandCells('severeStorm', 39.2, [[114.129, 22.515], [114.174, 22.556], [114.218, 22.535]], coreOffsets),
-  ...createBandCells('severeStorm', 37.8, [[114.346, 22.626], [114.397, 22.675], [114.454, 22.646]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.126, 22.553], [114.188, 22.568], [114.236, 22.526]], coreOffsets),
+  ...createBandCells('severeStorm', 37.8, [[114.337, 22.618], [114.382, 22.679], [114.459, 22.641]], coreOffsets),
 ];
 
 const mockRadarSpeckles: RadarCell[] = [
@@ -273,19 +274,19 @@ const ambientEchoCenters: Coordinate[] = [
 ];
 
 const luohuCoreCenters: Coordinate[] = [
-  [114.092, 22.518],
-  [114.121, 22.551],
-  [114.151, 22.532],
-  [114.181, 22.562],
-  [114.213, 22.526],
+  [114.094, 22.518],
+  [114.124, 22.558],
+  [114.168, 22.538],
+  [114.187, 22.568],
+  [114.238, 22.527],
 ];
 
 const pingshanCoreCenters: Coordinate[] = [
-  [114.313, 22.586],
-  [114.341, 22.632],
-  [114.378, 22.646],
-  [114.409, 22.681],
-  [114.459, 22.649],
+  [114.319, 22.607],
+  [114.351, 22.658],
+  [114.397, 22.681],
+  [114.421, 22.646],
+  [114.474, 22.634],
 ];
 
 const innerBurstCenters: Coordinate[] = [
@@ -325,10 +326,10 @@ const westernBurstCenters: Coordinate[] = [
 ];
 
 const easternBurstCenters: Coordinate[] = [
-  [114.34, 22.61],
-  [114.38, 22.64],
-  [114.42, 22.66],
-  [114.46, 22.68],
+  [114.329, 22.606],
+  [114.361, 22.656],
+  [114.418, 22.641],
+  [114.476, 22.682],
 ];
 
 const createFragmentCells = (
@@ -403,7 +404,7 @@ const mockRadarFragments: RadarFragmentCell[] = [
   ...createFragmentCells('moderate', 10.2, southRainPath.slice(1, 6), 0.011),
   ...createFragmentCells('storm', 24.8, luohuCoreCenters, 0.012),
   ...createFragmentCells('severeStorm', 36.6, luohuCoreCenters.slice(1, 4), 0.009),
-  ...createFragmentCells('severeStorm', 39.4, [[114.18, 22.495], [114.225, 22.512], [114.265, 22.535]], 0.008),
+  ...createFragmentCells('severeStorm', 39.4, [[114.166, 22.503], [114.211, 22.534], [114.263, 22.517]], 0.008),
   ...createMicroFragmentCells('light', 3.2, toFragmentSeeds(ambientEchoCenters, 0.03, 0.018), 0.0058, 9),
   ...createMicroFragmentCells('light', 4.8, toFragmentSeeds(westRainPath, 0.034, 0.024), 0.0062, 8),
   ...createMicroFragmentCells('light', 4.9, toFragmentSeeds(northRainPath, 0.04, 0.02), 0.006, 8),
@@ -432,10 +433,10 @@ const mockRadarFragments: RadarFragmentCell[] = [
     39.6,
     toFragmentSeeds(
       [
-        [114.168, 22.488],
-        [114.206, 22.508],
-        [114.244, 22.529],
-        [114.34, 22.624],
+        [114.157, 22.496],
+        [114.203, 22.531],
+        [114.258, 22.516],
+        [114.334, 22.613],
       ],
       0.012,
       0.009,
