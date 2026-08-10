@@ -1,19 +1,19 @@
 {
-  "status": "BLOCKED",
-  "iteration": 1,
-  "lastCompletedAction": "Implemented Issue #18 by changing only mock severe-rain seed/cluster geometry and regression tests; Vercel preview build dpl_4AJ8UGmEzSUCA2q2Yx8L4qrc4hyx ran pnpm verify successfully (7 test files / 27 tests, typecheck and production build passed). Reviewed the complete weather mock -> weather store -> WeatherMapPanel createRadarFrame -> createRadarBitmap/sampleRadarIntensity call chain and confirmed the Issue #15 renderer/value-noise/color/opacity/layer ordering remain unchanged. Removed all temporary QA workflow/trigger/Vercel config files. The task is blocked before PR creation because this runtime cannot perform the required real Playwright Chromium three-viewport and dynamic visual review.",
+  "status": "TEST",
+  "iteration": 2,
+  "lastCompletedAction": "Resumed Issue #18 on the existing fix/issue-18-radar-seed branch. Confirmed there is still no open PR for the branch and switched the visual-validation strategy back to the proven Issue #15 pattern: GitHub-hosted Ubuntu + real Playwright Chromium + runner-local preview, avoiding Vercel Preview network access.",
   "pendingIssueCount": 4,
   "testResult": {
     "lint": "Unavailable: package.json has no lint script",
-    "typecheck": "Passed in Vercel preview build dpl_4AJ8UGmEzSUCA2q2Yx8L4qrc4hyx via pnpm verify",
-    "test": "Passed in Vercel preview build: 7 test files / 27 tests, including the new irregular severe-radar-cluster regression test",
+    "typecheck": "Previously passed in Vercel preview build dpl_4AJ8UGmEzSUCA2q2Yx8L4qrc4hyx via pnpm verify; rerun pending in GitHub-hosted Chromium cycle",
+    "test": "Previously passed: 7 test files / 27 tests; rerun pending in GitHub-hosted Chromium cycle",
     "test:integration": "Unavailable: package.json has no test:integration script",
-    "build": "Passed in Vercel preview build; existing unrelated AGENT-001 chunk-size warning remains",
-    "playwright": "Blocked: local Chromium exists but the automation runtime has no network/DNS route to the Vercel Preview; the connected Vercel tools cannot drive/screenshot a browser, and the temporary branch GitHub Actions harness did not execute",
-    "visual": "Blocked: required 1920x1080, 1536x1024, 1440x900 screenshots plus timeline/wind multi-frame observation and two consecutive clean visual-review cycles could not be completed safely"
+    "build": "Previously passed in Vercel preview build; rerun pending in GitHub-hosted Chromium cycle",
+    "playwright": "Pending: run existing Chromium E2E plus Issue #18 three-viewport and dynamic visual harness on GitHub-hosted Ubuntu",
+    "visual": "Pending: two consecutive real-Chromium cycles at 1920x1080, 1536x1024, 1440x900 plus timeline playback with wind enabled"
   },
   "reviewResult": {
-    "status": "Blocked",
-    "details": "Code review completed across the full relevant call chain, not only the diff. The implementation is scoped to deterministic mock seed centers/intensities and test assertions. WeatherMapPanel still applies the same timeline translation/intensity scale, combines the same bands/ribbons/fragments/radar/speckle sources, and feeds the same frame into createRadarBitmap and sampleRadarIntensity; Issue #15 value-noise rendering, palette, opacity, layer ordering, labels, station handling, and wind rendering were not modified. No code-level blocker was found. AGENT-018 remains In Progress and AGENT-019 remains Open until two real Chromium Visual QA cycles verify the rendered result."
+    "status": "Pending",
+    "details": "Product implementation remains unchanged from the previously reviewed Issue #18 repair. This resumed iteration is limited to completing the required real Chromium evidence, visual review, and final call-chain review before PR creation."
   }
 }
