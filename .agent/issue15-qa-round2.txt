@@ -1,0 +1,1 @@
+Trigger the second consecutive Issue #15 validation + Visual QA cycle. Temporary file; remove before PR.
