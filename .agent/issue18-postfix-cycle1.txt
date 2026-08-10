@@ -1,1 +1,0 @@
-Trigger first clean-candidate Issue #18 validation after the AGENT-020 geometry repair. Temporary file; remove before PR.
