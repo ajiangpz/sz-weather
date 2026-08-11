@@ -1,0 +1,507 @@
+name: QA Repair
+
+on:
+  workflow_run:
+    workflows:
+      - Branch Chromium QA
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: qa-repair-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      eligible: ${{ steps.context.outputs.eligible }}
+      target_sha: ${{ steps.context.outputs.target_sha }}
+      target_branch: ${{ steps.context.outputs.target_branch }}
+      qa_mode: ${{ steps.context.outputs.qa_mode }}
+      issue_number: ${{ steps.context.outputs.issue_number }}
+      request_id: ${{ steps.context.outputs.request_id }}
+      next_attempt: ${{ steps.context.outputs.next_attempt }}
+      failure_stage: ${{ steps.context.outputs.failure_stage }}
+
+    steps:
+      - name: Download failed QA artifact
+        uses: actions/download-artifact@v5
+        with:
+          pattern: branch-chromium-qa-${{ github.event.workflow_run.id }}-*
+          path: ${{ runner.temp }}/qa-artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+
+      - name: Build repair context
+        id: context
+        uses: actions/github-script@v8
+        env:
+          QA_ARTIFACT_DIR: ${{ runner.temp }}/qa-artifact
+          REPAIR_INPUT_DIR: ${{ runner.temp }}/repair-input
+          MAX_REPAIR_ATTEMPTS: '3'
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const qaArtifactDir = process.env.QA_ARTIFACT_DIR;
+            const repairInputDir = process.env.REPAIR_INPUT_DIR;
+            const summaryPath = path.join(qaArtifactDir, 'qa', 'qa-summary.json');
+
+            if (!fs.existsSync(summaryPath)) {
+              throw new Error(`Missing machine-readable QA summary: ${summaryPath}`);
+            }
+
+            const summary = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+            const runId = Number(context.payload.workflow_run.id);
+            const maxAttempts = Number(process.env.MAX_REPAIR_ATTEMPTS || '3');
+            const stages = summary.stages || {};
+            const stageOrder = [
+              'resolve',
+              'install',
+              'deterministic',
+              'browserInstall',
+              'functionalE2E',
+              'preview',
+              'visualCapture',
+              'visualSanity',
+            ];
+            const failureStage = stageOrder.find(stage =>
+              ['failure', 'cancelled'].includes(stages[stage]),
+            ) || 'unknown';
+
+            const repairableStages = {
+              deterministic: {
+                command: 'pnpm verify',
+                severity: 'High',
+                description: 'Deterministic validation failed. Reproduce the failing lint, typecheck, unit-test, or build command and fix the source-code root cause.',
+              },
+              functionalE2E: {
+                command: 'pnpm test:e2e',
+                severity: 'High',
+                description: 'Chromium functional E2E validation failed. Reproduce the failing browser test and fix the source-code root cause.',
+              },
+            };
+
+            const rawTargetRef = String(summary.request?.targetRef || '').trim();
+            const targetSha = String(summary.target?.sha || '').trim();
+            const shaRef = /^[0-9a-f]{40}$/i.test(rawTargetRef);
+            const tagRef = rawTargetRef.startsWith('refs/tags/');
+            const targetBranch = rawTargetRef.replace(/^refs\/heads\//, '');
+            const branchCandidate = !shaRef && !tagRef && targetBranch && targetBranch !== 'deckGL';
+
+            let branchExists = false;
+            if (branchCandidate) {
+              try {
+                await github.rest.repos.getBranch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  branch: targetBranch,
+                });
+                branchExists = true;
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+            let commitMessage = '';
+            if (targetSha) {
+              const { data: commit } = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: targetSha,
+              });
+              commitMessage = commit.commit.message || '';
+            }
+
+            const attemptMatch = commitMessage.match(/^QA-Repair-Attempt:\s*(\d+)\s*$/mi);
+            const currentAttempt = attemptMatch ? Number(attemptMatch[1]) : 0;
+            const nextAttempt = currentAttempt + 1;
+            const stageConfig = repairableStages[failureStage] || null;
+            const repairable = Boolean(stageConfig);
+            const withinBudget = nextAttempt <= maxAttempts;
+            const eligible =
+              summary.result === 'failure' &&
+              repairable &&
+              withinBudget &&
+              branchExists &&
+              /^[0-9a-f]{40}$/i.test(targetSha);
+
+            const rawRequestId = String(summary.request?.requestId || `qa-${runId}`);
+            const requestId = rawRequestId.replace(/[^A-Za-z0-9._:-]/g, '-').slice(0, 120) || `qa-${runId}`;
+            const rawIssue = String(summary.request?.issueNumber || '');
+            const issueNumber = /^\d+$/.test(rawIssue) ? rawIssue : '';
+            const qaMode = summary.request?.mode === 'full' ? 'full' : 'functional';
+
+            const finding = {
+              id: `QA-${runId}-${failureStage}`,
+              severity: stageConfig?.severity || 'High',
+              source: failureStage,
+              expected: 'The required QA stage completes successfully.',
+              actual: stages[failureStage] || 'unknown',
+              reproduction: stageConfig?.command || null,
+              evidence: {
+                qaSummary: 'qa/qa-summary.json',
+                playwrightReport: summary.evidence?.playwrightReport || null,
+                testResults: summary.evidence?.testResults || null,
+                previewLog: summary.evidence?.previewLog || null,
+              },
+              repairable,
+              status: 'Open',
+            };
+
+            const repairRequest = {
+              schemaVersion: 1,
+              origin: {
+                qaRunId: runId,
+                qaRunUrl: summary.execution?.runUrl || context.payload.workflow_run.html_url,
+                requestId,
+                issueNumber: issueNumber || null,
+              },
+              target: {
+                branch: branchExists ? targetBranch : null,
+                sha: targetSha || null,
+              },
+              qaMode,
+              failureStage,
+              reproduce: stageConfig ? { command: stageConfig.command } : null,
+              repairBudget: {
+                currentAttempt,
+                nextAttempt,
+                maxAttempts,
+                withinBudget,
+              },
+              scope: {
+                allowed: ['src/**'],
+                protected: [
+                  '.github/**',
+                  '.agent/**',
+                  'AGENTS.md',
+                  'docs/**',
+                  'tests/**',
+                  'package.json',
+                  'pnpm-lock.yaml',
+                ],
+              },
+              eligible,
+              finding,
+            };
+
+            fs.mkdirSync(repairInputDir, { recursive: true });
+            fs.copyFileSync(summaryPath, path.join(repairInputDir, 'qa-summary.json'));
+            fs.writeFileSync(
+              path.join(repairInputDir, 'findings.json'),
+              `${JSON.stringify({ schemaVersion: 1, findings: [finding] }, null, 2)}\n`,
+            );
+            fs.writeFileSync(
+              path.join(repairInputDir, 'repair-request.json'),
+              `${JSON.stringify(repairRequest, null, 2)}\n`,
+            );
+
+            core.setOutput('eligible', eligible ? 'true' : 'false');
+            core.setOutput('target_sha', targetSha);
+            core.setOutput('target_branch', branchExists ? targetBranch : '');
+            core.setOutput('qa_mode', qaMode);
+            core.setOutput('issue_number', issueNumber);
+            core.setOutput('request_id', requestId);
+            core.setOutput('next_attempt', String(nextAttempt));
+            core.setOutput('failure_stage', failureStage);
+
+            core.summary
+              .addHeading('QA repair decision')
+              .addTable([
+                [{ data: 'Field', header: true }, { data: 'Value', header: true }],
+                ['Origin QA run', String(runId)],
+                ['Failure stage', failureStage],
+                ['Target branch', branchExists ? targetBranch : 'Unavailable'],
+                ['Target SHA', targetSha || 'Unavailable'],
+                ['Repair attempt', `${nextAttempt}/${maxAttempts}`],
+                ['Eligible', String(eligible)],
+              ])
+              .write();
+
+      - name: Upload repair input
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-repair-input-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/repair-input/
+          if-no-files-found: error
+          retention-days: 7
+
+  repair:
+    needs: prepare
+    if: needs.prepare.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout exact failed commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.target_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download repair input
+        uses: actions/download-artifact@v5
+        with:
+          name: qa-repair-input-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/repair-input
+
+      - name: Stage repair context outside version control
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .agent/qa-input .agent/qa-output
+          cp "$RUNNER_TEMP/repair-input/qa-summary.json" .agent/qa-input/qa-summary.json
+          cp "$RUNNER_TEMP/repair-input/findings.json" .agent/qa-input/findings.json
+          cp "$RUNNER_TEMP/repair-input/repair-request.json" .agent/qa-input/repair-request.json
+          printf '\n.agent/\n' >> .git/info/exclude
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install project dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium for E2E reproduction
+        if: needs.prepare.outputs.failure_stage == 'functionalE2E'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Require OpenAI API key
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "OPENAI_API_KEY is not configured. Automated QA repair cannot run." >&2
+            exit 1
+          fi
+
+      - name: Run Codex repair agent
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/qa-repair.md
+          output-file: .agent/qa-output/codex-output.md
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: '["--ephemeral"]'
+
+      - name: Enforce repair scope and validate patch
+        shell: bash
+        env:
+          FAILURE_STAGE: ${{ needs.prepare.outputs.failure_stage }}
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              .agent/*) ;;
+              src/*) git add -N -- "$file" ;;
+              *)
+                echo "Out-of-scope untracked file produced by repair agent: $file" >&2
+                exit 1
+                ;;
+            esac
+          done < <(git ls-files --others --exclude-standard)
+
+          mapfile -t changed_files < <(git diff --name-only)
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "Codex produced no source-code patch." >&2
+            exit 1
+          fi
+
+          for file in "${changed_files[@]}"; do
+            case "$file" in
+              src/*) ;;
+              *)
+                echo "Automated repair attempted to modify protected path: $file" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          pnpm verify
+          if [ "$FAILURE_STAGE" = "functionalE2E" ]; then
+            pnpm test:e2e
+          fi
+
+          git diff --binary -- src > "$RUNNER_TEMP/repair.patch"
+          test -s "$RUNNER_TEMP/repair.patch"
+
+          mkdir -p "$RUNNER_TEMP/repair-artifact"
+          cp "$RUNNER_TEMP/repair.patch" "$RUNNER_TEMP/repair-artifact/repair.patch"
+          cp .agent/qa-output/codex-output.md "$RUNNER_TEMP/repair-artifact/codex-output.md"
+          git diff --name-only > "$RUNNER_TEMP/repair-artifact/changed-files.txt"
+
+      - name: Upload validated repair patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-repair-patch-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/repair-artifact/
+          if-no-files-found: error
+          retention-days: 7
+
+  apply:
+    needs:
+      - prepare
+      - repair
+    if: needs.repair.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Checkout repair branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.target_branch }}
+          fetch-depth: 0
+
+      - name: Guard against stale repair
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          CURRENT_SHA="$(git rev-parse HEAD)"
+          if [ "$CURRENT_SHA" != "$EXPECTED_SHA" ]; then
+            echo "Repair is stale: branch moved from $EXPECTED_SHA to $CURRENT_SHA." >&2
+            exit 1
+          fi
+
+      - name: Download validated repair patch
+        uses: actions/download-artifact@v5
+        with:
+          name: qa-repair-patch-${{ github.event.workflow_run.id }}
+          path: ${{ runner.temp }}/repair-artifact
+
+      - name: Apply guarded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --index --3way "$RUNNER_TEMP/repair-artifact/repair.patch"
+
+          mapfile -t changed_files < <(git diff --cached --name-only)
+          if [ "${#changed_files[@]}" -eq 0 ]; then
+            echo "Validated repair patch is empty." >&2
+            exit 1
+          fi
+
+          for file in "${changed_files[@]}"; do
+            case "$file" in
+              src/*) ;;
+              *)
+                echo "Protected path reached apply stage: $file" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install project dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Revalidate deterministic gate
+        run: pnpm verify
+
+      - name: Commit and push repair
+        id: publish
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ needs.prepare.outputs.target_branch }}
+          NEXT_ATTEMPT: ${{ needs.prepare.outputs.next_attempt }}
+          ORIGIN_RUN_ID: ${{ github.event.workflow_run.id }}
+          QA_MODE: ${{ needs.prepare.outputs.qa_mode }}
+          ISSUE_NUMBER: ${{ needs.prepare.outputs.issue_number }}
+          REQUEST_ID: ${{ needs.prepare.outputs.request_id }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          {
+            echo "fix: automated QA repair (attempt $NEXT_ATTEMPT)"
+            echo
+            echo "Repairs failed Chromium QA run $ORIGIN_RUN_ID."
+            echo
+            echo "QA-Repair-Attempt: $NEXT_ATTEMPT"
+            echo "QA-Repair-Origin-Run: $ORIGIN_RUN_ID"
+            echo "QA-Repair-Mode: $QA_MODE"
+            [ -z "$ISSUE_NUMBER" ] || echo "QA-Repair-Issue: $ISSUE_NUMBER"
+            [ -z "$REQUEST_ID" ] || echo "QA-Repair-Request: $REQUEST_ID"
+          } > "$RUNNER_TEMP/repair-commit-message.txt"
+
+          git commit -F "$RUNNER_TEMP/repair-commit-message.txt"
+          NEW_SHA="$(git rev-parse HEAD)"
+          git push origin "HEAD:$TARGET_BRANCH"
+          echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Preserve full QA mode after repair
+        if: needs.prepare.outputs.qa_mode == 'full'
+        uses: actions/github-script@v8
+        env:
+          TARGET_BRANCH: ${{ needs.prepare.outputs.target_branch }}
+          EXPECTED_SHA: ${{ steps.publish.outputs.new_sha }}
+          ISSUE_NUMBER: ${{ needs.prepare.outputs.issue_number }}
+          REQUEST_ID: ${{ needs.prepare.outputs.request_id }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'online-visual-qa.yml',
+              ref: 'deckGL',
+              inputs: {
+                target_ref: process.env.TARGET_BRANCH,
+                expected_sha: process.env.EXPECTED_SHA,
+                qa_mode: 'full',
+                issue_number: process.env.ISSUE_NUMBER || '',
+                request_id: process.env.REQUEST_ID || ''
+              }
+            });
