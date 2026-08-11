@@ -91,21 +91,32 @@ Use gates from cheapest to most expensive.
 
 ### Gate A — deterministic code validation
 
-Run locally or in the branch environment before expensive browser work:
+The repository exposes one deterministic command:
 
 ```text
+pnpm verify
+```
+
+It currently runs:
+
+```text
+pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 ```
 
-Use `pnpm verify` when it represents the complete currently available deterministic suite.
-
-A missing required script is `Unavailable`, not `Passed`.
+A command passes only when its exit code is 0. ESLint warnings also fail the current lint gate.
 
 ### Gate B — functional browser validation
 
-Run Playwright Chromium for relevant user flows.
+Run:
+
+```text
+pnpm test:e2e
+```
+
+The current Playwright project uses Chromium.
 
 Check at minimum:
 
@@ -115,9 +126,32 @@ Check at minimum:
 - no relevant console/page errors occur;
 - no horizontal overflow or obvious clipping appears.
 
+For a single local/CI command that runs Gate A and Gate B, use:
+
+```text
+pnpm verify:full
+```
+
+The CI workflow intentionally keeps Gate A and Gate B as separate jobs so expensive browser setup does not run when deterministic validation already fails.
+
 ### Gate C — visual and dynamic QA
 
 Required for user-visible changes.
+
+The reusable GitHub Actions interface is documented in:
+
+```text
+docs/QA_CONTRACT.md
+```
+
+`Branch Chromium QA` supports:
+
+```text
+functional
+full
+```
+
+A normal feature-branch push runs `functional` mode. `full` mode is intended for explicit dispatch by an orchestrator or human when the Issue requires visual evidence.
 
 Current desktop evidence set:
 
@@ -166,11 +200,26 @@ After the relevant limit is exhausted, transition the task to `blocked` and repo
 
 Do not create marker/no-op commits merely to trigger additional QA runs unless the workflow explicitly requires it and no safer dispatch mechanism exists.
 
-## 8. QA report contract
+## 8. QA transport and finding contracts
 
-Every automated QA failure should produce structured evidence that a repair agent can consume.
+The stable workflow transport contract is defined in:
 
-Recommended finding format:
+```text
+docs/QA_CONTRACT.md
+```
+
+The workflow currently produces:
+
+```text
+qa/qa-contract.json
+qa/qa-summary.json
+```
+
+These files identify the requested ref, exact validated SHA, mode, run ID, stage outcomes, overall automated result, and evidence locations.
+
+The transport contract is intentionally separate from the future repair finding contract.
+
+Every automated QA failure that will be passed to a repair agent should ultimately produce findings in this shape:
 
 ```text
 ID: QA-001
@@ -187,7 +236,42 @@ Status: Open | In Progress | Resolved | Verified
 
 A finding is only `Verified` after the relevant validation is rerun successfully.
 
-## 9. Vercel policy
+Phase 4 will make these findings machine-readable and connect them to the active repair loop.
+
+## 9. Exact SHA rule
+
+An autonomous orchestrator must validate the commit it intended to validate, not merely the latest commit on a branch at some later time.
+
+Recommended sequence:
+
+```text
+read branch HEAD SHA
+-> dispatch QA with target_ref + expected_sha
+-> workflow resolves checkout SHA
+-> fail if expected_sha != resolved SHA
+-> read qa-summary.json
+-> require summary.target.sha == intended SHA
+```
+
+Never mark an Issue verified using evidence generated from a different commit.
+
+## 10. QA cost policy
+
+Use the cheapest sufficient gate.
+
+Preferred sequence:
+
+```text
+local/branch pnpm verify
+-> functional Chromium E2E
+-> full visual QA only when Issue scope requires it
+```
+
+Normal branch pushes therefore run functional QA only.
+
+The expensive production-preview screenshot/dynamic evidence path is reserved for explicit `full` QA requests. This reduces repeated browser work while preserving visual verification for UI/map/chart/animation changes.
+
+## 11. Vercel policy
 
 Vercel Preview is a late-stage smoke-test environment, not the first validation layer.
 
@@ -195,8 +279,8 @@ Preferred order:
 
 ```text
 implement
--> local/branch deterministic validation
--> local Chromium QA
+-> deterministic validation
+-> functional/full Chromium QA as applicable
 -> push / PR
 -> Vercel Preview
 -> preview smoke test
@@ -206,7 +290,7 @@ Avoid duplicate preview workflows when Vercel's native GitHub integration alread
 
 Avoid repeated push/deploy cycles for problems that can be detected with local build or Chromium QA first.
 
-## 10. Completion contract
+## 12. Completion contract
 
 `CODE_WRITTEN` is not `DONE`.
 
@@ -216,38 +300,54 @@ An Issue is ready for merge only when all applicable conditions are true:
 - deterministic validation passes;
 - required browser tests pass;
 - required visual/dynamic QA passes;
+- QA evidence belongs to the intended commit SHA;
 - no blocking finding remains unverified;
 - relevant PR review findings are resolved;
 - PR contains evidence and remaining limitations;
 - the branch contains no unrelated changes.
 
-## 11. Progressive rollout
+## 13. Progressive rollout
 
 Do not automate every layer at once.
 
-### Phase 1 — task contract
+### Phase 1 — task contract — implemented in foundation PR
 
 - standard Codex-ready Issue form;
 - documented lifecycle and state machine;
 - bounded retry policy.
 
-### Phase 2 — deterministic gates
+### Phase 2 — deterministic gates — implemented in foundation PR
 
-- normalize package scripts;
-- add/repair lint and browser-test commands;
-- expose one predictable CI entry point.
+- normalized package scripts;
+- ESLint baseline;
+- fixed Playwright dependency in the lockfile;
+- deterministic CI before Chromium browser work;
+- stable `pnpm verify`, `pnpm test:e2e`, and `pnpm verify:full` commands.
 
-### Phase 3 — reusable Chromium QA
+### Phase 3 — reusable Chromium QA — implemented in foundation PR
 
-- make branch QA discoverable and reliably dispatchable;
-- upload structured artifacts and metadata;
-- avoid trigger-only commits.
+- feature-branch pushes use `functional` mode;
+- explicit dispatch supports `functional` or `full` mode;
+- optional `expected_sha` prevents validating a moved branch accidentally;
+- optional Issue/request correlation metadata;
+- commit status points to the exact Actions run;
+- artifact naming includes run ID and attempt;
+- `qa-contract.json` and `qa-summary.json` provide a versioned machine-readable interface;
+- expensive visual capture is separated from ordinary push validation.
+
+Phase 3 functional mode was exercised end to end on run `31473341755`, target SHA `7458f6e5c4e6278780fdfb646d065f9d66392f7e`, and produced artifact `branch-chromium-qa-31473341755-1` with `result: success`.
 
 ### Phase 4 — repair loop
 
-- convert QA failures into machine-readable findings;
+Next implementation target:
+
+- convert deterministic/E2E/visual failures into machine-readable findings;
+- map failed stages to repair instructions;
 - feed findings back to the active implementation branch;
-- rerun only within the repair budget.
+- rerun QA against the new exact branch SHA;
+- stop within the repair budget.
+
+Before enabling automated repair for visual work, explicitly dispatch one `full` QA run after this workflow version exists on the default branch and verify its contract/artifact output.
 
 ### Phase 5 — orchestration
 
@@ -266,6 +366,8 @@ Only after the single-Issue loop is stable:
 - enforce dependency ordering;
 - limit concurrent expensive QA and deployment jobs.
 
-## 12. Current next step
+## 14. Current next step
 
-After this foundation is merged, the next repository change should focus on Phase 2: make the deterministic and browser validation commands explicit and stable before adding an autonomous repair orchestrator.
+Phase 4 should build on the versioned QA transport rather than parsing human-oriented logs directly.
+
+The next repository change should introduce a machine-readable finding format and failure extraction for deterministic/E2E stages first. Visual finding generation should be added only after an explicit `full` dispatch has been verified on the default branch.
