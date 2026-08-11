@@ -73,15 +73,11 @@ jobs:
       - name: Verify project
         run: pnpm verify
 
-      - name: Install Playwright Chromium
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm add --save-dev @playwright/test@1.55.0 --lockfile=false
-          pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium browser
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run existing Chromium E2E
-        run: pnpm exec playwright test --project=chromium
+        run: pnpm test:e2e
 
       - name: Start local production preview
         shell: bash
