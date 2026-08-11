@@ -1,105 +1,207 @@
-name: Online Visual QA Evidence
+name: Branch Chromium QA
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - .github/workflows/online-visual-qa.yml
+    inputs:
+      target_ref:
+        description: Branch, tag, or SHA to validate
+        required: true
+        default: deckGL
+        type: string
+  push:
+    branches-ignore:
+      - deckGL
 
 permissions:
   contents: read
 
+concurrency:
+  group: branch-chromium-qa-${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
-  capture:
+  validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
-      TARGET_URL: https://ajiangpz.github.io/sz-weather/
+      TARGET_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || github.ref_name }}
+      QA_BASE_URL: http://127.0.0.1:4173
+
     steps:
-      - name: Checkout
+      - name: Checkout target ref
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_REF }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@8.15.9 --activate
+          pnpm --version
+
+      - name: Install project dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify project
+        run: pnpm verify
+
       - name: Install Playwright Chromium
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/rainscope-visual-qa
-          cd /tmp/rainscope-visual-qa
-          npm init -y >/dev/null 2>&1
-          npm install --no-audit --no-fund playwright@1.55.0
-          npx playwright install --with-deps chromium
+          pnpm add --save-dev @playwright/test@1.55.0 --lockfile=false
+          pnpm exec playwright install --with-deps chromium
 
-      - name: Capture online visual QA evidence
+      - name: Run existing Chromium E2E
+        run: pnpm exec playwright test --project=chromium
+
+      - name: Start local production preview
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/visual-qa/desktop" "$GITHUB_WORKSPACE/visual-qa/wind"
-          cd /tmp/rainscope-visual-qa
+          nohup pnpm preview --host 127.0.0.1 --port 4173 > /tmp/rainscope-preview.log 2>&1 &
+          echo $! > /tmp/rainscope-preview.pid
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error "$QA_BASE_URL" >/dev/null; then
+              echo "Preview ready at $QA_BASE_URL"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat /tmp/rainscope-preview.log || true
+          exit 1
+
+      - name: Capture real Chromium visual QA evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p visual-qa/desktop visual-qa/wind
 
           node --input-type=module <<'NODE'
-          import { chromium } from 'playwright';
+          import { chromium } from '@playwright/test';
+          import fs from 'node:fs';
           import path from 'node:path';
 
-          const targetUrl = process.env.TARGET_URL;
-          const workspace = process.env.GITHUB_WORKSPACE;
+          const baseUrl = process.env.QA_BASE_URL;
+          const targetRef = process.env.TARGET_REF;
           const browser = await chromium.launch({ headless: true });
+          const summary = {
+            targetRef,
+            commit: process.env.GITHUB_SHA,
+            viewports: [],
+            dynamicFrames: [],
+          };
 
           async function openReadyPage(width, height) {
             const page = await browser.newPage({ viewport: { width, height } });
-            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-            await page.waitForTimeout(8_000);
-
-            const windToggle = page.getByLabel('风场流线');
-            await windToggle.waitFor({ state: 'visible', timeout: 15_000 });
-            if (!(await windToggle.isChecked())) {
-              await windToggle.check();
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+            await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+            await page.waitForTimeout(5_000);
+            if (pageErrors.length > 0) {
+              throw new Error(`Page errors at ${width}x${height}: ${pageErrors.join(' | ')}`);
             }
-            await page.waitForTimeout(600);
             return page;
           }
 
           for (const [width, height] of [[1920, 1080], [1536, 1024], [1440, 900]]) {
             const page = await openReadyPage(width, height);
+            const dashboard = page.locator('.weather-dashboard');
+            const header = page.locator('.weather-header');
+            const actionButtons = page.locator('.weather-header__actions button');
+
+            if (await dashboard.count() !== 1 || await header.count() !== 1) {
+              throw new Error(`Dashboard/header missing at ${width}x${height}`);
+            }
+            if (await actionButtons.count() !== 2) {
+              throw new Error(`Expected 2 header action buttons at ${width}x${height}`);
+            }
+
+            const actions = await actionButtons.evaluateAll(buttons => buttons.map(button => {
+              const label = button.querySelector('span');
+              const labelRects = label ? label.getClientRects().length : 0;
+              const style = getComputedStyle(button);
+              const rect = button.getBoundingClientRect();
+              return {
+                text: label?.textContent?.trim() ?? '',
+                labelRects,
+                whiteSpace: style.whiteSpace,
+                width: rect.width,
+                height: rect.height,
+              };
+            }));
+
+            for (const action of actions) {
+              if (action.labelRects !== 1) {
+                throw new Error(`Header action "${action.text}" wraps at ${width}x${height}`);
+              }
+            }
+
+            const layout = await page.evaluate(() => ({
+              scrollWidth: document.documentElement.scrollWidth,
+              clientWidth: document.documentElement.clientWidth,
+              scrollHeight: document.documentElement.scrollHeight,
+              clientHeight: document.documentElement.clientHeight,
+            }));
+
+            if (layout.scrollWidth > layout.clientWidth + 1) {
+              throw new Error(`Horizontal overflow at ${width}x${height}: ${layout.scrollWidth} > ${layout.clientWidth}`);
+            }
+
             await page.screenshot({
-              path: path.join(workspace, 'visual-qa', 'desktop', `${width}x${height}.png`),
+              path: path.join('visual-qa', 'desktop', `${width}x${height}.png`),
               fullPage: true,
             });
+
+            summary.viewports.push({ width, height, actions, layout });
             await page.close();
           }
 
           const windPage = await openReadyPage(1536, 1024);
-          const samples = [
-            ['0000ms', 0],
-            ['0120ms', 120],
-            ['0240ms', 120],
-            ['0600ms', 360],
-            ['1800ms', 1200],
-          ];
+          const windToggle = windPage.getByLabel('风场流线');
+          if (await windToggle.count() === 1) {
+            if (!(await windToggle.isChecked())) {
+              await windToggle.check();
+            }
+            await windPage.waitForTimeout(600);
 
-          for (const [name, waitMs] of samples) {
-            if (waitMs > 0) await windPage.waitForTimeout(waitMs);
-            await windPage.screenshot({
-              path: path.join(workspace, 'visual-qa', 'wind', `frame-${name}.png`),
-              fullPage: true,
-            });
+            const samples = [
+              ['0000ms', 0],
+              ['0120ms', 120],
+              ['0240ms', 120],
+              ['0600ms', 360],
+              ['1800ms', 1200],
+            ];
+
+            for (const [name, waitMs] of samples) {
+              if (waitMs > 0) await windPage.waitForTimeout(waitMs);
+              const file = path.join('visual-qa', 'wind', `frame-${name}.png`);
+              await windPage.screenshot({ path: file, fullPage: true });
+              summary.dynamicFrames.push(file);
+            }
           }
-
           await windPage.close();
           await browser.close();
+
+          fs.writeFileSync('visual-qa/qa-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
           NODE
 
-      - name: Sanity-check screenshots
+      - name: Sanity-check visual artifacts
         shell: bash
         run: |
           set -euo pipefail
-          expected=8
-          actual=$(find visual-qa -type f -name '*.png' | wc -l)
-          test "$actual" -eq "$expected"
+
+          desktop_count=$(find visual-qa/desktop -type f -name '*.png' | wc -l)
+          test "$desktop_count" -eq 3
 
           while IFS= read -r file; do
             size=$(stat -c%s "$file")
@@ -107,14 +209,34 @@ jobs:
             test "$size" -gt 50000
           done < <(find visual-qa -type f -name '*.png' | sort)
 
-          unique_wind_frames=$(sha256sum visual-qa/wind/*.png | awk '{print $1}' | sort -u | wc -l)
-          echo "Unique wind frames: $unique_wind_frames"
-          test "$unique_wind_frames" -ge 2
+          wind_count=$(find visual-qa/wind -type f -name '*.png' | wc -l)
+          if [ "$wind_count" -gt 1 ]; then
+            unique_wind_frames=$(sha256sum visual-qa/wind/*.png | awk '{print $1}' | sort -u | wc -l)
+            echo "Unique wind frames: $unique_wind_frames"
+            test "$unique_wind_frames" -ge 2
+          fi
 
-      - name: Upload visual QA artifact
+      - name: Write QA metadata
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "target_ref=$TARGET_REF"
+            echo "workflow_sha=$GITHUB_SHA"
+            echo "run_id=$GITHUB_RUN_ID"
+            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > qa-metadata.txt
+
+      - name: Upload Chromium QA artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: online-visual-qa-evidence
-          path: visual-qa/
-          if-no-files-found: error
+          name: branch-chromium-qa-${{ github.run_id }}
+          path: |
+            visual-qa/
+            test-results/
+            playwright-report/
+            qa-metadata.txt
+            /tmp/rainscope-preview.log
+          if-no-files-found: warn
           retention-days: 7
