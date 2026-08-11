@@ -2,50 +2,52 @@
 
 ## Project
 
-This project is called RainScope. It is a weather visualization dashboard for Shenzhen.
+RainScope is a portfolio-level weather visualization dashboard for Shenzhen.
 
-The goal is to build a portfolio-level frontend data visualization project, not a normal weather query app.
+Primary product goals:
 
-The project should focus on:
+- weather map visualization;
+- rainfall radar as the primary map overlay;
+- weather alerts;
+- timeline playback;
+- trend charts;
+- layer controls;
+- responsive dashboard layout.
 
-- Weather map visualization
-- Rainfall radar layer
-- Weather alerts
-- Time-axis playback
-- Trend charts
-- Layer control
-- Responsive dashboard layout
+This is not a generic weather-query application.
 
-## Tech Stack
+## Tech stack
 
-Use:
+Use the existing stack unless the active Issue explicitly requires an architectural change:
 
 - Vue 3
 - TypeScript
 - Vite
 - Pinia
 - ECharts
-- SCSS
-- CSS Variables
-- Mock data
+- MapLibre GL
+- deck.gl
+- SCSS / CSS variables
+- mock weather data for the current MVP
 
-For the first version, do not require a real weather API.
+Do not introduce a live weather API for the MVP unless the Issue explicitly requires it.
+Do not introduce Three.js unless the Issue explicitly changes the current map architecture.
 
-For the first version, keep the existing MapLibre GL + OSM tile implementation if it is already present.
-The map must still follow the RainScope visual direction: dark professional dashboard style, visually quiet basemap, prominent rainfall layer, and no generic weather-query UI.
-Do not introduce a real weather API in the first version.
+## Source of truth
 
-Do not use Three.js in the first version.
+For an implementation task, read these sources in this order:
 
-## Documentation Source
+1. the active GitHub Issue and its acceptance criteria;
+2. this file;
+3. `docs/AUTONOMOUS_DEVELOPMENT.md`;
+4. required product/design documents below;
+5. unresolved review comments on the active pull request.
 
-`chatGPT.md` is a seed/reference document for the project documentation structure.
-When it conflicts with later project decisions, follow the current project documents and direct user instructions.
-The current map decision is to keep MapLibre GL + OSM for the first implementation milestone and restyle it to match RainScope.
+Do not silently replace current Issue requirements with stale chat context, temporary notes, or earlier implementation assumptions.
 
-## Required Reading Before Coding
+## Required project reading
 
-Before making changes, read these documents:
+Before coding, read the documents relevant to the active Issue. For broad UI or architecture work, read all of them:
 
 1. `docs/PRODUCT_REQUIREMENTS.md`
 2. `docs/UI_DESIGN_SPEC.md`
@@ -56,90 +58,116 @@ Before making changes, read these documents:
 7. `docs/RESPONSIVE_SPEC.md`
 8. `docs/CODEX_TASKS.md`
 
-## Development Principles
+`chatGPT.md` is a seed/reference document only. Current project documents and the active Issue take precedence.
 
-- Keep the map as the visual center.
-- Do not overuse decorative sci-fi effects.
-- Do not turn the project into a basic weather app.
-- Use mock data first.
+## Scope discipline
+
+One Issue should produce one focused implementation branch and one pull request.
+
+Before editing:
+
+1. read the complete Issue;
+2. inspect the relevant implementation and directly affected call chain;
+3. identify allowed and protected scope;
+4. continue an existing branch/PR for the Issue when one already exists;
+5. implement the smallest complete change that satisfies the acceptance criteria.
+
+Do not:
+
+- rewrite unrelated modules;
+- add unnecessary dependencies;
+- weaken assertions to make tests pass;
+- suppress failures;
+- globally disable lint/type checks;
+- use `any` merely to bypass type errors;
+- create no-op/marker commits only to trigger QA when workflow dispatch or rerun is available;
+- create duplicate PRs for the same active Issue.
+
+## Architecture and lifecycle rules
+
 - Keep components small and focused.
-- Use TypeScript interfaces for all core weather data.
+- Use TypeScript interfaces for core weather data.
 - Use Pinia for shared dashboard state.
-- Use ECharts only through reusable chart components.
-- Clean up timers, ECharts instances, and event listeners on component unmount.
-- Use responsive layout rules from `docs/RESPONSIVE_SPEC.md`.
+- Use ECharts through reusable chart components.
+- Preserve the existing MapLibre + deck.gl architecture unless the Issue explicitly changes it.
+- Clean up ECharts instances, MapLibre/deck.gl resources, animation frames, timers, resize handlers, and manually registered listeners when affected lifecycle code is changed.
+- Keep rendered radar data and related sampling/popup logic consistent when they share a data source.
 
-## UI Principles
+## Visual principles
 
-- Use a dark professional dashboard style.
-- Use translucent dark-blue panels.
-- Keep the rainfall layer visually prominent.
-- Use continuous rainfall bands, not administrative area blocks.
-- Use meaningful colors for rainfall and alert levels.
-- Do not use excessive glow, borders, or animated decorations.
+- The map remains the visual center.
+- Rainfall radar remains the primary weather overlay.
+- The basemap should be visually quiet.
+- Use continuous rainfall fields, not administrative-area blocks.
+- Keep wind visualization subordinate to rainfall radar and labels.
+- Preserve readable district labels, stations, alerts, and controls.
+- Use a dark professional dashboard style with compact, data-forward panels.
+- Avoid excessive glow, decorative sci-fi effects, and visual elements that compete with weather data.
 
-## Validation
+## Autonomous workflow
 
-Before finishing a task, check:
+Follow `docs/AUTONOMOUS_DEVELOPMENT.md` for the full state machine, repair budget, QA report contract, branch policy, Vercel policy, and completion contract.
 
-- The page still works at 1920×1080.
-- The page still works at 1440px width.
-- TypeScript has no obvious errors.
-- ECharts instances are disposed correctly.
-- Intervals and event listeners are cleaned up.
-- Components follow the documented structure.
+At a minimum, execute:
 
-## Autonomous Development Loop
+```text
+PLAN
+-> DEVELOP
+-> TEST
+-> BROWSER / VISUAL QA when applicable
+-> REVIEW
+-> FIX when required
+-> DONE or BLOCKED
+```
 
-Use the following controlled loop for every implementation task. Writing code alone is not completion.
+Writing code is never sufficient evidence for `DONE`.
 
-### Workflow
+## Execution state
 
-Execute these stages in order:
+For an active autonomous task, maintain `.agent/state.json` when the workflow uses repository state files.
 
-1. Read the task, acceptance criteria, this file, and the required project documents above.
-2. Read `.agent/state.json` when it exists and resume from its recorded state.
-3. Inspect the relevant repository files and the directly affected call chain. If `.codegraph/` exists, use CodeGraph before text or file search for code discovery.
-4. Create or update the implementation plan.
-5. Implement the smallest complete change that satisfies the task.
-6. Run all applicable validation commands.
-7. Review the implementation and directly related tests, not only the changed lines.
-8. Record every test failure and review finding in `.agent/issues.md`.
-9. Fix every blocking problem, then rerun the complete applicable validation suite.
-10. Repeat validation, review, and repair until the completion conditions are met or 10 repair iterations have been exhausted.
+Recommended fields:
 
-Do not rewrite unrelated modules, add unnecessary dependencies, weaken assertions, suppress failures, disable lint rules globally, or use `any` merely to bypass type errors.
+- `issueNumber`
+- `branch`
+- `status`: `PLAN | DEVELOP | TEST | QA | REVIEW | FIX | DONE | BLOCKED`
+- `iteration`
+- `lastCompletedAction`
+- `pendingIssueCount`
+- `testResult`
+- `qaResult`
+- `reviewResult`
 
-### Execution State
+Do not store credentials, tokens, cookies, or secret environment-variable values in agent state, logs, reports, screenshots, or commits.
 
-Maintain `.agent/state.json` for active tasks. After every stage, update:
+## Finding log
 
-- `status`: one of `PLAN`, `DEVELOP`, `TEST`, `REVIEW`, `FIX`, `DONE`, or `BLOCKED`
-- `iteration`: current repair iteration, starting at 1
-- `lastCompletedAction`: concise description of the completed stage
-- `pendingIssueCount`: number of issues not yet Verified
-- `testResult`: latest applicable command results, including unavailable commands and reasons
-- `reviewResult`: latest review result
+When `.agent/issues.md` is used, every finding must include:
 
-When `.agent/state.json` does not exist, create it at the start of the task. State updates are part of the task and should not be skipped merely because the product change is small.
-
-### Issue Log
-
-Maintain `.agent/issues.md`. Every test failure and review finding must include:
-
-- issue ID
-- severity (`Critical`, `High`, `Medium`, or `Low`)
-- source (`Test`, `Build`, `Review`, or `Visual QA`)
-- affected file
-- problem description
+- ID
+- severity: `Critical | High | Medium | Low`
+- source: `Test | Build | Browser | Visual QA | Review`
+- affected file/component
+- problem
 - expected behavior
-- status (`Open`, `In Progress`, `Resolved`, or `Verified`)
+- evidence when available
+- status: `Open | In Progress | Resolved | Verified`
 
-Do not enter `DONE` while any Critical or High issue is Open, In Progress, Resolved but unverified, or otherwise not Verified. Keep resolved issues in the log and mark them Verified only after relevant validation succeeds.
+A finding is only `Verified` after the relevant validation is rerun successfully.
 
-### RainScope Validation Matrix
+Do not enter `DONE` while an active-Issue Critical or High finding remains unverified. For user-visible work, active-Issue Medium visual findings must also be verified before completion.
 
-Before running commands, inspect `package.json` and use the package manager represented by the lockfile. This repository currently uses pnpm conventions. Run each script below when it exists:
+## Deterministic validation
+
+Inspect `package.json` and the lockfile before running commands. This repository currently uses pnpm.
+
+Current primary deterministic gate:
+
+```powershell
+pnpm verify
+```
+
+Run additional scripts when they exist and are relevant, for example:
 
 ```powershell
 pnpm lint
@@ -149,98 +177,133 @@ pnpm test:integration
 pnpm build
 ```
 
-A command passes only when its exit code is 0. If a script is absent, do not invent it or silently skip it: record `Unavailable` with the reason in `.agent/state.json` and the final report. An absent script is not a passing result. In the current project, `build` runs `vue-tsc --noEmit` before Vite, so it provides the available type-check gate until a standalone `typecheck` script is added.
+A command passes only when its exit code is 0.
 
-Apply these project-specific checks when relevant:
+If a required script does not exist, record it as `Unavailable` with the reason. Do not invent a script and do not count absence as a pass.
 
-- For UI, layout, map, chart, or responsive changes, visually verify 1920×1080, 1536×1024, and 1440px desktop layouts. Use the responsive breakpoints in `docs/RESPONSIVE_SPEC.md` when the affected scope reaches tablet or mobile.
-- Keep the map visually primary and verify MapLibre, deck.gl overlays, controls, and popups when their call chain is affected.
-- Verify that ECharts instances, MapLibre maps, deck.gl overlays, intervals, resize handlers, and manually registered listeners are cleaned up when lifecycle code is affected.
-- Use mock data and do not require a live weather API for MVP validation.
-- Documentation-only changes do not require browser visual QA unless they alter visual assets or runnable examples.
+## Browser and visual QA
 
-### Required Visual QA and Repair Loop
+User-visible changes require real browser validation. Unit tests and a green build are necessary but not sufficient.
 
-For any task that changes UI, layout, map rendering, charts, timeline, wind field, rainfall radar, interaction, responsive behavior, animation, or any other user-visible behavior, functional tests are necessary but are not sufficient for completion. A green build, unit test suite, or Playwright smoke test must never be treated as proof that the visual result is correct.
+For current desktop-focused Issues, capture and inspect:
 
-For these tasks, execute this visual loop after implementation and after every subsequent visual fix:
+- 1920x1080
+- 1536x1024
+- 1440x900
 
-1. Start the current development branch locally and render the actual changed page.
-2. Use Playwright Chromium to capture full-page screenshots at all supported desktop review sizes: `1920×1080`, `1536×1024`, and `1440×900`.
-3. Capture additional component or map-area screenshots when the changed behavior is easier to evaluate at a closer scale.
-4. Compare the rendered result against the current Issue background, goals, and acceptance criteria, plus `docs/image.png`, `docs/UI_DESIGN_SPEC.md`, `docs/VISUAL_STYLE_GUIDE.md`, and any directly relevant design document.
-5. Do not require pixel-perfect identity. Evaluate visual hierarchy, density, proportions, spacing, overlap, color balance, information readability, map dominance, rainfall prominence, and the task-specific visual intent.
-6. Record every visual finding in `.agent/issues.md` with source `Visual QA` and severity `Critical`, `High`, `Medium`, or `Low`.
-7. If any Critical, High, or Medium visual finding related to the active Issue remains unresolved, set `.agent/state.json` to `FIX`, change the implementation, and rerun the complete applicable validation suite plus the full visual QA loop.
-8. Mark a visual finding `Verified` only after a new render/screenshot confirms the fix. Code inspection alone is not visual verification.
-9. Repeat `TEST → VISUAL QA → REVIEW → FIX` until all active-Issue Critical/High/Medium visual findings are Verified.
-10. Require two consecutive complete `validation + visual QA + code review` cycles with no new blocking finding before entering `DONE`.
+When the active Issue affects tablet or mobile behavior, also validate the relevant breakpoints from `docs/RESPONSIVE_SPEC.md`.
 
-For animated visual behavior such as wind particles, radar playback, chart animation, or timeline playback, a single static screenshot is not enough. Also inspect the running behavior across multiple time points or consecutive frames. Check at least:
+Check at minimum:
 
-- motion direction is natural and consistent with the underlying data;
-- speed changes are visibly data-driven where applicable;
-- trails/particles are neither excessively long nor excessively dense;
-- animation does not visibly jump, blink, flicker, freeze, or reset unnaturally;
-- particles or trails do not terminate with distracting hard cutoffs at map boundaries;
-- animation does not obscure rainfall radar, district labels, station markers, alerts, or other higher-priority information;
-- the static appearance at a random captured frame still reads correctly.
+- functional interaction;
+- disabled/enabled states when relevant;
+- loading/empty/error states when relevant;
+- overlap and clipping;
+- horizontal overflow;
+- visual hierarchy and spacing;
+- map/radar/label/control layer priority;
+- browser page/console errors.
 
-Use multiple timed Playwright screenshots, frame sampling, or another practical browser-observation method when needed. Do not approve animated behavior solely from source code or one screenshot.
+### Dynamic visual behavior
 
-When an Issue already has an open PR or active development branch, continue that PR/branch for visual repair instead of creating a duplicate PR. Before declaring the task complete, read unresolved PR review threads and incorporate every valid finding related to the active Issue.
+For wind particles, radar playback, timeline playback, chart animation, or other animated behavior, one static screenshot is not enough.
 
-For user-visible tasks, the following statement is a hard rule:
+Inspect multiple time points and check:
 
-> Test passing is not visual passing. PR creation is not task completion. A visually incorrect result must return to `FIX` and continue iterating.
+- natural motion direction;
+- data-driven speed where applicable;
+- appropriate density/trail length;
+- no obvious jump, blink, flicker, freeze, or unnatural reset;
+- no distracting hard boundary cutoff;
+- no obstruction of higher-priority weather information;
+- a random static frame still reads correctly.
 
-### Review Checklist
+## Repair budget
 
-Review for:
+Automatic repair must be bounded.
 
-1. Functional correctness
-2. Acceptance-criteria coverage
-3. Type safety
-4. Error handling
-5. Security risks and accidental credential exposure
-6. Boundary conditions
-7. Regression risks
-8. Duplicate code
-9. Maintainability and documented component/store boundaries
-10. Test completeness
-11. RainScope visual hierarchy and responsive behavior when UI is affected
-12. Resource cleanup when charts, maps, playback, or listeners are affected
-13. Visual QA evidence at 1920×1080, 1536×1024, and 1440×900 for user-visible changes
-14. Dynamic visual evidence for animations such as wind field and radar playback
-15. Unresolved PR review threads related to the active Issue
+Default maximum attempts per Issue:
 
-### Completion and Blocking
+- deterministic CI repair: 2;
+- browser/visual repair: 3;
+- deployment retry: 1.
 
-Enter `DONE` only when:
+Do not run an unbounded 10-iteration repair loop.
 
-1. All acceptance criteria are satisfied.
-2. Every available applicable validation command passes.
-3. Every unavailable required script is explicitly documented with its reason.
-4. No Critical or High issue remains unverified.
-5. For user-visible tasks, no active-Issue Medium visual finding remains unverified.
-6. Every resolved issue has been verified by an applicable test, build, or visual check.
-7. For user-visible tasks, required screenshots and dynamic visual checks have been completed and recorded.
-8. Two consecutive complete validation, visual QA when applicable, and review cycles produce no new blocking issue.
-9. A final completion report has been written.
+When the relevant limit is reached, set the task to `BLOCKED` and report:
 
-Run no more than 10 repair iterations. If the limit is reached, set the state to `BLOCKED` and report unresolved problems, attempted fixes, relevant non-secret logs, suspected root cause, and the recommended next action. Never include credentials or secret environment-variable values in state, issues, logs, documentation, or the final report.
+- failing gate;
+- unresolved findings;
+- attempted fixes;
+- non-secret evidence/logs;
+- suspected root cause;
+- recommended human action.
 
-### Final Report
+## Vercel policy
 
-The completion report must include:
+Vercel Preview is a late-stage smoke-test environment, not the primary debugging loop.
 
-1. Summary of implemented changes
-2. Files changed
-3. Tests added or updated
-4. Commands executed
-5. Validation results, including unavailable scripts
-6. Issues found, fixed, and verified
-7. Visual QA evidence and viewport conclusions for user-visible changes
-8. Dynamic animation observations when relevant
-9. Remaining limitations
-10. Evidence for each acceptance criterion
+Preferred order:
+
+```text
+implement
+-> pnpm verify
+-> local/branch Chromium QA
+-> push / PR
+-> Vercel Preview
+-> preview smoke test
+```
+
+Do not add a second PR-preview deployment workflow while Vercel's native GitHub integration already handles PR previews.
+
+## Review checklist
+
+Review the changed code and directly affected call chain for:
+
+1. functional correctness;
+2. acceptance-criteria coverage;
+3. type safety;
+4. error handling;
+5. security and accidental credential exposure;
+6. boundary conditions;
+7. regression risk;
+8. duplicate code;
+9. maintainability and documented component/store boundaries;
+10. test completeness;
+11. visual hierarchy and responsive behavior when UI is affected;
+12. resource cleanup when maps, charts, playback, animation, or listeners are affected;
+13. required visual evidence;
+14. unresolved PR review threads related to the active Issue;
+15. unrelated changes or scope creep.
+
+## Completion contract
+
+`CODE_WRITTEN != DONE`.
+
+Enter `DONE` / `ready-to-merge` only when all applicable conditions are true:
+
+1. all acceptance criteria are satisfied;
+2. deterministic validation passes;
+3. required browser tests pass;
+4. required visual/dynamic QA passes;
+5. no blocking finding remains unverified;
+6. relevant PR review findings are resolved;
+7. the PR contains validation and QA evidence plus remaining limitations;
+8. the branch contains no unrelated changes.
+
+For high-risk visual/animation work or after a repair, prefer two consecutive clean validation + browser/visual review cycles before final approval. Do not require extra Vercel deployments merely to obtain the second clean cycle.
+
+## Final report
+
+The task completion report should include:
+
+1. summary of implemented changes;
+2. files changed;
+3. tests added or updated;
+4. commands executed;
+5. validation results and unavailable scripts;
+6. findings fixed and verified;
+7. browser/visual evidence and viewport conclusions;
+8. dynamic observations when relevant;
+9. remaining limitations or subjective decisions;
+10. evidence for each acceptance criterion.
