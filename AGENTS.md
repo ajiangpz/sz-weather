@@ -40,8 +40,9 @@ For an implementation task, read these sources in this order:
 1. the active GitHub Issue and its acceptance criteria;
 2. this file;
 3. `docs/AUTONOMOUS_DEVELOPMENT.md`;
-4. required product/design documents below;
-5. unresolved review comments on the active pull request.
+4. `docs/QA_CONTRACT.md` when invoking or consuming Branch Chromium QA;
+5. required product/design documents below;
+6. unresolved review comments on the active pull request.
 
 Do not silently replace current Issue requirements with stale chat context, temporary notes, or earlier implementation assumptions.
 
@@ -159,33 +160,48 @@ Do not enter `DONE` while an active-Issue Critical or High finding remains unver
 
 ## Deterministic validation
 
-Inspect `package.json` and the lockfile before running commands. This repository currently uses pnpm.
+Inspect `package.json` and the lockfile before running commands. This repository uses pnpm.
 
-Current primary deterministic gate:
+Primary deterministic gate:
 
 ```powershell
 pnpm verify
 ```
 
-Run additional scripts when they exist and are relevant, for example:
+It currently runs:
 
 ```powershell
 pnpm lint
 pnpm typecheck
 pnpm test
-pnpm test:integration
 pnpm build
 ```
 
-A command passes only when its exit code is 0.
+Functional Chromium E2E:
 
-If a required script does not exist, record it as `Unavailable` with the reason. Do not invent a script and do not count absence as a pass.
+```powershell
+pnpm test:e2e
+```
+
+Combined local/CI validation when Chromium is available:
+
+```powershell
+pnpm verify:full
+```
+
+A command passes only when its exit code is 0. A missing required script is `Unavailable`, not `Passed`.
 
 ## Browser and visual QA
 
 User-visible changes require real browser validation. Unit tests and a green build are necessary but not sufficient.
 
-For current desktop-focused Issues, capture and inspect:
+Use the versioned Branch Chromium QA contract in `docs/QA_CONTRACT.md`.
+
+For ordinary branch pushes, `functional` QA is the default. For UI, layout, map, chart, animation, timeline, or other user-visible work, explicitly request `full` QA when the workflow version is available on the default branch.
+
+When dispatching QA for an autonomous task, supply the intended branch/ref and exact expected commit SHA. Never approve QA evidence whose returned `target.sha` differs from the commit being reviewed.
+
+For current desktop-focused Issues, full QA captures and inspects:
 
 - 1920x1080
 - 1536x1024
@@ -248,7 +264,7 @@ Preferred order:
 ```text
 implement
 -> pnpm verify
--> local/branch Chromium QA
+-> functional/full Chromium QA as applicable
 -> push / PR
 -> Vercel Preview
 -> preview smoke test
@@ -286,10 +302,11 @@ Enter `DONE` / `ready-to-merge` only when all applicable conditions are true:
 2. deterministic validation passes;
 3. required browser tests pass;
 4. required visual/dynamic QA passes;
-5. no blocking finding remains unverified;
-6. relevant PR review findings are resolved;
-7. the PR contains validation and QA evidence plus remaining limitations;
-8. the branch contains no unrelated changes.
+5. QA evidence belongs to the intended commit SHA;
+6. no blocking finding remains unverified;
+7. relevant PR review findings are resolved;
+8. the PR contains validation and QA evidence plus remaining limitations;
+9. the branch contains no unrelated changes.
 
 For high-risk visual/animation work or after a repair, prefer two consecutive clean validation + browser/visual review cycles before final approval. Do not require extra Vercel deployments merely to obtain the second clean cycle.
 
