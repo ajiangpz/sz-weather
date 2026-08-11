@@ -47,3 +47,28 @@ import UiIcon from './UiIcon.vue';
 const store = useWeatherStore();
 const timelineStore = useTimelineStore();
 </script>
+
+<style scoped>
+.weather-header__actions button {
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+@media (min-width: 1321px) and (max-width: 1600px) {
+  .weather-header {
+    grid-template-columns:
+      minmax(210px, 230px)
+      112px
+      minmax(205px, 220px)
+      minmax(270px, 1fr)
+      minmax(160px, 178px)
+      minmax(170px, auto);
+    gap: 8px;
+  }
+
+  .weather-header__actions {
+    grid-template-columns: repeat(2, max-content);
+    justify-content: end;
+  }
+}
+</style>
