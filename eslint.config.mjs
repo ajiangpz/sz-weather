@@ -39,4 +39,13 @@ export default typescriptEslint.config(
       globals: globals.node,
     },
   },
+  {
+    files: ['tests/e2e/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+  },
 );
