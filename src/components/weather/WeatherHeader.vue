@@ -49,16 +49,24 @@ const timelineStore = useTimelineStore();
 </script>
 
 <style scoped>
+.weather-header__city,
+.weather-header__actions button {
+  white-space: nowrap;
+}
+
 .weather-header__actions button {
   min-width: max-content;
-  white-space: nowrap;
+}
+
+.weather-header__city > span {
+  flex: 0 0 auto;
 }
 
 @media (min-width: 1321px) and (max-width: 1600px) {
   .weather-header {
     grid-template-columns:
       minmax(210px, 230px)
-      112px
+      120px
       minmax(205px, 220px)
       minmax(270px, 1fr)
       minmax(160px, 178px)
