@@ -35,3 +35,13 @@ import WeatherStationRank from '@/components/weather/WeatherStationRank.vue';
 import WeatherTimeline from '@/components/weather/WeatherTimeline.vue';
 import WeatherTrendPanel from '@/components/weather/WeatherTrendPanel.vue';
 </script>
+
+<style scoped>
+@media (min-width: 1201px) {
+  .weather-dashboard__left,
+  .weather-dashboard__right {
+    grid-template-rows: auto auto auto;
+    align-content: start;
+  }
+}
+</style>
