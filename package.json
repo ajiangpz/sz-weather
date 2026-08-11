@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "lint": "eslint . --max-warnings=0",
     "typecheck": "vue-tsc --noEmit",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run src --passWithNoTests",
-    "verify": "pnpm typecheck && pnpm test && pnpm build"
+    "test:e2e": "playwright test --project=chromium",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:full": "pnpm verify && pnpm test:e2e"
   },
   "dependencies": {
     "@deck.gl/core": "^9.3.6",
@@ -23,9 +26,15 @@
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "1.62.0",
     "@types/geojson": "^7946.0.16",
     "@types/node": "^24.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-vue": "^10.0.0",
+    "globals": "^16.0.0",
     "typescript": "~5.8.0",
+    "typescript-eslint": "^8.0.0",
     "vitest": "^4.1.10",
     "vue-tsc": "^2.2.0"
   }
