@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 8.15.9
           run_install: false
 
       - name: Setup Node.js
@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify
+      - name: Run deterministic validation
         run: pnpm verify
 
   e2e:
@@ -50,7 +50,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 8.15.9
           run_install: false
 
       - name: Setup Node.js
@@ -62,14 +62,11 @@ jobs:
       - name: Install project dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright test runner for CI
-        run: pnpm add --save-dev --lockfile=false @playwright/test@1.62.0
-
-      - name: Install Chromium
+      - name: Install Chromium browser
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run Playwright E2E tests
-        run: pnpm exec playwright test
+      - name: Run Chromium E2E tests
+        run: pnpm test:e2e
 
       - name: Upload Playwright report
         if: always()

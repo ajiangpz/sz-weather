@@ -8,6 +8,29 @@ on:
         required: true
         default: deckGL
         type: string
+      expected_sha:
+        description: Optional exact commit SHA expected for target_ref
+        required: false
+        default: ''
+        type: string
+      qa_mode:
+        description: Functional runs deterministic + E2E gates; full also captures visual evidence
+        required: true
+        default: full
+        type: choice
+        options:
+          - functional
+          - full
+      issue_number:
+        description: Optional GitHub Issue number for orchestration correlation
+        required: false
+        default: ''
+        type: string
+      request_id:
+        description: Optional caller-generated correlation ID
+        required: false
+        default: ''
+        type: string
   push:
     branches-ignore:
       - deckGL
@@ -26,6 +49,10 @@ jobs:
     timeout-minutes: 20
     env:
       TARGET_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || github.ref_name }}
+      EXPECTED_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || '' }}
+      QA_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.qa_mode || 'functional' }}
+      ISSUE_NUMBER: ${{ github.event_name == 'workflow_dispatch' && inputs.issue_number || '' }}
+      REQUEST_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.request_id || '' }}
       QA_BASE_URL: http://127.0.0.1:4173
 
     steps:
@@ -34,17 +61,62 @@ jobs:
         with:
           ref: ${{ env.TARGET_REF }}
 
-      - name: Publish Chromium QA run locator
+      - name: Resolve QA contract
+        id: resolve
         shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
           TARGET_SHA="$(git rev-parse HEAD)"
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          EFFECTIVE_REQUEST_ID="${REQUEST_ID:-run-$GITHUB_RUN_ID}"
+
           echo "TARGET_SHA=$TARGET_SHA" >> "$GITHUB_ENV"
           echo "RUN_URL=$RUN_URL" >> "$GITHUB_ENV"
+          echo "EFFECTIVE_REQUEST_ID=$EFFECTIVE_REQUEST_ID" >> "$GITHUB_ENV"
+
+          mkdir -p qa
+          export TARGET_SHA RUN_URL EFFECTIVE_REQUEST_ID
+
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const contract = {
+            schemaVersion: 1,
+            workflow: 'branch-chromium-qa',
+            request: {
+              requestId: process.env.EFFECTIVE_REQUEST_ID,
+              issueNumber: process.env.ISSUE_NUMBER || null,
+              targetRef: process.env.TARGET_REF,
+              expectedSha: process.env.EXPECTED_SHA || null,
+              mode: process.env.QA_MODE,
+            },
+            execution: {
+              eventName: process.env.GITHUB_EVENT_NAME,
+              runId: Number(process.env.GITHUB_RUN_ID),
+              runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+              runUrl: process.env.RUN_URL,
+            },
+            target: {
+              sha: process.env.TARGET_SHA,
+            },
+          };
+
+          fs.writeFileSync('qa/qa-contract.json', `${JSON.stringify(contract, null, 2)}\n`);
+          NODE
+
+          if [ -n "$EXPECTED_SHA" ] && [ "$EXPECTED_SHA" != "$TARGET_SHA" ]; then
+            echo "Expected SHA $EXPECTED_SHA but $TARGET_REF resolved to $TARGET_SHA" >&2
+            exit 1
+          fi
+
+      - name: Publish Chromium QA run locator
+        if: steps.resolve.outcome == 'success'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
 
           curl --fail --silent --show-error \
             --request POST \
@@ -52,7 +124,7 @@ jobs:
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $GITHUB_TOKEN" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
-            --data "{\"state\":\"pending\",\"target_url\":\"$RUN_URL\",\"description\":\"Branch Chromium QA running (attempt $GITHUB_RUN_ATTEMPT)\",\"context\":\"branch-chromium-qa\"}"
+            --data "{\"state\":\"pending\",\"target_url\":\"$RUN_URL\",\"description\":\"Chromium QA $QA_MODE running (attempt $GITHUB_RUN_ATTEMPT)\",\"context\":\"branch-chromium-qa\"}"
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -68,22 +140,24 @@ jobs:
           pnpm --version
 
       - name: Install project dependencies
+        id: install
         run: pnpm install --frozen-lockfile
 
-      - name: Verify project
+      - name: Run deterministic validation
+        id: verify
         run: pnpm verify
 
-      - name: Install Playwright Chromium
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm add --save-dev @playwright/test@1.55.0 --lockfile=false
-          pnpm exec playwright install --with-deps chromium
+      - name: Install Chromium browser
+        id: browser_install
+        run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run existing Chromium E2E
-        run: pnpm exec playwright test --project=chromium
+      - name: Run Chromium functional E2E
+        id: e2e
+        run: pnpm test:e2e
 
       - name: Start local production preview
+        id: preview
+        if: env.QA_MODE == 'full'
         shell: bash
         run: |
           set -euo pipefail
@@ -102,6 +176,8 @@ jobs:
           exit 1
 
       - name: Capture real Chromium visual QA evidence
+        id: visual_capture
+        if: env.QA_MODE == 'full'
         shell: bash
         run: |
           set -euo pipefail
@@ -113,11 +189,11 @@ jobs:
           import path from 'node:path';
 
           const baseUrl = process.env.QA_BASE_URL;
-          const targetRef = process.env.TARGET_REF;
           const browser = await chromium.launch({ headless: true });
           const summary = {
-            targetRef,
-            commit: process.env.GITHUB_SHA,
+            schemaVersion: 1,
+            targetRef: process.env.TARGET_REF,
+            targetSha: process.env.TARGET_SHA,
             viewports: [],
             dynamicFrames: [],
           };
@@ -178,12 +254,10 @@ jobs:
               throw new Error(`Horizontal overflow at ${width}x${height}: ${layout.scrollWidth} > ${layout.clientWidth}`);
             }
 
-            await page.screenshot({
-              path: path.join('visual-qa', 'desktop', `${width}x${height}.png`),
-              fullPage: true,
-            });
+            const screenshot = path.join('visual-qa', 'desktop', `${width}x${height}.png`);
+            await page.screenshot({ path: screenshot, fullPage: true });
 
-            summary.viewports.push({ width, height, actions, layout });
+            summary.viewports.push({ width, height, screenshot, actions, layout });
             await page.close();
           }
 
@@ -213,10 +287,12 @@ jobs:
           await windPage.close();
           await browser.close();
 
-          fs.writeFileSync('visual-qa/qa-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
+          fs.writeFileSync('visual-qa/visual-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
           NODE
 
       - name: Sanity-check visual artifacts
+        id: visual_sanity
+        if: env.QA_MODE == 'full'
         shell: bash
         run: |
           set -euo pipefail
@@ -237,28 +313,98 @@ jobs:
             test "$unique_wind_frames" -ge 2
           fi
 
-      - name: Write QA metadata
+      - name: Write machine-readable QA summary
         if: always()
         shell: bash
+        env:
+          RESOLVE_OUTCOME: ${{ steps.resolve.outcome }}
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          BROWSER_INSTALL_OUTCOME: ${{ steps.browser_install.outcome }}
+          E2E_OUTCOME: ${{ steps.e2e.outcome }}
+          PREVIEW_OUTCOME: ${{ steps.preview.outcome }}
+          VISUAL_CAPTURE_OUTCOME: ${{ steps.visual_capture.outcome }}
+          VISUAL_SANITY_OUTCOME: ${{ steps.visual_sanity.outcome }}
         run: |
-          {
-            echo "target_ref=$TARGET_REF"
-            echo "workflow_sha=$GITHUB_SHA"
-            echo "run_id=$GITHUB_RUN_ID"
-            echo "run_attempt=$GITHUB_RUN_ATTEMPT"
-          } > qa-metadata.txt
+          set -euo pipefail
+          mkdir -p qa/logs
+          if [ -f /tmp/rainscope-preview.log ]; then
+            cp /tmp/rainscope-preview.log qa/logs/preview.log
+          fi
+
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+
+          const stages = {
+            resolve: process.env.RESOLVE_OUTCOME || 'not_run',
+            install: process.env.INSTALL_OUTCOME || 'not_run',
+            deterministic: process.env.VERIFY_OUTCOME || 'not_run',
+            browserInstall: process.env.BROWSER_INSTALL_OUTCOME || 'not_run',
+            functionalE2E: process.env.E2E_OUTCOME || 'not_run',
+            preview: process.env.PREVIEW_OUTCOME || 'not_run',
+            visualCapture: process.env.VISUAL_CAPTURE_OUTCOME || 'not_run',
+            visualSanity: process.env.VISUAL_SANITY_OUTCOME || 'not_run',
+          };
+
+          const requiredStages = [
+            stages.resolve,
+            stages.install,
+            stages.deterministic,
+            stages.browserInstall,
+            stages.functionalE2E,
+          ];
+          if (process.env.QA_MODE === 'full') {
+            requiredStages.push(stages.preview, stages.visualCapture, stages.visualSanity);
+          }
+
+          const result = requiredStages.every(outcome => outcome === 'success')
+            ? 'success'
+            : 'failure';
+
+          const summary = {
+            schemaVersion: 1,
+            workflow: 'branch-chromium-qa',
+            request: {
+              requestId: process.env.EFFECTIVE_REQUEST_ID || process.env.REQUEST_ID || `run-${process.env.GITHUB_RUN_ID}`,
+              issueNumber: process.env.ISSUE_NUMBER || null,
+              targetRef: process.env.TARGET_REF,
+              expectedSha: process.env.EXPECTED_SHA || null,
+              mode: process.env.QA_MODE,
+            },
+            execution: {
+              eventName: process.env.GITHUB_EVENT_NAME,
+              runId: Number(process.env.GITHUB_RUN_ID),
+              runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+              runUrl: process.env.RUN_URL || `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
+            },
+            target: {
+              sha: process.env.TARGET_SHA || null,
+            },
+            result,
+            stages,
+            evidence: {
+              playwrightReport: 'playwright-report/',
+              testResults: 'test-results/',
+              visualSummary: process.env.QA_MODE === 'full' ? 'visual-qa/visual-summary.json' : null,
+              desktopScreenshots: process.env.QA_MODE === 'full' ? 'visual-qa/desktop/' : null,
+              dynamicFrames: process.env.QA_MODE === 'full' ? 'visual-qa/wind/' : null,
+              previewLog: fs.existsSync('qa/logs/preview.log') ? 'qa/logs/preview.log' : null,
+            },
+          };
+
+          fs.writeFileSync('qa/qa-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
+          NODE
 
       - name: Upload Chromium QA artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: branch-chromium-qa-${{ github.run_id }}
+          name: branch-chromium-qa-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
+            qa/
             visual-qa/
             test-results/
             playwright-report/
-            qa-metadata.txt
-            /tmp/rainscope-preview.log
           if-no-files-found: warn
           retention-days: 7
 
@@ -279,19 +425,19 @@ jobs:
           case "$QA_JOB_STATUS" in
             success)
               STATE="success"
-              DESCRIPTION="Branch Chromium QA passed (attempt $GITHUB_RUN_ATTEMPT)"
+              DESCRIPTION="Chromium QA $QA_MODE passed (attempt $GITHUB_RUN_ATTEMPT)"
               ;;
             cancelled)
               STATE="error"
-              DESCRIPTION="Branch Chromium QA cancelled (attempt $GITHUB_RUN_ATTEMPT)"
+              DESCRIPTION="Chromium QA $QA_MODE cancelled (attempt $GITHUB_RUN_ATTEMPT)"
               ;;
             failure)
               STATE="failure"
-              DESCRIPTION="Branch Chromium QA failed (attempt $GITHUB_RUN_ATTEMPT)"
+              DESCRIPTION="Chromium QA $QA_MODE failed (attempt $GITHUB_RUN_ATTEMPT)"
               ;;
             *)
               STATE="error"
-              DESCRIPTION="Branch Chromium QA ended with $QA_JOB_STATUS (attempt $GITHUB_RUN_ATTEMPT)"
+              DESCRIPTION="Chromium QA $QA_MODE ended with $QA_JOB_STATUS"
               ;;
           esac
 
