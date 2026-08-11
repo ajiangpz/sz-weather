@@ -65,13 +65,13 @@ describe('weather mock radar data', () => {
       return level === 'storm' || level === 'severeStorm' || intensity >= 24;
     });
     const isInLuohuCore = ([longitude, latitude]: number[]) =>
-      longitude >= 114.08 && longitude <= 114.23 && latitude >= 22.5 && latitude <= 22.59;
+      longitude >= 114.08 && longitude <= 114.28 && latitude >= 22.49 && latitude <= 22.59;
     const isInPingshanCore = ([longitude, latitude]: number[]) =>
-      longitude >= 114.34 && longitude <= 114.48 && latitude >= 22.61 && latitude <= 22.71;
+      longitude >= 114.32 && longitude <= 114.49 && latitude >= 22.6 && latitude <= 22.71;
     const southDiagonalCells = strongCells.filter((feature) => {
       const [longitude, latitude] = feature.geometry.coordinates;
 
-      return latitude < 22.5 || (longitude < 114.1 && latitude < 22.54);
+      return latitude < 22.49 || (longitude < 114.08 && latitude < 22.53);
     });
     const bandIds = mockRadarBandsGeoJson.features.map((feature) => feature.properties.id);
 
@@ -82,5 +82,34 @@ describe('weather mock radar data', () => {
     expect(bandIds).toContain('pingshan-red-core');
     expect(bandIds).not.toContain('south-yellow-band');
     expect(bandIds).not.toContain('southern-orange-core');
+  });
+
+  it('breaks strong radar cells into uneven two-dimensional clusters instead of bead chains', () => {
+    const strongCells = mockRadarGeoJson.features.filter((feature) => feature.properties.intensity >= 24);
+    const clusters = [
+      strongCells.filter((feature) => {
+        const [longitude, latitude] = feature.geometry.coordinates;
+        return longitude >= 114.08 && longitude <= 114.28 && latitude >= 22.49 && latitude <= 22.59;
+      }),
+      strongCells.filter((feature) => {
+        const [longitude, latitude] = feature.geometry.coordinates;
+        return longitude >= 114.32 && longitude <= 114.49 && latitude >= 22.6 && latitude <= 22.71;
+      }),
+    ];
+
+    clusters.forEach((cluster) => {
+      const sortedLongitudes = cluster
+        .map((feature) => feature.geometry.coordinates[0])
+        .sort((a, b) => a - b);
+      const latitudeValues = cluster.map((feature) => feature.geometry.coordinates[1]);
+      const adjacentGaps = sortedLongitudes.slice(1).map((longitude, index) => longitude - sortedLongitudes[index]);
+      const uniqueIntensityBands = new Set(cluster.map((feature) => Math.round(feature.properties.intensity)));
+
+      expect(cluster.length).toBeGreaterThanOrEqual(8);
+      expect(Math.max(...latitudeValues) - Math.min(...latitudeValues)).toBeGreaterThan(0.035);
+      expect(Math.max(...adjacentGaps) - Math.min(...adjacentGaps)).toBeGreaterThan(0.012);
+      expect(Math.max(...adjacentGaps)).toBeGreaterThan(0.02);
+      expect(uniqueIntensityBands.size).toBeGreaterThanOrEqual(4);
+    });
   });
 });

@@ -131,12 +131,12 @@ const baseRadarCells: RadarCell[] = [
   ['light', 114.24, 22.42, 6.2],
   ['moderate', 114.31, 22.42, 10.2],
   ['light', 114.38, 22.42, 6.6],
-  ['severeStorm', 114.19, 22.53, 37.4],
-  ['severeStorm', 114.22, 22.55, 42.6],
-  ['storm', 114.26, 22.58, 30.8],
-  ['severeStorm', 114.38, 22.64, 36.8],
-  ['severeStorm', 114.42, 22.66, 39.6],
-  ['storm', 114.46, 22.68, 31.2],
+  ['storm', 114.118, 22.546, 28.9],
+  ['severeStorm', 114.132, 22.558, 44.2],
+  ['storm', 114.207, 22.541, 25.9],
+  ['storm', 114.357, 22.649, 27.4],
+  ['severeStorm', 114.369, 22.662, 43.1],
+  ['storm', 114.446, 22.652, 25.8],
 ];
 
 const broadOffsets = [
@@ -182,10 +182,11 @@ const southRainPath: Coordinate[] = [
 
 const eastRainPath: Coordinate[] = [
   [114.17, 22.45],
-  [114.25, 22.51],
-  [114.34, 22.57],
-  [114.43, 22.63],
-  [114.51, 22.7],
+  [114.238, 22.522],
+  [114.331, 22.566],
+  [114.398, 22.642],
+  [114.493, 22.676],
+  [114.525, 22.712],
 ];
 
 const northRainPath: Coordinate[] = [
@@ -198,10 +199,10 @@ const northRainPath: Coordinate[] = [
 ];
 
 const stormCorePath: Coordinate[] = [
-  [114.13, 22.525],
-  [114.165, 22.54],
-  [114.2, 22.552],
-  [114.23, 22.56],
+  [114.116, 22.547],
+  [114.133, 22.559],
+  [114.202, 22.541],
+  [114.215, 22.552],
 ];
 
 const createBandCells = (
@@ -234,10 +235,11 @@ const mockRadarCells: RadarCell[] = [
   ...createBandCells('light', 5.8, southRainPath, broadOffsets),
   ...createBandCells('moderate', 10.6, southRainPath, coreOffsets),
   ...createBandCells('moderate', 12.6, eastRainPath, broadOffsets),
-  ...createBandCells('heavy', 18.8, eastRainPath, coreOffsets),
-  ...createBandCells('storm', 27.6, stormCorePath, coreOffsets),
-  ...createBandCells('severeStorm', 39.2, [[114.14, 22.525], [114.18, 22.54], [114.21, 22.555]], coreOffsets),
-  ...createBandCells('severeStorm', 37.8, [[114.37, 22.64], [114.41, 22.66], [114.45, 22.675]], coreOffsets),
+  ...createBandCells('heavy', 18.8, [[114.205, 22.495], [114.318, 22.58], [114.374, 22.642], [114.487, 22.662]], coreOffsets),
+  ...createBandCells('storm', 27.6, [[114.129, 22.552], [114.207, 22.542]], coreOffsets),
+  ...createBandCells('severeStorm', 39.2, [[114.133, 22.559], [114.205, 22.541]], coreOffsets),
+  ...createBandCells('severeStorm', 38.6, [[114.368, 22.661]], coreOffsets),
+  ...createBandCells('storm', 29.4, [[114.445, 22.651]], coreOffsets),
 ];
 
 const mockRadarSpeckles: RadarCell[] = [
@@ -272,30 +274,26 @@ const ambientEchoCenters: Coordinate[] = [
 ];
 
 const luohuCoreCenters: Coordinate[] = [
-  [114.095, 22.525],
-  [114.118, 22.545],
-  [114.145, 22.535],
-  [114.166, 22.555],
-  [114.19, 22.525],
+  [114.118, 22.547],
+  [114.133, 22.559],
+  [114.207, 22.542],
 ];
 
 const pingshanCoreCenters: Coordinate[] = [
-  [114.315, 22.59],
-  [114.345, 22.625],
-  [114.382, 22.642],
-  [114.41, 22.675],
-  [114.455, 22.655],
+  [114.357, 22.649],
+  [114.369, 22.662],
+  [114.446, 22.652],
 ];
 
 const innerBurstCenters: Coordinate[] = [
-  [114.075, 22.505],
-  [114.104, 22.526],
-  [114.137, 22.548],
-  [114.198, 22.548],
-  [114.258, 22.565],
-  [114.333, 22.612],
-  [114.382, 22.638],
-  [114.428, 22.66],
+  [114.074, 22.499],
+  [114.111, 22.532],
+  [114.142, 22.552],
+  [114.194, 22.54],
+  [114.263, 22.572],
+  [114.328, 22.606],
+  [114.386, 22.651],
+  [114.435, 22.655],
 ];
 
 const scatteredBlueCenters: Coordinate[] = [
@@ -324,10 +322,9 @@ const westernBurstCenters: Coordinate[] = [
 ];
 
 const easternBurstCenters: Coordinate[] = [
-  [114.34, 22.61],
-  [114.38, 22.64],
-  [114.42, 22.66],
-  [114.46, 22.68],
+  [114.356, 22.647],
+  [114.371, 22.663],
+  [114.446, 22.651],
 ];
 
 const createFragmentCells = (
@@ -402,7 +399,7 @@ const mockRadarFragments: RadarFragmentCell[] = [
   ...createFragmentCells('moderate', 10.2, southRainPath.slice(1, 6), 0.011),
   ...createFragmentCells('storm', 24.8, luohuCoreCenters, 0.012),
   ...createFragmentCells('severeStorm', 36.6, luohuCoreCenters.slice(1, 4), 0.009),
-  ...createFragmentCells('severeStorm', 39.4, [[114.18, 22.495], [114.225, 22.512], [114.265, 22.535]], 0.008),
+  ...createFragmentCells('severeStorm', 39.4, [[114.132, 22.559], [114.205, 22.542]], 0.008),
   ...createMicroFragmentCells('light', 3.2, toFragmentSeeds(ambientEchoCenters, 0.03, 0.018), 0.0058, 9),
   ...createMicroFragmentCells('light', 4.8, toFragmentSeeds(westRainPath, 0.034, 0.024), 0.0062, 8),
   ...createMicroFragmentCells('light', 4.9, toFragmentSeeds(northRainPath, 0.04, 0.02), 0.006, 8),
@@ -431,10 +428,9 @@ const mockRadarFragments: RadarFragmentCell[] = [
     39.6,
     toFragmentSeeds(
       [
-        [114.168, 22.488],
-        [114.206, 22.508],
-        [114.244, 22.529],
-        [114.34, 22.624],
+        [114.132, 22.559],
+        [114.205, 22.542],
+        [114.368, 22.661],
       ],
       0.012,
       0.009,
@@ -700,20 +696,22 @@ export const mockRadarRibbonsGeoJson: FeatureCollection<LineString, RadarRibbonP
       [114.46, 22.65],
     ]),
     createRadarRibbonFeature('luohu-core', 'core', 'storm', 29.6, [
-      [114.09, 22.515],
-      [114.14, 22.535],
-      [114.2, 22.555],
-      [114.24, 22.55],
+      [114.104, 22.532],
+      [114.13, 22.556],
+      [114.199, 22.552],
+      [114.224, 22.532],
     ]),
     createRadarRibbonFeature('luohu-red-core', 'core', 'severeStorm', 39.4, [
-      [114.145, 22.525],
-      [114.19, 22.545],
-      [114.225, 22.555],
+      [114.124, 22.551],
+      [114.143, 22.565],
+      [114.201, 22.548],
+      [114.219, 22.558],
     ]),
     createRadarRibbonFeature('pingshan-red-core', 'core', 'severeStorm', 38.4, [
-      [114.365, 22.635],
-      [114.41, 22.66],
-      [114.455, 22.675],
+      [114.348, 22.638],
+      [114.367, 22.662],
+      [114.44, 22.646],
+      [114.459, 22.674],
     ]),
   ],
 };
