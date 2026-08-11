@@ -1,12 +1,60 @@
 # RainScope QA Repair Loop
 
-This document defines Phase 4 of the autonomous development workflow: bounded automatic repair for machine-verifiable QA failures.
+This document defines Phase 4 of the autonomous development workflow for a ChatGPT Plus / Codex scheduled-task setup.
 
-## 1. Scope
+The repository does **not** require an OpenAI API key for this phase. GitHub Actions remains responsible for deterministic CI and Chromium QA. The existing ChatGPT scheduled development task is responsible for inspecting failed QA runs, performing bounded repairs, publishing the repair branch, and verifying the next QA result.
+
+## 1. Architecture
+
+```text
+GitHub Issue / existing PR
+        ↓
+ChatGPT scheduled development task
+        ↓
+implement / continue branch
+        ↓
+push
+        ↓
+Branch Chromium QA
+        ↓
+qa-summary.json
+        ↓
+PASS ─────────────→ continue review / ready-to-merge
+        │
+        └─ FAIL
+             ↓
+next scheduled task run
+             ↓
+inspect exact failed SHA + artifact
+             ↓
+bounded source repair
+             ↓
+pnpm verify / relevant E2E
+             ↓
+push one repair commit
+             ↓
+new exact-SHA QA
+```
+
+There is no `openai/codex-action` repair job and no `OPENAI_API_KEY` dependency.
+
+## 2. Repair priority
+
+At the beginning of each scheduled development run, inspect existing active branches/PRs before selecting new `codex-ready` Issues.
+
+Priority order:
+
+1. existing branch/PR with actionable failed `Branch Chromium QA`;
+2. existing branch/PR with unresolved review feedback;
+3. new `codex-ready` Issue.
+
+This prevents the scheduler from continually starting new work while an earlier branch is waiting for a deterministic repair.
+
+## 3. Automatically repairable failures
 
 Phase 4 intentionally starts narrow.
 
-Automatically repairable failure stages:
+Automatically repairable stages:
 
 - `deterministic` — `pnpm verify` failed;
 - `functionalE2E` — `pnpm test:e2e` failed.
@@ -16,69 +64,50 @@ Not automatically repairable in this phase:
 - QA contract resolution failures;
 - dependency-install failures;
 - Chromium-install failures;
-- production-preview infrastructure failures;
+- preview/infrastructure failures;
 - visual capture failures;
 - visual artifact sanity failures;
-- subjective screenshot findings.
+- subjective screenshot findings without a clear active Issue and reproduction path.
 
-Visual-semantic repair should be added only after visual findings have a structured, trustworthy contract.
+Visual-semantic repair should remain Issue-driven until visual findings have a structured, trustworthy contract.
 
-## 2. Trigger
+## 4. Failure discovery
 
-`.github/workflows/qa-repair.yml` listens for completed `Branch Chromium QA` runs.
+For each active implementation branch, resolve its exact current HEAD SHA and inspect the `branch-chromium-qa` commit status.
 
-The repair workflow proceeds only when:
+When the status indicates failure:
 
-1. the QA run concluded with `failure`;
-2. the originating repository is this repository;
-3. the QA artifact contains `qa/qa-summary.json`;
-4. the failed stage is currently repairable;
-5. the target resolves to an existing non-`deckGL` branch;
-6. the target SHA is exact;
-7. the automatic repair budget has not been exhausted.
+1. parse the Actions Run ID from its target URL;
+2. fetch the workflow jobs and artifact;
+3. verify artifact `head_branch` and `head_sha` exactly match the active branch and current SHA;
+4. read `qa/qa-summary.json`;
+5. inspect the relevant logs/evidence for the failed stage.
 
-Cancelled QA runs do not start automatic repair.
+Do not repair from stale QA evidence.
 
-## 3. Machine-readable repair input
+If the latest status is pending, do not start a repair. Leave the task for a later scheduled execution unless the run completes during the current execution.
 
-The prepare job converts the failed QA summary into:
+## 5. Exact-SHA guard
 
-```text
-qa-summary.json
-findings.json
-repair-request.json
-```
-
-`findings.json` contains the normalized QA finding.
-
-`repair-request.json` contains:
-
-- origin QA run;
-- target branch and exact SHA;
-- QA mode;
-- failed stage;
-- reproduction command;
-- repair attempt and maximum budget;
-- allowed/protected scope;
-- eligibility decision.
-
-These files are uploaded as a short-lived workflow artifact and copied into `.agent/qa-input/` only inside the repair runner. `.agent/` is excluded locally from Git so repair context is never committed.
-
-## 4. Codex repair policy
-
-The repair job uses `openai/codex-action@v1` with the repository prompt:
+Before any repair edit:
 
 ```text
-.github/codex/prompts/qa-repair.md
+current branch HEAD == qa-summary.json.target.sha
 ```
 
-The automated repair lane may modify only:
+If the branch has moved, discard the stale failure context and inspect the newer SHA instead.
+
+Before pushing a repair, check the branch HEAD again. Do not silently apply an old repair over unrelated newer work.
+
+## 6. Repair scope
+
+The unattended repair lane may modify only:
 
 ```text
 src/**
 ```
 
-Protected paths include:
+Protected paths:
 
 ```text
 .github/**
@@ -90,118 +119,95 @@ package.json
 pnpm-lock.yaml
 ```
 
-This prevents an automatic repair from making a failing run green by weakening tests, changing workflow behavior, changing dependencies, or editing project rules.
+Do not weaken tests, assertions, lint rules, type checks, validation commands, or acceptance criteria to make QA green.
 
-Codex is instructed not to commit or push. The orchestration workflow independently validates and publishes the patch.
+If the actual root cause requires a protected-path change, leave the branch unchanged and report `BLOCKED` for automatic repair. That change should be handled as normal Issue work with explicit scope.
 
-## 5. Independent patch validation
-
-After Codex runs, the repair job:
-
-1. rejects untracked files outside `.agent/**` and `src/**`;
-2. rejects modified files outside `src/**`;
-3. requires a non-empty patch;
-4. reruns `pnpm verify`;
-5. reruns `pnpm test:e2e` when the original failed stage was `functionalE2E`;
-6. exports a binary-safe Git patch only after those checks pass.
-
-The resulting patch is uploaded as a separate artifact.
-
-## 6. Stale-write protection
-
-The apply job checks out the target branch and compares its current HEAD to the exact SHA that failed QA.
-
-If the branch has moved, the repair is rejected as stale and is not pushed.
-
-This prevents a patch generated for an old commit from being silently applied on top of unrelated newer work.
-
-## 7. Repair commit and retry budget
-
-A successful automatic repair commit contains trailers similar to:
+The detailed repair procedure is in:
 
 ```text
-QA-Repair-Attempt: 1
-QA-Repair-Origin-Run: 123456789
-QA-Repair-Mode: functional
-QA-Repair-Issue: 42
-QA-Repair-Request: issue-42-attempt-1
+.github/codex/prompts/qa-repair.md
 ```
 
-The next repair attempt is derived from `QA-Repair-Attempt` on the failed target commit.
+## 7. Repair budget
 
-Maximum automatic repair attempts:
+Maximum automatic QA repair attempts per Issue/branch:
 
 ```text
 3
 ```
 
-Attempt 4 is not started automatically.
-
-## 8. Revalidation
-
-The workflow does not rely on the repair push to trigger another GitHub Actions run.
-
-After pushing the validated repair commit, the apply job explicitly dispatches `online-visual-qa.yml` with:
-
-- the repaired branch;
-- the new exact SHA;
-- the original QA mode;
-- the original Issue number when available;
-- the original request ID when available.
-
-This is required because GitHub intentionally suppresses most new workflow runs caused by pushes performed with the repository `GITHUB_TOKEN`.
-
-The loop is therefore:
+Each repair commit records:
 
 ```text
-QA failure
--> normalize finding
--> check budget/scope
--> Codex repair
--> local validation
--> stale-SHA guard
--> push repair commit
--> explicit QA dispatch
--> PASS or next bounded repair attempt
+QA-Repair-Attempt: N
+QA-Repair-Origin-Run: <run-id>
+QA-Repair-Mode: <functional|full>
+QA-Repair-Issue: <issue-number-or-none>
+QA-Repair-Request: <request-id-or-run-id>
 ```
 
-## 9. Required secret
+The scheduler reads the latest relevant repair trailer to calculate the next attempt.
 
-The repository must provide this GitHub Actions secret before automatic Codex repair can execute:
+Attempt 4 is not started automatically. The task is reported as `BLOCKED` with the remaining failure, prior attempts, relevant logs/evidence, and recommended human action.
+
+## 8. Validation before publish
+
+A repair must not be pushed until:
+
+1. the root cause has been reproduced or sufficiently identified from deterministic evidence;
+2. all changed files are inside `src/**`;
+3. the diff is non-empty and contains no unrelated edits;
+4. `pnpm verify` passes;
+5. when repairing `functionalE2E`, `pnpm test:e2e` passes;
+6. the branch still points to the failed QA SHA immediately before publishing.
+
+Publish at most one repair commit for that attempt.
+
+## 9. Revalidation
+
+After a repair push, identify the new exact branch SHA and locate the corresponding `Branch Chromium QA` run.
+
+Normal branch pushes should trigger functional QA. If a required QA run cannot be located, follow `docs/QA_CONTRACT.md` and the repository's documented `gh`/workflow-dispatch fallback. Do not create marker, noop, or trigger-only commits.
+
+For user-visible Issues that require full visual QA, run the full QA contract after functional repair is clean and inspect the screenshots/artifacts rather than treating workflow success alone as visual approval.
+
+If the new QA result is still pending near the end of a scheduled execution, stop cleanly. The next scheduled execution resumes from the same branch and exact latest QA state.
+
+## 10. Scheduled task behavior
+
+The scheduled task should behave as a durable orchestrator rather than a stateless Issue picker:
 
 ```text
-OPENAI_API_KEY
+repair existing failed work
+-> handle review feedback
+-> continue existing PRs
+-> only then start new codex-ready Issues
 ```
 
-If the secret is absent, the repair workflow stops before calling Codex and does not push a speculative change.
+It must reuse existing branches and PRs and must not duplicate work.
 
-## 10. Security boundaries
+A blocked Issue does not block other independent Issues, but an actionable failed QA branch should be repaired before starting additional lower-priority work.
 
-The repair workflow:
+## 11. Push and deployment discipline
 
-- accepts automatic repair only for failures from this repository;
-- does not auto-repair the protected `deckGL` branch;
-- checks out the exact failed SHA for Codex;
-- does not persist GitHub write credentials in the Codex checkout;
-- runs Codex with `sandbox: workspace-write`;
-- keeps the default `drop-sudo` safety strategy;
-- explicitly allows only the repository GitHub Actions bot for chained repair attempts;
-- validates the patch again in a separate write-enabled job that does not receive the OpenAI API key;
-- rejects stale branches and protected-path changes.
+For initial Issue implementation, complete local validation before the first final push whenever possible.
 
-## 11. Activation test
+For QA repair, an additional push is allowed only when it is a genuine validated repair attempt. Maximum repair pushes are bounded by the three-attempt repair budget.
 
-Because `workflow_run` workflows execute from the default branch, the Phase 4 workflow becomes fully active only after its PR is merged into `deckGL`.
+Never push:
 
-After merge, validate the loop with a controlled disposable branch containing a small, deterministic `src/**` defect that is expected to fail an existing test or typecheck. The successful activation test must demonstrate:
+- marker commits;
+- noop commits;
+- status-only commits;
+- commits whose only purpose is to trigger QA or Vercel.
 
-1. Branch Chromium QA fails;
-2. QA Repair downloads and normalizes the artifact;
-3. Codex produces an in-scope repair;
-4. independent validation passes;
-5. a repair commit is pushed;
-6. the repaired SHA is explicitly re-dispatched to Branch Chromium QA;
-7. the second QA run passes;
-8. no fourth repair attempt can be started after the configured budget.
+Vercel Preview remains late-stage evidence and is not the primary repair loop.
 
-Do not test the repair loop by weakening an existing assertion or by introducing a destructive production behavior.
+## 12. Completion
+
+`CODE_WRITTEN != DONE`.
+
+A repaired branch is considered clean only when the repaired exact SHA passes the applicable deterministic/browser QA, and any required visual review and PR review are complete.
+
+The scheduled task must not auto-merge PRs.
