@@ -314,6 +314,7 @@ jobs:
           output-file: .agent/qa-output/codex-output.md
           sandbox: workspace-write
           safety-strategy: drop-sudo
+          allow-bots: github-actions[bot]
           codex-args: '["--ephemeral"]'
 
       - name: Enforce repair scope and validate patch
@@ -481,12 +482,12 @@ jobs:
           git push origin "HEAD:$TARGET_BRANCH"
           echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Preserve full QA mode after repair
-        if: needs.prepare.outputs.qa_mode == 'full'
+      - name: Dispatch QA for repaired commit
         uses: actions/github-script@v8
         env:
           TARGET_BRANCH: ${{ needs.prepare.outputs.target_branch }}
           EXPECTED_SHA: ${{ steps.publish.outputs.new_sha }}
+          QA_MODE: ${{ needs.prepare.outputs.qa_mode }}
           ISSUE_NUMBER: ${{ needs.prepare.outputs.issue_number }}
           REQUEST_ID: ${{ needs.prepare.outputs.request_id }}
         with:
@@ -500,7 +501,7 @@ jobs:
               inputs: {
                 target_ref: process.env.TARGET_BRANCH,
                 expected_sha: process.env.EXPECTED_SHA,
-                qa_mode: 'full',
+                qa_mode: process.env.QA_MODE,
                 issue_number: process.env.ISSUE_NUMBER || '',
                 request_id: process.env.REQUEST_ID || ''
               }
