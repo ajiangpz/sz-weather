@@ -68,3 +68,35 @@ watch(() => [store.isPlaying, store.playbackSpeed], () => {
 
 onBeforeUnmount(stopTimer);
 </script>
+
+<style scoped>
+.timeline-panel__controls button {
+  border-color: rgba(87, 164, 230, 0.24);
+  background: rgba(13, 33, 55, 0.82);
+  color: #b9d8f4;
+}
+
+.timeline-panel__play {
+  width: 42px;
+  height: 42px !important;
+  border-color: rgba(75, 163, 255, 0.55) !important;
+  border-radius: 10px !important;
+  background: rgba(45, 139, 238, 0.24) !important;
+  color: #dff1ff !important;
+  box-shadow: inset 0 0 0 1px rgba(75, 163, 255, 0.08);
+}
+
+.timeline-panel__play .ui-icon {
+  width: 21px;
+  height: 21px;
+}
+
+.timeline-panel__step .ui-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.timeline-panel__speed {
+  min-width: 54px;
+}
+</style>
