@@ -1,0 +1,35 @@
+name: Bootstrap Full QA
+
+on:
+  push:
+    branches:
+      - agent/qa-repair-loop
+    paths:
+      - .github/workflows/bootstrap-full-qa.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch full Chromium QA against merged foundation
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'online-visual-qa.yml',
+              ref: 'deckGL',
+              inputs: {
+                target_ref: 'deckGL',
+                expected_sha: '5305c2f86de6e2eef65eb0c0cdb5f52e070731f3',
+                qa_mode: 'full',
+                issue_number: '',
+                request_id: 'foundation-full-5305c2f86de6'
+              }
+            });
