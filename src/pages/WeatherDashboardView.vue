@@ -10,9 +10,11 @@
 
       <section class="weather-dashboard__center" aria-label="雷达主视图">
         <WeatherRiskBanner />
-        <WeatherMapPanel class="weather-dashboard__map" />
-        <WeatherLegend class="weather-dashboard__radar-legend" />
-        <WeatherLayerPopover />
+        <div class="weather-dashboard__map-shell">
+          <WeatherMapPanel class="weather-dashboard__map" />
+          <WeatherLegend class="weather-dashboard__radar-legend" />
+          <WeatherLayerPopover />
+        </div>
       </section>
 
       <aside class="weather-dashboard__right" aria-label="预警与重点影响区域">
