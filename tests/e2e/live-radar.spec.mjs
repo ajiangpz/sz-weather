@@ -80,13 +80,32 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   await expect(radarLegend.getByRole('link', { name: 'RainViewer' })).toBeVisible();
 
   const layerButton = page.getByRole('button', { name: '图层' });
-  await layerButton.click();
   const layerPanel = page.locator('#weather-layer-popover-panel');
+  await layerButton.click();
   await expect(layerPanel.getByText('雷达 LIVE', { exact: true })).toBeVisible();
-  await expect(layerPanel.getByRole('checkbox', { name: '降雨雷达' })).toBeChecked();
+  const radarToggle = layerPanel.getByRole('checkbox', { name: '降雨雷达' });
+  const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
+  await expect(radarToggle).toBeChecked();
+  await expect(windToggle).toBeChecked();
+  await windToggle.uncheck();
   await page.keyboard.press('Escape');
 
   await expect.poll(() => radarTileRequests).toBeGreaterThan(0);
+  await page.waitForTimeout(350);
+  const mapShell = page.locator('.weather-dashboard__map-shell');
+  const radarOnFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-on.png') });
+
+  await layerButton.click();
+  await radarToggle.uncheck();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(180);
+  const radarOffFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-off.png') });
+  expect(radarOnFrame.equals(radarOffFrame)).toBe(false);
+
+  await layerButton.click();
+  await radarToggle.check();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(180);
   await page.screenshot({
     path: testInfo.outputPath('visual-qa-live-radar-1536x1024.png'),
     fullPage: true,
