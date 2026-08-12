@@ -110,5 +110,22 @@ test('renders future model precipitation as a continuous live field when observe
   const mapBox = await mapCanvas.boundingBox();
   expect(mapBox).not.toBeNull();
   await page.mouse.click(mapBox.x + mapBox.width * 0.58, mapBox.y + mapBox.height * 0.52);
-  await expect(page.getByText('点击位置 · DEMO估算', { exact: true })).toBeVisible();
+
+  const popup = page.locator('.weather-map-panel__popup');
+  await expect(popup).toBeVisible();
+  const popupTitle = popup.locator('h3');
+  await expect(popupTitle).toHaveText(/点击位置 · 模式预报 · \d+\.\d{2} mm\/15min/);
+  await expect(popup.getByText('降雨强度：', { exact: true })).toBeVisible();
+  await expect(popup.getByText('1小时降雨：', { exact: true })).toBeVisible();
+  const firstTitle = await popupTitle.textContent();
+
+  const nextIndex = 17;
+  await page.getByRole('button', { name: `预报时刻 ${times[nextIndex].slice(11, 16)}` }).click();
+  await expect(popupTitle).toHaveText(/点击位置 · 模式预报 · \d+\.\d{2} mm\/15min/);
+  await expect.poll(async () => popupTitle.textContent()).not.toBe(firstTitle);
+
+  await page.screenshot({
+    path: testInfo.outputPath('visual-qa-model-picker-1536x1024.png'),
+    fullPage: true,
+  });
 });
