@@ -74,7 +74,7 @@ const traceStream = (
   return points;
 };
 
-export const createMockWindStreams = (frameIndex: number, density = 1.17): WindStream[] => {
+export const createMockWindStreams = (frameIndex: number, density = 1.12): WindStream[] => {
   const phase = (frameIndex - 12) * 0.16;
   const columns = Math.max(8, Math.round(20 * density));
   const rows = Math.max(6, Math.round(15 * density));
