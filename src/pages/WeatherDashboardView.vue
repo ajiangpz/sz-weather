@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import WeatherAlertPanel from '@/components/weather/WeatherAlertPanel.vue';
 import WeatherHeader from '@/components/weather/WeatherHeader.vue';
 import WeatherImpactPanel from '@/components/weather/WeatherImpactPanel.vue';
@@ -40,4 +41,14 @@ import WeatherRiskBanner from '@/components/weather/WeatherRiskBanner.vue';
 import WeatherStationRank from '@/components/weather/WeatherStationRank.vue';
 import WeatherTimeline from '@/components/weather/WeatherTimeline.vue';
 import WeatherTrendPanel from '@/components/weather/WeatherTrendPanel.vue';
+import { useWeatherStore } from '@/stores/weather';
+
+const weatherStore = useWeatherStore();
+
+onMounted(() => {
+  const mode = new URLSearchParams(window.location.search).get('weather');
+  const isLocalQaHost = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+  if (mode === 'mock' || (isLocalQaHost && mode !== 'live')) return;
+  void weatherStore.loadLiveForecast();
+});
 </script>
