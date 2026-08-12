@@ -80,7 +80,7 @@ test('renders future model precipitation as a continuous live field when observe
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('模式降水 LIVE', { exact: true })).toBeVisible();
-  const precipitationToggle = layerPanel.getByRole('checkbox', { name: '降雨雷达' });
+  const precipitationToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   await expect(precipitationToggle).toBeChecked();
   await windToggle.uncheck();
