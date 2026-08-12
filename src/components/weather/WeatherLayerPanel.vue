@@ -11,9 +11,9 @@
     <ul class="layer-panel__list">
       <li :class="{ 'is-active': layerStore.radarEnabled }">
         <label class="layer-panel__toggle">
-          <input v-model="layerStore.radarEnabled" type="checkbox" aria-label="降雨雷达" />
+          <input v-model="layerStore.radarEnabled" type="checkbox" aria-label="降水图层" />
           <i class="layer-panel__swatch layer-panel__swatch--radar" aria-hidden="true"></i>
-          <span>降雨雷达</span>
+          <span>降水图层</span>
           <small class="layer-panel__source" aria-hidden="true">{{ weatherStore.radarDataStatusLabel }}</small>
         </label>
         <div class="layer-panel__opacity" :class="{ 'is-disabled': !layerStore.radarEnabled }">

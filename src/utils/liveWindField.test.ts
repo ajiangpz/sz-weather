@@ -13,6 +13,7 @@ const createFrame = (direction: number, speed = 4): WindGridFrame => ({
       ...point,
       speed: localSpeed,
       direction,
+      precipitation: 0,
       ...vector,
     };
   }),

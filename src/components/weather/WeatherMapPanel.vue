@@ -50,6 +50,10 @@ import { createMockWindStreams } from '@/mock/windField';
 import { useLayerStore } from '@/stores/layerStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useTimelineStore } from '@/stores/timelineStore';
+import {
+  createForecastPrecipitationBitmap,
+  createForecastPrecipitationLayer,
+} from '@/utils/forecastPrecipitationLayer';
 import { createForecastWindStreams } from '@/utils/liveWindField';
 import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
 import { createWindFieldLayers } from '@/utils/windDeckLayers';
@@ -77,6 +81,7 @@ let deckOverlay: MapboxOverlay | null = null;
 let districtMarkers: maplibregl.Marker[] = [];
 let stationMarkers: maplibregl.Marker[] = [];
 let radarBitmap: HTMLCanvasElement | null = null;
+let forecastPrecipitationBitmap: HTMLCanvasElement | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
 let windAnimationFrame: number | null = null;
 let windParticlePhase = 0;
@@ -167,8 +172,9 @@ const handleMapClick = (event: MapMouseEvent) => {
     latitude: lat,
   });
   const rainFactor = Math.min(1, rainfallIntensity / 50);
+  const usesExternalPrecipitation = Boolean(store.currentRainViewerFrame || store.currentWindGridFrame);
   mapStore.showPopup({
-    label: store.currentRainViewerFrame ? '点击位置 · DEMO估算' : '点击位置',
+    label: usesExternalPrecipitation ? '点击位置 · DEMO估算' : '点击位置',
     longitude: lng,
     latitude: lat,
     rainfallIntensity,
@@ -232,18 +238,34 @@ const createRadarFrame = (): FeatureCollection<Point, { intensity?: number }> =>
 };
 
 const updateWeatherLayers = (rebuildBitmap = false) => {
+  const modelFrame = store.currentWindGridFrame;
   if (rebuildBitmap || !radarBitmap) {
     radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
   }
+  if (modelFrame && (rebuildBitmap || !forecastPrecipitationBitmap)) {
+    forecastPrecipitationBitmap = createForecastPrecipitationBitmap(modelFrame);
+  } else if (!modelFrame) {
+    forecastPrecipitationBitmap = null;
+  }
   if (!deckOverlay || !radarBitmap) return;
+
+  const observedRadarActive = Boolean(store.currentRainViewerTileTemplate);
+  const modelPrecipitationActive = Boolean(forecastPrecipitationBitmap);
   deckOverlay.setProps({
     layers: [
       createRainRadarBitmapLayer({
         image: radarBitmap,
         bounds: radarBitmapBounds,
         opacity: layerStore.radarOpacity / 100,
-        visible: layerStore.radarEnabled && !store.currentRainViewerTileTemplate,
+        visible: layerStore.radarEnabled && !observedRadarActive && !modelPrecipitationActive,
       }),
+      ...(forecastPrecipitationBitmap ? [
+        createForecastPrecipitationLayer({
+          image: forecastPrecipitationBitmap,
+          opacity: layerStore.radarOpacity / 100,
+          visible: layerStore.radarEnabled && !observedRadarActive,
+        }),
+      ] : []),
       ...createWindFieldLayers({
         streams: currentWindStreams,
         opacity: layerStore.windOpacity / 100,
@@ -731,8 +753,11 @@ onMounted(() => {
       mapStyleReady = true;
       map.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
       radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
+      const modelFrame = store.currentWindGridFrame;
+      forecastPrecipitationBitmap = modelFrame ? createForecastPrecipitationBitmap(modelFrame) : null;
 
       currentWindStreams = createCurrentWindStreams();
+      const observedRadarActive = Boolean(store.currentRainViewerTileTemplate);
       deckOverlay = new MapboxOverlay({
         interleaved: false,
         layers: [
@@ -740,8 +765,15 @@ onMounted(() => {
             image: radarBitmap,
             bounds: radarBitmapBounds,
             opacity: layerStore.radarOpacity / 100,
-            visible: layerStore.radarEnabled && !store.currentRainViewerTileTemplate,
+            visible: layerStore.radarEnabled && !observedRadarActive && !forecastPrecipitationBitmap,
           }),
+          ...(forecastPrecipitationBitmap ? [
+            createForecastPrecipitationLayer({
+              image: forecastPrecipitationBitmap,
+              opacity: layerStore.radarOpacity / 100,
+              visible: layerStore.radarEnabled && !observedRadarActive,
+            }),
+          ] : []),
           ...createWindFieldLayers({
             streams: currentWindStreams,
             opacity: layerStore.windOpacity / 100,
@@ -820,7 +852,7 @@ watch(() => timelineStore.currentFrameIndex, () => {
 
 watch(() => store.windForecastFrames, () => {
   currentWindStreams = createCurrentWindStreams();
-  updateWeatherLayers();
+  updateWeatherLayers(true);
 });
 
 watch(() => store.currentRainViewerTileTemplate, () => {
