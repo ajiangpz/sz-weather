@@ -37,7 +37,7 @@
 
     <div class="timeline-panel__quick">
       <button type="button" @click="store.stepFrame(-1)"><UiIcon name="chevron-left" />近时次</button>
-      <button type="button" @click="store.stepFrame(1)">逐15分钟<UiIcon name="chevron-right" /></button>
+      <button type="button" @click="store.stepFrame(1)">{{ frameStepLabel }}<UiIcon name="chevron-right" /></button>
     </div>
   </section>
 </template>
@@ -53,6 +53,7 @@ const fallbackTimes = Array.from({ length: 25 }, (_, index) => {
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
 });
 const times = computed(() => store.frameTimes.length > 0 ? store.frameTimes : fallbackTimes);
+const frameStepLabel = computed(() => store.frameTimes.length > 0 ? '逐15分钟' : '逐10分钟');
 const progress = computed(() => (store.currentFrameIndex / Math.max(1, times.value.length - 1)) * 100);
 const anchorProgress = computed(() => (store.currentFrameAnchorIndex / Math.max(1, times.value.length - 1)) * 100);
 const phaseLabel = computed(() => ({ past: '过去', current: '当前', forecast: '预报' })[store.currentFramePhase]);
