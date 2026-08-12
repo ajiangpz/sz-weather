@@ -2,7 +2,7 @@
   <section class="dashboard-panel alert-panel alert-panel--v2">
     <div class="alert-panel__header">
       <h2>天气预警</h2>
-      <span>{{ activeAlerts.length }} 条生效</span>
+      <span>DEMO · {{ activeAlerts.length }} 条生效</span>
     </div>
 
     <div class="alert-panel__list">
@@ -33,7 +33,7 @@
               <WeatherIcon :name="detailAlert.icon" />
             </div>
             <div>
-              <span class="alert-dialog__eyebrow">深圳市气象预警</span>
+              <span class="alert-dialog__eyebrow">深圳市气象预警 · DEMO</span>
               <h2 :id="`alert-title-${detailAlert.id}`">{{ detailAlert.title }}</h2>
             </div>
             <button ref="closeButton" class="alert-dialog__close" type="button" aria-label="关闭预警详情" @click="closeAlert">×</button>
