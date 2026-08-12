@@ -58,9 +58,9 @@ export const useWeatherStore = defineStore('weather', {
   }),
   getters: {
     dataStatusLabel(state) {
-      if (state.dataStatus === 'live') return '实时预报';
-      if (state.dataStatus === 'loading') return '更新中';
-      if (state.dataStatus === 'fallback') return state.forecastFrames.length > 0 ? '缓存预报' : '演示数据';
+      if (state.dataStatus === 'live') return '预报 LIVE';
+      if (state.dataStatus === 'loading') return '预报更新';
+      if (state.dataStatus === 'fallback') return state.forecastFrames.length > 0 ? '预报缓存' : '演示数据';
       return '演示数据';
     },
     currentWeather(state) {
