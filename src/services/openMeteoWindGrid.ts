@@ -1,4 +1,4 @@
-export const WIND_GRID_SOURCE = 'Open-Meteo Best Match wind grid';
+export const WIND_GRID_SOURCE = 'Open-Meteo Best Match forecast grid';
 export const WIND_GRID_COLUMNS = 5;
 export const WIND_GRID_ROWS = 3;
 export const WIND_GRID_BOUNDS = {
@@ -22,6 +22,7 @@ export interface WindGridSample extends WindGridPoint {
   direction: number;
   u: number;
   v: number;
+  precipitation: number;
 }
 
 export interface WindGridFrame {
@@ -45,6 +46,7 @@ interface OpenMeteoWindLocationResponse {
     time?: string[];
     wind_speed_10m?: number[];
     wind_direction_10m?: number[];
+    precipitation?: number[];
   };
 }
 
@@ -77,19 +79,20 @@ export const buildOpenMeteoWindGridUrl = () => {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', points.map((point) => point.latitude).join(','));
   url.searchParams.set('longitude', points.map((point) => point.longitude).join(','));
-  url.searchParams.set('minutely_15', 'wind_speed_10m,wind_direction_10m');
+  url.searchParams.set('minutely_15', 'wind_speed_10m,wind_direction_10m,precipitation');
   url.searchParams.set('current', 'wind_speed_10m');
   url.searchParams.set('past_minutely_15', String(PAST_FRAME_COUNT));
   url.searchParams.set('forecast_minutely_15', String(FUTURE_FRAME_COUNT + 1));
   url.searchParams.set('timezone', 'Asia/Shanghai');
   url.searchParams.set('wind_speed_unit', 'ms');
+  url.searchParams.set('precipitation_unit', 'mm');
   url.searchParams.set('cell_selection', 'nearest');
   return url.toString();
 };
 
 const requireSeries = (series: number[] | undefined, name: string, expectedLength: number) => {
   if (!series || series.length !== expectedLength || series.some((value) => !Number.isFinite(value))) {
-    throw new Error(`Invalid Open-Meteo wind series: ${name}`);
+    throw new Error(`Invalid Open-Meteo forecast-grid series: ${name}`);
   }
   return series;
 };
@@ -100,12 +103,12 @@ export const createWindGridSnapshot = (
 ): LiveWindGridSnapshot => {
   const expectedPoints = createWindGridPoints();
   if (!Array.isArray(payload) || payload.length !== expectedPoints.length) {
-    throw new Error(`Open-Meteo wind grid returned ${payload?.length ?? 0} locations; expected ${expectedPoints.length}`);
+    throw new Error(`Open-Meteo forecast grid returned ${payload?.length ?? 0} locations; expected ${expectedPoints.length}`);
   }
 
   const firstTimes = payload[0]?.minutely_15?.time;
   if (!firstTimes || firstTimes.length < FRAME_COUNT) {
-    throw new Error('Open-Meteo wind grid returned insufficient timeline frames');
+    throw new Error('Open-Meteo forecast grid returned insufficient timeline frames');
   }
 
   const exactCurrentIndex = payload[0]?.current?.time ? firstTimes.indexOf(payload[0].current.time) : -1;
@@ -113,18 +116,19 @@ export const createWindGridSnapshot = (
   const startIndex = currentRawIndex - PAST_FRAME_COUNT;
   const endIndex = currentRawIndex + FUTURE_FRAME_COUNT;
   if (startIndex < 0 || endIndex >= firstTimes.length) {
-    throw new Error('Open-Meteo wind grid does not cover the required timeline window');
+    throw new Error('Open-Meteo forecast grid does not cover the required timeline window');
   }
 
   const locations = payload.map((location, locationIndex) => {
     const times = location.minutely_15?.time;
     if (!times || times.length !== firstTimes.length || times.some((time, index) => time !== firstTimes[index])) {
-      throw new Error(`Open-Meteo wind grid timeline mismatch at location ${locationIndex}`);
+      throw new Error(`Open-Meteo forecast-grid timeline mismatch at location ${locationIndex}`);
     }
     return {
       point: expectedPoints[locationIndex],
       speeds: requireSeries(location.minutely_15?.wind_speed_10m, `speed-${locationIndex}`, firstTimes.length),
       directions: requireSeries(location.minutely_15?.wind_direction_10m, `direction-${locationIndex}`, firstTimes.length),
+      precipitation: requireSeries(location.minutely_15?.precipitation, `precipitation-${locationIndex}`, firstTimes.length),
     };
   });
 
@@ -133,7 +137,7 @@ export const createWindGridSnapshot = (
     return {
       timestamp: firstTimes[rawIndex],
       time: firstTimes[rawIndex].slice(11, 16),
-      samples: locations.map(({ point, speeds, directions }) => {
+      samples: locations.map(({ point, speeds, directions, precipitation }) => {
         const speed = speeds[rawIndex];
         const direction = directions[rawIndex];
         const { u, v } = meteorologicalWindToVector(speed, direction);
@@ -143,6 +147,7 @@ export const createWindGridSnapshot = (
           direction: round(direction, 1),
           u: round(u, 4),
           v: round(v, 4),
+          precipitation: round(Math.max(0, precipitation[rawIndex]), 3),
         };
       }),
     };
@@ -166,7 +171,7 @@ export const fetchShenzhenWindGrid = async (timeoutMs = 6000): Promise<LiveWindG
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) {
-      throw new Error(`Open-Meteo wind grid request failed with ${response.status}`);
+      throw new Error(`Open-Meteo forecast grid request failed with ${response.status}`);
     }
     const payload = await response.json() as OpenMeteoWindLocationResponse[];
     return createWindGridSnapshot(payload);
