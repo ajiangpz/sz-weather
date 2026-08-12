@@ -3,6 +3,7 @@ import './styles.css';
 import './district-labels.css';
 import './dashboard-v2.css';
 import './windy-visual-foundation.css';
+import './map-chrome-phase2.css';
 
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
