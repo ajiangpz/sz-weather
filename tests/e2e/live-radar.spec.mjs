@@ -75,13 +75,15 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
 
   await page.goto('/?weather=live');
   await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText('雷达 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('link', { name: 'RainViewer' })).toBeVisible();
+  const radarLegend = page.getByRole('region', { name: '雷达强度图例' });
+  await expect(radarLegend.getByText('雷达 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(radarLegend.getByRole('link', { name: 'RainViewer' })).toBeVisible();
 
   const layerButton = page.getByRole('button', { name: '图层' });
   await layerButton.click();
-  await expect(page.getByText('雷达 LIVE', { exact: true })).toBeVisible();
-  await expect(page.getByRole('checkbox', { name: '降雨雷达' })).toBeChecked();
+  const layerPanel = page.locator('#weather-layer-popover-panel');
+  await expect(layerPanel.getByText('雷达 LIVE', { exact: true })).toBeVisible();
+  await expect(layerPanel.getByRole('checkbox', { name: '降雨雷达' })).toBeChecked();
   await page.keyboard.press('Escape');
 
   await expect.poll(() => radarTileRequests).toBeGreaterThan(0);
@@ -99,9 +101,9 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
 
   const futureIndex = 16;
   await page.getByRole('button', { name: `预报时刻 ${fixture.times[futureIndex].slice(11, 16)}` }).click();
-  await expect(page.getByText('DEMO dBZ', { exact: true })).toBeVisible();
+  await expect(radarLegend.getByText('DEMO dBZ', { exact: true })).toBeVisible();
   await layerButton.click();
-  await expect(page.getByText('DEMO 雷达', { exact: true })).toBeVisible();
+  await expect(layerPanel.getByText('DEMO 雷达', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 
   await page.screenshot({
