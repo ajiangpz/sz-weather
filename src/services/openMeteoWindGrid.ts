@@ -23,6 +23,8 @@ export interface WindGridSample extends WindGridPoint {
   u: number;
   v: number;
   precipitation: number;
+  temperature: number;
+  humidity: number;
 }
 
 export interface WindGridFrame {
@@ -47,6 +49,8 @@ interface OpenMeteoWindLocationResponse {
     wind_speed_10m?: number[];
     wind_direction_10m?: number[];
     precipitation?: number[];
+    temperature_2m?: number[];
+    relative_humidity_2m?: number[];
   };
 }
 
@@ -79,7 +83,10 @@ export const buildOpenMeteoWindGridUrl = () => {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
   url.searchParams.set('latitude', points.map((point) => point.latitude).join(','));
   url.searchParams.set('longitude', points.map((point) => point.longitude).join(','));
-  url.searchParams.set('minutely_15', 'wind_speed_10m,wind_direction_10m,precipitation');
+  url.searchParams.set(
+    'minutely_15',
+    'wind_speed_10m,wind_direction_10m,precipitation,temperature_2m,relative_humidity_2m',
+  );
   url.searchParams.set('current', 'wind_speed_10m');
   url.searchParams.set('past_minutely_15', String(PAST_FRAME_COUNT));
   url.searchParams.set('forecast_minutely_15', String(FUTURE_FRAME_COUNT + 1));
@@ -129,6 +136,8 @@ export const createWindGridSnapshot = (
       speeds: requireSeries(location.minutely_15?.wind_speed_10m, `speed-${locationIndex}`, firstTimes.length),
       directions: requireSeries(location.minutely_15?.wind_direction_10m, `direction-${locationIndex}`, firstTimes.length),
       precipitation: requireSeries(location.minutely_15?.precipitation, `precipitation-${locationIndex}`, firstTimes.length),
+      temperature: requireSeries(location.minutely_15?.temperature_2m, `temperature-${locationIndex}`, firstTimes.length),
+      humidity: requireSeries(location.minutely_15?.relative_humidity_2m, `humidity-${locationIndex}`, firstTimes.length),
     };
   });
 
@@ -137,7 +146,7 @@ export const createWindGridSnapshot = (
     return {
       timestamp: firstTimes[rawIndex],
       time: firstTimes[rawIndex].slice(11, 16),
-      samples: locations.map(({ point, speeds, directions, precipitation }) => {
+      samples: locations.map(({ point, speeds, directions, precipitation, temperature, humidity }) => {
         const speed = speeds[rawIndex];
         const direction = directions[rawIndex];
         const { u, v } = meteorologicalWindToVector(speed, direction);
@@ -148,6 +157,8 @@ export const createWindGridSnapshot = (
           u: round(u, 4),
           v: round(v, 4),
           precipitation: round(Math.max(0, precipitation[rawIndex]), 3),
+          temperature: round(temperature[rawIndex], 2),
+          humidity: round(Math.max(0, Math.min(100, humidity[rawIndex])), 1),
         };
       }),
     };
