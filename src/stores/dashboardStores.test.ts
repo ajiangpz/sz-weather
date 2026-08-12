@@ -30,6 +30,20 @@ describe('dashboard stores', () => {
     expect(timeline.currentFramePhase).toBe('current');
   });
 
+  it('uses real forecast labels when a live timeline is hydrated', () => {
+    const timeline = useTimelineStore();
+    const times = Array.from({ length: 25 }, (_, index) => `${String(9 + Math.floor(index / 4)).padStart(2, '0')}:${String((index % 4) * 15).padStart(2, '0')}`);
+    timeline.setFrameTimes(times, 12);
+
+    expect(timeline.currentFrameIndex).toBe(12);
+    expect(timeline.currentFrameTime).toBe(times[12]);
+    timeline.stepFrame(1);
+    expect(timeline.currentFramePhase).toBe('forecast');
+    timeline.setFrame(0);
+    timeline.stepFrame(-1);
+    expect(timeline.currentFrameIndex).toBe(24);
+  });
+
   it('creates a typed popup when selecting a station', () => {
     const map = useMapStore();
     const station = mockStations[0];
