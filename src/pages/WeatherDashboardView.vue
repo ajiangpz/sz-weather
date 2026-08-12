@@ -52,10 +52,11 @@ const timelineStore = useTimelineStore();
 
 const syncModelPointPopup = () => {
   const popup = mapStore.popup;
-  if (!popup || !popup.label?.startsWith('点击位置')) return;
+  const isMapPointPopup = popup?.label?.startsWith('点击位置') || popup?.label?.startsWith('模式预报');
+  if (!popup || !isMapPointPopup) return;
 
   if (weatherStore.currentRainViewerFrame) {
-    if (popup.label.startsWith('点击位置 · 模式预报')) {
+    if (popup.label?.startsWith('模式预报')) {
       mapStore.syncPopup({ label: '点击位置 · DEMO估算' });
     }
     return;
@@ -69,14 +70,14 @@ const syncModelPointPopup = () => {
   });
 
   if (!summary) {
-    if (popup.label.startsWith('点击位置 · 模式预报')) {
+    if (popup.label?.startsWith('模式预报')) {
       mapStore.syncPopup({ label: '点击位置' });
     }
     return;
   }
 
   mapStore.syncPopup({
-    label: `点击位置 · 模式预报 · ${summary.precipitation15m.toFixed(2)} mm/15min`,
+    label: `模式预报 · ${summary.precipitation15m.toFixed(2)} mm/15min`,
     rainfallIntensity: summary.rainfallIntensity,
     rainfall1h: summary.rainfall1h,
     temperature: weatherStore.currentWeather.temperature,
