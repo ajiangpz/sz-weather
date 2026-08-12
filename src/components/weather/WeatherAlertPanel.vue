@@ -101,3 +101,23 @@ function handleKeydown(event: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', handleKeydown));
 onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
 </script>
+
+<style scoped>
+.alert-panel--v2 {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.alert-panel__list {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  grid-auto-rows: auto;
+}
+
+.alert-panel--v2 .alert-card {
+  min-height: 82px;
+  padding-block: 10px;
+}
+</style>

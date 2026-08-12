@@ -34,3 +34,17 @@ const topStations = computed(() => [...weatherStore.stations].sort((a, b) => b.r
 const maxRainfall = computed(() => topStations.value[0]?.rainfall24h || 1);
 const progressWidth = (value: number) => Math.max(8, Math.min(100, (value / maxRainfall.value) * 100));
 </script>
+
+<style scoped>
+.station-rank li button {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.station-rank__row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
