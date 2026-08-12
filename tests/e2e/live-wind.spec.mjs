@@ -55,6 +55,7 @@ const installForecastRoutes = async (page, { includeWind }) => {
       body: JSON.stringify(payload),
     });
   });
+  await page.route('https://api.rainviewer.com/**', route => route.abort());
 
   return times;
 };
