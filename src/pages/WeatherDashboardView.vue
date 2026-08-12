@@ -1,20 +1,22 @@
 <template>
-  <main class="weather-dashboard">
+  <main class="weather-dashboard weather-dashboard--v2">
     <WeatherHeader />
 
     <section class="weather-dashboard__body" aria-label="RainScope 深圳天气可视化大屏">
-      <aside class="weather-dashboard__left" aria-label="图层与站点">
-        <WeatherLayerPanel />
-        <WeatherLegend />
+      <aside class="weather-dashboard__left" aria-label="降雨与站点概览">
+        <WeatherMetricPanel />
         <WeatherStationRank />
       </aside>
 
-      <WeatherMapPanel class="weather-dashboard__map" />
+      <section class="weather-dashboard__center" aria-label="雷达主视图">
+        <WeatherRiskBanner />
+        <WeatherMapPanel class="weather-dashboard__map" />
+        <WeatherLegend class="weather-dashboard__radar-legend" />
+      </section>
 
-      <aside class="weather-dashboard__right" aria-label="实时指标与预警">
-        <WeatherMetricPanel />
+      <aside class="weather-dashboard__right" aria-label="预警与重点影响区域">
         <WeatherAlertPanel />
-        <RainDistributionChart />
+        <WeatherImpactPanel />
       </aside>
 
       <WeatherTrendPanel class="weather-dashboard__trend" />
@@ -24,24 +26,14 @@
 </template>
 
 <script setup lang="ts">
-import RainDistributionChart from '@/components/weather/RainDistributionChart.vue';
 import WeatherAlertPanel from '@/components/weather/WeatherAlertPanel.vue';
 import WeatherHeader from '@/components/weather/WeatherHeader.vue';
-import WeatherLayerPanel from '@/components/weather/WeatherLayerPanel.vue';
+import WeatherImpactPanel from '@/components/weather/WeatherImpactPanel.vue';
 import WeatherLegend from '@/components/weather/WeatherLegend.vue';
 import WeatherMapPanel from '@/components/weather/WeatherMapPanel.vue';
 import WeatherMetricPanel from '@/components/weather/WeatherMetricPanel.vue';
+import WeatherRiskBanner from '@/components/weather/WeatherRiskBanner.vue';
 import WeatherStationRank from '@/components/weather/WeatherStationRank.vue';
 import WeatherTimeline from '@/components/weather/WeatherTimeline.vue';
 import WeatherTrendPanel from '@/components/weather/WeatherTrendPanel.vue';
 </script>
-
-<style scoped>
-@media (min-width: 1201px) {
-  .weather-dashboard__left,
-  .weather-dashboard__right {
-    grid-template-rows: auto auto auto;
-    align-content: start;
-  }
-}
-</style>
