@@ -2,7 +2,7 @@
   <section class="dashboard-panel station-rank">
     <div class="station-rank__header">
       <h2>站点雨量 TOP3</h2>
-      <span>单位：mm</span>
+      <span>DEMO · mm</span>
     </div>
 
     <ol>
