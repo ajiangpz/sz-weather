@@ -70,7 +70,7 @@ test('renders a visibly distinguishable RainViewer raster contribution', async (
   });
 
   await page.goto('/?weather=live');
-  const radarLegend = page.getByRole('region', { name: '雷达强度图例' });
+  const radarLegend = page.getByRole('region', { name: '降水图层图例' });
   await expect(radarLegend.getByText('雷达 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect.poll(() => radarTileRequests).toBeGreaterThan(0);
 
