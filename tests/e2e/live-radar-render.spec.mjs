@@ -77,7 +77,7 @@ test('renders a visibly distinguishable RainViewer raster contribution', async (
   const layerButton = page.getByRole('button', { name: '图层' });
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
-  const radarToggle = layerPanel.getByRole('checkbox', { name: '降雨雷达' });
+  const radarToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
