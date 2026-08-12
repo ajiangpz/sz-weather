@@ -43,6 +43,8 @@ const createWindGridPayload = (times) => windGridPoints().map((point, pointIndex
       const temporalPulse = Math.max(0, 1 - Math.abs(frameIndex - 15) / 6);
       return Number(Math.max(0, temporalPulse * (0.08 + column * 0.11 + row * 0.06)).toFixed(3));
     }),
+    temperature_2m: times.map((_, frameIndex) => Number((27 + (pointIndex % 5) * 0.55 + Math.floor(pointIndex / 5) * 0.2 + frameIndex * 0.04).toFixed(2))),
+    relative_humidity_2m: times.map((_, frameIndex) => Number((88 - (pointIndex % 5) * 2.4 - Math.floor(pointIndex / 5) * 3 - frameIndex * 0.12).toFixed(1))),
   },
 }));
 
