@@ -12,6 +12,7 @@
         <WeatherRiskBanner />
         <WeatherMapPanel class="weather-dashboard__map" />
         <WeatherLegend class="weather-dashboard__radar-legend" />
+        <WeatherLayerPopover />
       </section>
 
       <aside class="weather-dashboard__right" aria-label="预警与重点影响区域">
@@ -29,6 +30,7 @@
 import WeatherAlertPanel from '@/components/weather/WeatherAlertPanel.vue';
 import WeatherHeader from '@/components/weather/WeatherHeader.vue';
 import WeatherImpactPanel from '@/components/weather/WeatherImpactPanel.vue';
+import WeatherLayerPopover from '@/components/weather/WeatherLayerPopover.vue';
 import WeatherLegend from '@/components/weather/WeatherLegend.vue';
 import WeatherMapPanel from '@/components/weather/WeatherMapPanel.vue';
 import WeatherMetricPanel from '@/components/weather/WeatherMetricPanel.vue';

@@ -74,6 +74,32 @@ test.describe('RainScope dashboard smoke tests', () => {
     }
   });
 
+  test('keeps full layer controls available from the map overlay', async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await page.goto('/');
+
+    const layerButton = page.getByRole('button', { name: '图层' });
+    await expect(layerButton).toBeVisible();
+    await layerButton.click();
+
+    await expect(page.getByText('图层控制', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('温度热力')).toBeVisible();
+    await expect(page.getByLabel('湿度热力')).toBeVisible();
+
+    const radarToggle = page.getByLabel('降雨雷达');
+    const radarOpacity = page.locator('.weather-layer-popover__panel .layer-panel__opacity input[type="range"]').first();
+    await expect(radarToggle).toBeChecked();
+    await expect(radarOpacity).toBeEnabled();
+
+    await radarToggle.uncheck();
+    await expect(radarOpacity).toBeDisabled();
+    await radarToggle.check();
+    await expect(radarOpacity).toBeEnabled();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('图层控制', { exact: true })).toBeHidden();
+  });
+
   test('keeps district labels compact and readable on supported desktop viewports', async ({ page }) => {
     const expectedMaximumFontSize = new Map([
       [1920, 15],
