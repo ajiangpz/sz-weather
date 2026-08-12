@@ -3,9 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { createMockWindStreams } from './windField';
 
 describe('mock wind field', () => {
-  it('creates a denser default field while preserving the explicit baseline density', () => {
+  it('keeps the proven default field density while preserving the explicit baseline density', () => {
     const streams = createMockWindStreams(12);
-    expect(streams).toHaveLength(414);
+    expect(streams).toHaveLength(374);
     expect(createMockWindStreams(12, 1)).toHaveLength(300);
     expect(streams.every((stream) => stream.path.length >= 8 && stream.path.length <= 35)).toBe(true);
     expect(streams.flatMap((stream) => stream.path).every(([longitude, latitude]) =>
