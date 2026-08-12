@@ -226,9 +226,12 @@ test.describe('RainScope dashboard smoke tests', () => {
     });
 
     await page.goto('/?weather=live');
-    await expect(page.getByText('实时预报', { exact: true })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: `当前时刻 ${times[currentIndex].slice(11, 16)}` })).toBeVisible();
     await expect(page.getByText('逐15分钟', { exact: true })).toBeVisible();
     await expect(page.getByText('中雨', { exact: true })).toBeVisible();
+    await expect(page.getByText('DEMO · mm', { exact: true })).toBeVisible();
+    await expect(page.getByText(/DEMO · \d+ 条生效/)).toBeVisible();
+    await expect(page.getByText('DEMO dBZ', { exact: true })).toBeVisible();
   });
 });
