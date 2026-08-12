@@ -32,9 +32,9 @@ export const useMapStore = defineStore('map', {
     closePopup() {
       this.popup = null;
     },
-    syncPopup(weather: Pick<MapPointPopup, 'rainfallIntensity' | 'rainfall1h' | 'temperature' | 'humidity' | 'windSpeed'>) {
+    syncPopup(popup: Partial<MapPointPopup>) {
       if (!this.popup) return;
-      this.popup = { ...this.popup, ...weather };
+      this.popup = { ...this.popup, ...popup };
     },
   },
 });
