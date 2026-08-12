@@ -167,7 +167,7 @@ This section is the task source for the scheduled GitHub Issue producer.
 Only unchecked Markdown items directly written in this format are eligible:
 
 ```text
-- [ ] Short, implementation-ready task title
+- [x] Short, implementation-ready task title
 ```
 
 Rules:
