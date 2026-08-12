@@ -3,7 +3,7 @@
     <div ref="mapContainer" class="weather-map-panel__canvas"></div>
     <div class="weather-map-panel__shade"></div>
 
-    <div class="weather-map-panel__time">当前时间：2026-07-09 {{ timelineStore.currentFrameTime }}</div>
+    <div class="weather-map-panel__time">当前时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
 
     <article v-if="mapStore.popup" class="weather-map-panel__popup" @click.stop>
       <button type="button" aria-label="关闭" @click="mapStore.closePopup()">×</button>
@@ -50,6 +50,7 @@ import { createMockWindStreams } from '@/mock/windField';
 import { useLayerStore } from '@/stores/layerStore';
 import { useMapStore } from '@/stores/mapStore';
 import { useTimelineStore } from '@/stores/timelineStore';
+import { createForecastWindStreams } from '@/utils/liveWindField';
 import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
 import { createWindFieldLayers } from '@/utils/windDeckLayers';
 import UiIcon from './UiIcon.vue';
@@ -78,7 +79,19 @@ let windAnimationFrame: number | null = null;
 let windParticlePhase = 0;
 let windLastFrameTime = 0;
 let windLastRenderTime = 0;
-let currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
+
+const createCurrentWindStreams = () => {
+  const liveFrame = store.currentWindGridFrame;
+  return liveFrame
+    ? createForecastWindStreams(liveFrame)
+    : createMockWindStreams(timelineStore.currentFrameIndex);
+};
+
+let currentWindStreams = createCurrentWindStreams();
+
+const mapFrameDate = computed(() => (
+  store.forecastFrames[timelineStore.currentFrameIndex]?.timestamp.slice(0, 10) ?? '2026-07-09'
+));
 
 const rainfallLevel = computed(() => {
   const intensity = mapStore.popup?.rainfallIntensity ?? 0;
@@ -672,7 +685,7 @@ onMounted(() => {
 
       radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
 
-      currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
+      currentWindStreams = createCurrentWindStreams();
       deckOverlay = new MapboxOverlay({
         interleaved: false,
         layers: [
@@ -742,7 +755,7 @@ watch(
 );
 
 watch(() => timelineStore.currentFrameIndex, () => {
-  currentWindStreams = createMockWindStreams(timelineStore.currentFrameIndex);
+  currentWindStreams = createCurrentWindStreams();
   updateWeatherLayers(true);
   mapStore.syncPopup({
     rainfallIntensity: store.currentWeather.maxRainIntensity,
@@ -751,6 +764,11 @@ watch(() => timelineStore.currentFrameIndex, () => {
     humidity: store.currentWeather.humidity,
     windSpeed: store.currentWeather.windSpeed,
   });
+});
+
+watch(() => store.windForecastFrames, () => {
+  currentWindStreams = createCurrentWindStreams();
+  updateWeatherLayers();
 });
 
 watch(() => [layerStore.stationEnabled, mapStore.activeStationId], updateStationMarkers);
