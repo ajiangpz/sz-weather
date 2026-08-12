@@ -45,6 +45,8 @@ const createForecastGridPayload = times => gridPoints().map((point, pointIndex) 
         const temporal = 1 - Math.abs(frameIndex - 16) / 6;
         return Number(Math.max(0.03, temporal * (0.4 + column * 0.6 + row * 0.35)).toFixed(3));
       }),
+      temperature_2m: times.map((_, frameIndex) => Number((26.2 + column * 0.95 + row * 0.35 + frameIndex * 0.05).toFixed(2))),
+      relative_humidity_2m: times.map((_, frameIndex) => Number((91 - column * 4.1 - row * 3.5 - frameIndex * 0.08).toFixed(1))),
     },
   };
 });
