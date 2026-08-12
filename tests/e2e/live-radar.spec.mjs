@@ -55,18 +55,10 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   let radarTileRequests = 0;
 
   await page.route('https://api.open-meteo.com/**', async route => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(fixture.payload),
-    });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(fixture.payload) });
   });
   await page.route('https://api.rainviewer.com/**', async route => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(createRainViewerPayload(fixture.times[fixture.currentIndex])),
-    });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(createRainViewerPayload(fixture.times[fixture.currentIndex])) });
   });
   await page.route('https://tilecache.rainviewer.test/**', async route => {
     radarTileRequests += 1;
@@ -75,7 +67,7 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
 
   await page.goto('/?weather=live');
   await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  const radarLegend = page.getByRole('region', { name: '降水图层图例' });
+  const radarLegend = page.getByRole('region', { name: '地图数据图例' });
   await expect(radarLegend.getByText('雷达 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(radarLegend.getByRole('link', { name: 'RainViewer' })).toBeVisible();
 
@@ -106,10 +98,7 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   await radarToggle.check();
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
-  await page.screenshot({
-    path: testInfo.outputPath('visual-qa-live-radar-1536x1024.png'),
-    fullPage: true,
-  });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-1536x1024.png'), fullPage: true });
 
   const mapCanvas = page.locator('.weather-map-panel__canvas');
   const mapBox = await mapCanvas.boundingBox();
@@ -125,8 +114,5 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   await expect(layerPanel.getByText('DEMO 雷达', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.screenshot({
-    path: testInfo.outputPath('visual-qa-radar-fallback-1536x1024.png'),
-    fullPage: true,
-  });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-radar-fallback-1536x1024.png'), fullPage: true });
 });
