@@ -42,7 +42,7 @@
 <script setup lang="ts">
 import { MapboxOverlay } from '@deck.gl/mapbox';
 import type { FeatureCollection, Point, Polygon } from 'geojson';
-import maplibregl, { type Map, type MapMouseEvent, type StyleSpecification } from 'maplibre-gl';
+import maplibregl, { type Map, type MapMouseEvent, type RasterTileSource, type StyleSpecification } from 'maplibre-gl';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useWeatherStore } from '@/stores/weather';
@@ -61,6 +61,8 @@ const shenzhenBounds: [[number, number], [number, number]] = [
   [114.65, 22.86],
 ];
 const radarBitmapBounds: RadarBitmapBounds = [113.68, 22.34, 114.68, 22.88];
+const rainViewerSourceId = 'rainviewer-radar';
+const rainViewerLayerId = 'rainviewer-radar-layer';
 
 const store = useWeatherStore();
 const layerStore = useLayerStore();
@@ -165,7 +167,7 @@ const handleMapClick = (event: MapMouseEvent) => {
   });
   const rainFactor = Math.min(1, rainfallIntensity / 50);
   mapStore.showPopup({
-    label: '点击位置',
+    label: store.currentRainViewerFrame ? '点击位置 · DEMO估算' : '点击位置',
     longitude: lng,
     latitude: lat,
     rainfallIntensity,
@@ -239,7 +241,7 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
         image: radarBitmap,
         bounds: radarBitmapBounds,
         opacity: layerStore.radarOpacity / 100,
-        visible: layerStore.radarEnabled,
+        visible: layerStore.radarEnabled && !store.currentRainViewerTileTemplate,
       }),
       ...createWindFieldLayers({
         streams: currentWindStreams,
@@ -249,6 +251,50 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
       }),
     ],
   });
+};
+
+const syncRainViewerLayer = () => {
+  if (!map || !map.isStyleLoaded()) return;
+  const tileTemplate = store.currentRainViewerTileTemplate;
+  const existingSource = map.getSource(rainViewerSourceId) as RasterTileSource | undefined;
+
+  if (!tileTemplate) {
+    if (map.getLayer(rainViewerLayerId)) {
+      map.setLayoutProperty(rainViewerLayerId, 'visibility', 'none');
+    }
+    updateWeatherLayers();
+    return;
+  }
+
+  if (!existingSource) {
+    map.addSource(rainViewerSourceId, {
+      type: 'raster',
+      tiles: [tileTemplate],
+      tileSize: 256,
+      maxzoom: 7,
+      attribution: 'Weather radar by RainViewer',
+    });
+    map.addLayer({
+      id: rainViewerLayerId,
+      type: 'raster',
+      source: rainViewerSourceId,
+      layout: {
+        visibility: layerStore.radarEnabled ? 'visible' : 'none',
+      },
+      paint: {
+        'raster-opacity': layerStore.radarOpacity / 100,
+        'raster-fade-duration': 0,
+      },
+    }, 'district-glow');
+  } else {
+    existingSource.setTiles([tileTemplate]);
+    if (map.getLayer(rainViewerLayerId)) {
+      map.setLayoutProperty(rainViewerLayerId, 'visibility', layerStore.radarEnabled ? 'visible' : 'none');
+      map.setPaintProperty(rainViewerLayerId, 'raster-opacity', layerStore.radarOpacity / 100);
+    }
+  }
+
+  updateWeatherLayers();
 };
 
 const stopWindAnimation = () => {
@@ -693,7 +739,7 @@ onMounted(() => {
             image: radarBitmap,
             bounds: radarBitmapBounds,
             opacity: layerStore.radarOpacity / 100,
-            visible: layerStore.radarEnabled,
+            visible: layerStore.radarEnabled && !store.currentRainViewerTileTemplate,
           }),
           ...createWindFieldLayers({
             streams: currentWindStreams,
@@ -704,6 +750,7 @@ onMounted(() => {
         ],
       });
       map.addControl(deckOverlay);
+      syncRainViewerLayer();
 
       districtMarkers = districtLabels.map((district) => {
         const element = document.createElement('span');
@@ -742,7 +789,10 @@ onMounted(() => {
 
 watch(
   () => [layerStore.radarEnabled, layerStore.radarOpacity],
-  () => updateWeatherLayers(),
+  () => {
+    updateWeatherLayers();
+    syncRainViewerLayer();
+  },
 );
 
 watch(
@@ -756,6 +806,7 @@ watch(
 
 watch(() => timelineStore.currentFrameIndex, () => {
   currentWindStreams = createCurrentWindStreams();
+  syncRainViewerLayer();
   updateWeatherLayers(true);
   mapStore.syncPopup({
     rainfallIntensity: store.currentWeather.maxRainIntensity,
@@ -769,6 +820,10 @@ watch(() => timelineStore.currentFrameIndex, () => {
 watch(() => store.windForecastFrames, () => {
   currentWindStreams = createCurrentWindStreams();
   updateWeatherLayers();
+});
+
+watch(() => store.currentRainViewerTileTemplate, () => {
+  syncRainViewerLayer();
 });
 
 watch(() => [layerStore.stationEnabled, mapStore.activeStationId], updateStationMarkers);
