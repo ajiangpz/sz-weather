@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import WeatherAlertPanel from '@/components/weather/WeatherAlertPanel.vue';
 import WeatherHeader from '@/components/weather/WeatherHeader.vue';
 import WeatherImpactPanel from '@/components/weather/WeatherImpactPanel.vue';
@@ -41,9 +41,64 @@ import WeatherRiskBanner from '@/components/weather/WeatherRiskBanner.vue';
 import WeatherStationRank from '@/components/weather/WeatherStationRank.vue';
 import WeatherTimeline from '@/components/weather/WeatherTimeline.vue';
 import WeatherTrendPanel from '@/components/weather/WeatherTrendPanel.vue';
+import { useMapStore } from '@/stores/mapStore';
+import { useTimelineStore } from '@/stores/timelineStore';
 import { useWeatherStore } from '@/stores/weather';
+import { createModelPointForecastSummary } from '@/utils/modelPointForecast';
 
 const weatherStore = useWeatherStore();
+const mapStore = useMapStore();
+const timelineStore = useTimelineStore();
+
+const syncModelPointPopup = () => {
+  const popup = mapStore.popup;
+  const isMapPointPopup = popup?.label?.startsWith('点击位置') || popup?.label?.startsWith('模式预报');
+  if (!popup || !isMapPointPopup) return;
+
+  if (weatherStore.currentRainViewerFrame) {
+    if (popup.label?.startsWith('模式预报')) {
+      mapStore.syncPopup({ label: '点击位置 · DEMO估算' });
+    }
+    return;
+  }
+
+  const summary = createModelPointForecastSummary({
+    frames: weatherStore.windForecastFrames,
+    frameIndex: timelineStore.currentFrameIndex,
+    longitude: popup.longitude,
+    latitude: popup.latitude,
+  });
+
+  if (!summary) {
+    if (popup.label?.startsWith('模式预报')) {
+      mapStore.syncPopup({ label: '点击位置' });
+    }
+    return;
+  }
+
+  mapStore.syncPopup({
+    label: `模式预报 · ${summary.precipitation15m.toFixed(2)} mm/15min`,
+    rainfallIntensity: summary.rainfallIntensity,
+    rainfall1h: summary.rainfall1h,
+    temperature: weatherStore.currentWeather.temperature,
+    humidity: weatherStore.currentWeather.humidity,
+    windSpeed: summary.windSpeed,
+    windDirection: summary.windDirection,
+    alertTitle: undefined,
+  });
+};
+
+watch(
+  [
+    () => mapStore.popup?.longitude,
+    () => mapStore.popup?.latitude,
+    () => timelineStore.currentFrameIndex,
+    () => weatherStore.windForecastFrames,
+    () => weatherStore.rainViewerFrames,
+  ],
+  syncModelPointPopup,
+  { flush: 'post' },
+);
 
 onMounted(() => {
   const mode = new URLSearchParams(window.location.search).get('weather');
