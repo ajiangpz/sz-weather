@@ -1,0 +1,149 @@
+/*
+ * RainScope Phase 5 — map weather picker
+ * Presentation-only treatment for the existing mapStore popup data.
+ */
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup {
+  top: 58px;
+  right: 58px;
+  left: auto;
+  display: grid;
+  width: 278px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+  padding: 13px 14px 12px;
+  border: 1px solid rgba(137, 194, 232, 0.18);
+  border-radius: 10px;
+  background: rgba(3, 18, 31, 0.94);
+  box-shadow: 0 18px 42px rgba(0, 4, 10, 0.34);
+  color: #dbe8f0;
+  font-size: 11px;
+  line-height: 1.35;
+  backdrop-filter: blur(16px) saturate(108%);
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup h3 {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 1px 28px 10px 0;
+  color: #f2f8fc;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup > button {
+  top: 8px;
+  right: 9px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7690a2;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup > button:hover {
+  background: rgba(72, 139, 184, 0.12);
+  color: #e6f3fb;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p {
+  min-width: 0;
+  margin: 0;
+  padding: 7px 0;
+  border-top: 1px solid rgba(126, 169, 201, 0.08);
+  color: #d8e6ee;
+  font-variant-numeric: tabular-nums;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p span {
+  display: block;
+  margin-bottom: 2px;
+  color: #6f8798;
+  font-size: 9px;
+  letter-spacing: 0.015em;
+}
+
+/* Time uses the full row as quiet context. */
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(1) {
+  grid-column: 1 / -1;
+  padding-top: 6px;
+  color: #8ca7b8;
+  font-size: 10px;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(1) span {
+  display: inline;
+  margin: 0 5px 0 0;
+}
+
+/* Coordinates are secondary metadata. */
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(2),
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(3) {
+  color: #8fa5b4;
+  font-size: 10px;
+}
+
+/* Rain state and primary weather values get slightly more contrast. */
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(4),
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(5),
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(7),
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(9) {
+  color: #eef7fc;
+  font-size: 12px;
+  font-weight: 560;
+}
+
+/* Alert, when present, is the only semantic warning emphasis in the picker. */
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:last-child:has(strong) {
+  grid-column: 1 / -1;
+  margin-top: 3px;
+  padding: 8px 9px;
+  border: 1px solid rgba(242, 201, 38, 0.15);
+  border-radius: 7px;
+  background: rgba(242, 201, 38, 0.055);
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:last-child:has(strong) span {
+  display: inline;
+  margin-right: 5px;
+}
+
+.weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup strong {
+  color: #e9c839;
+  font-weight: 600;
+}
+
+@media (min-width: 1321px) and (max-width: 1600px) {
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup {
+    top: 52px;
+    right: 54px;
+    width: 258px;
+    gap: 0 10px;
+    padding: 11px 12px 10px;
+    font-size: 10px;
+  }
+
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup h3 {
+    padding-bottom: 8px;
+    font-size: 13px;
+  }
+
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p {
+    padding-block: 6px;
+  }
+
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(4),
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(5),
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(7),
+  .weather-dashboard--v2 .weather-dashboard__map-shell .weather-map-panel__popup p:nth-of-type(9) {
+    font-size: 11px;
+  }
+}
