@@ -49,7 +49,7 @@ const createRainViewerPayload = (currentTimestamp) => {
   };
 };
 
-test('uses RainViewer only inside the observed radar window and falls back outside it', async ({ page }, testInfo) => {
+test('uses RainViewer only inside the observed radar window and falls back outside it without a model grid', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const fixture = createForecastFixture();
   let radarTileRequests = 0;
@@ -75,7 +75,7 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
 
   await page.goto('/?weather=live');
   await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  const radarLegend = page.getByRole('region', { name: '雷达强度图例' });
+  const radarLegend = page.getByRole('region', { name: '降水图层图例' });
   await expect(radarLegend.getByText('雷达 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(radarLegend.getByRole('link', { name: 'RainViewer' })).toBeVisible();
 
