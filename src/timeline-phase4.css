@@ -1,0 +1,16 @@
+/* Phase 4 visual cleanup after Chromium screenshot review. */
+.weather-dashboard--v2 .timeline-panel .timeline-panel__meta {
+  grid-template-columns: 1fr 1fr;
+}
+
+.weather-dashboard--v2 .timeline-panel .timeline-panel__meta strong {
+  display: none;
+}
+
+.weather-dashboard--v2 .timeline-panel .timeline-panel__marker strong {
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
