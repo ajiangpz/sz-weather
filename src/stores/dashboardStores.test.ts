@@ -14,7 +14,8 @@ describe('dashboard stores', () => {
     expect(layers.radarEnabled).toBe(true);
     expect(layers.radarOpacity).toBe(70);
     expect(layers.alertOpacity).toBe(60);
-    expect(layers.windEnabled).toBe(false);
+    expect(layers.windEnabled).toBe(true);
+    expect(layers.windOpacity).toBe(38);
   });
 
   it('classifies and wraps timeline frames', () => {
