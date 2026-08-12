@@ -224,6 +224,7 @@ test.describe('RainScope dashboard smoke tests', () => {
         body: JSON.stringify(payload),
       });
     });
+    await page.route('https://api.rainviewer.com/**', route => route.abort());
 
     await page.goto('/?weather=live');
     await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
