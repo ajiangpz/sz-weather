@@ -1,23 +1,29 @@
 <template>
-  <section class="dashboard-panel alert-panel">
-    <div class="panel-title">
-      <h2>天气预警（{{ weatherStore.alerts.length }}）</h2>
-      <button type="button" @click="openAlert(weatherStore.alerts[0])">更多 ›</button>
+  <section class="dashboard-panel alert-panel alert-panel--v2">
+    <div class="alert-panel__header">
+      <h2>天气预警</h2>
+      <span>{{ activeAlerts.length }} 条生效</span>
     </div>
 
-    <article v-for="alert in weatherStore.alerts" :key="alert.id" :class="[`alert-card alert-card--${alert.level}`, { active: mapStore.activeAlertId === alert.id }]" @click="mapStore.selectAlert(alert.id)">
-      <div class="alert-card__icon"><WeatherIcon :name="alert.icon" /></div>
-      <div class="alert-card__body">
-        <div class="alert-card__head">
-          <h3>{{ alert.title }}</h3>
-          <span>{{ alert.status === 'active' ? '生效中' : '已解除' }}</span>
+    <div class="alert-panel__list">
+      <article
+        v-for="alert in weatherStore.alerts"
+        :key="alert.id"
+        :class="[`alert-card alert-card--${alert.level}`, { active: mapStore.activeAlertId === alert.id }]"
+        @click="mapStore.selectAlert(alert.id)"
+      >
+        <div class="alert-card__icon"><WeatherIcon :name="alert.icon" /></div>
+        <div class="alert-card__body">
+          <div class="alert-card__head">
+            <h3>{{ alert.title }}</h3>
+            <span>{{ alert.status === 'active' ? '生效中' : '已解除' }}</span>
+          </div>
+          <p class="alert-card__district">{{ alert.district }}</p>
+          <p class="alert-card__time">{{ alert.issuedAt }}</p>
         </div>
-        <p>发布时间：{{ alert.issuedAt }}</p>
-        <p>影响区域：{{ alert.district }}</p>
-        <p>预计时间：{{ alert.forecastPeriod }}</p>
-        <button class="alert-card__detail" type="button" @click.stop="openAlert(alert)">查看详情</button>
-      </div>
-    </article>
+        <button class="alert-card__detail" type="button" aria-label="查看预警详情" @click.stop="openAlert(alert)">›</button>
+      </article>
+    </div>
 
     <Teleport to="body">
       <div v-if="detailAlert" class="alert-dialog" role="presentation" @click.self="closeAlert">
@@ -60,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useMapStore } from '@/stores/mapStore';
 import { useWeatherStore } from '@/stores/weather';
 import type { WeatherAlert } from '@/types/weather';
@@ -68,6 +74,7 @@ import WeatherIcon from './WeatherIcon.vue';
 
 const mapStore = useMapStore();
 const weatherStore = useWeatherStore();
+const activeAlerts = computed(() => weatherStore.alerts.filter((alert) => alert.status === 'active'));
 const detailAlert = ref<WeatherAlert | null>(null);
 const closeButton = ref<HTMLButtonElement | null>(null);
 
@@ -94,3 +101,23 @@ function handleKeydown(event: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', handleKeydown));
 onBeforeUnmount(() => window.removeEventListener('keydown', handleKeydown));
 </script>
+
+<style scoped>
+.alert-panel--v2 {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.alert-panel__list {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  grid-auto-rows: auto;
+}
+
+.alert-panel--v2 .alert-card {
+  min-height: 82px;
+  padding-block: 10px;
+}
+</style>

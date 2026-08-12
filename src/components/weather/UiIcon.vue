@@ -11,6 +11,8 @@
     </template>
     <path v-else-if="name === 'refresh'" d="M19 8a8 8 0 1 0 1 7M19 4v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     <path v-else-if="name === 'moon'" d="M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    <path v-else-if="name === 'menu'" d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    <path v-else-if="name === 'calendar'" d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
     <path v-else-if="name === 'chevron-left'" d="m14 7-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <path v-else-if="name === 'chevron-right'" d="m10 7 5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     <path v-else-if="name === 'chevron-down'" d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -18,5 +20,5 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ name: 'play' | 'pause' | 'step' | 'layers' | 'locate' | 'refresh' | 'moon' | 'chevron-left' | 'chevron-right' | 'chevron-down' }>();
+defineProps<{ name: 'play' | 'pause' | 'step' | 'layers' | 'locate' | 'refresh' | 'moon' | 'menu' | 'calendar' | 'chevron-left' | 'chevron-right' | 'chevron-down' }>();
 </script>
