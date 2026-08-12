@@ -85,6 +85,7 @@ test.describe('RainScope dashboard smoke tests', () => {
     await expect(page.getByText('图层控制', { exact: true })).toBeVisible();
     await expect(page.getByRole('checkbox', { name: '温度热力' })).toBeVisible();
     await expect(page.getByRole('checkbox', { name: '湿度热力' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: '风场流线' })).toBeChecked();
 
     const radarToggle = page.getByRole('checkbox', { name: '降雨雷达' });
     const radarOpacity = page.locator('.weather-layer-popover__panel .layer-panel__opacity input[type="range"]').first();
@@ -172,5 +173,24 @@ test.describe('RainScope dashboard smoke tests', () => {
 
     await popup.getByRole('button', { name: '关闭' }).click();
     await expect(popup).toBeHidden();
+  });
+
+  test('shows an animated low-weight wind field by default', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await page.goto('/');
+    await page.waitForTimeout(1600);
+
+    const layerButton = page.getByRole('button', { name: '图层' });
+    await layerButton.click();
+    const windToggle = page.getByRole('checkbox', { name: '风场流线' });
+    await expect(windToggle).toBeChecked();
+    await page.keyboard.press('Escape');
+
+    const mapShell = page.locator('.weather-dashboard__map-shell');
+    const first = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-wind-frame-a.png') });
+    await page.waitForTimeout(520);
+    const second = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-wind-frame-b.png') });
+
+    expect(first.equals(second)).toBe(false);
   });
 });
