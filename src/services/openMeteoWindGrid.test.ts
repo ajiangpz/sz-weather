@@ -22,11 +22,12 @@ const createPayload = () => {
       time: times,
       wind_speed_10m: times.map((_, frameIndex) => 2.5 + pointIndex * 0.08 + frameIndex * 0.03),
       wind_direction_10m: times.map((_, frameIndex) => 80 + pointIndex * 2 + frameIndex),
+      precipitation: times.map((_, frameIndex) => Math.max(0, (pointIndex % 5 - 1) * 0.08 + (frameIndex - 8) * 0.025)),
     },
   }));
 };
 
-describe('Open-Meteo wind grid adapter', () => {
+describe('Open-Meteo forecast grid adapter', () => {
   it('creates a compact 5x3 Shenzhen sampling grid', () => {
     const points = createWindGridPoints();
     expect(points).toHaveLength(WIND_GRID_COLUMNS * WIND_GRID_ROWS);
@@ -34,15 +35,16 @@ describe('Open-Meteo wind grid adapter', () => {
     expect(new Set(points.map((point) => point.latitude)).size).toBe(WIND_GRID_ROWS);
   });
 
-  it('requests all wind samples in one multi-coordinate request', () => {
+  it('requests wind and precipitation samples in one multi-coordinate request', () => {
     const url = new URL(buildOpenMeteoWindGridUrl());
     expect(url.hostname).toBe('api.open-meteo.com');
     expect(url.searchParams.get('latitude')?.split(',')).toHaveLength(15);
     expect(url.searchParams.get('longitude')?.split(',')).toHaveLength(15);
-    expect(url.searchParams.get('minutely_15')).toBe('wind_speed_10m,wind_direction_10m');
+    expect(url.searchParams.get('minutely_15')).toBe('wind_speed_10m,wind_direction_10m,precipitation');
     expect(url.searchParams.get('past_minutely_15')).toBe('12');
     expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
     expect(url.searchParams.get('wind_speed_unit')).toBe('ms');
+    expect(url.searchParams.get('precipitation_unit')).toBe('mm');
     expect(url.searchParams.get('cell_selection')).toBe('nearest');
   });
 
@@ -56,12 +58,18 @@ describe('Open-Meteo wind grid adapter', () => {
     expect(eastWind.v).toBeCloseTo(0, 6);
   });
 
-  it('normalizes all locations into the same centered 25-frame grid', () => {
-    const snapshot = createWindGridSnapshot(createPayload(), new Date('2026-08-12T10:05:00Z'));
+  it('normalizes wind and precipitation into the same centered 25-frame grid', () => {
+    const payload = createPayload();
+    const snapshot = createWindGridSnapshot(payload, new Date('2026-08-12T10:05:00Z'));
     expect(snapshot.frames).toHaveLength(25);
     expect(snapshot.currentIndex).toBe(12);
     expect(snapshot.frames[12].samples).toHaveLength(15);
-    expect(snapshot.frames[12].samples.every((sample) => Number.isFinite(sample.u) && Number.isFinite(sample.v))).toBe(true);
-    expect(snapshot.frames[12].timestamp).toBe(createPayload()[0].current.time);
+    expect(snapshot.frames[12].samples.every((sample) => (
+      Number.isFinite(sample.u)
+      && Number.isFinite(sample.v)
+      && Number.isFinite(sample.precipitation)
+      && sample.precipitation >= 0
+    ))).toBe(true);
+    expect(snapshot.frames[12].timestamp).toBe(payload[0].current.time);
   });
 });
