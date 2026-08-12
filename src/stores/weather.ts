@@ -90,14 +90,18 @@ export const useWeatherStore = defineStore('weather', {
       return 'DEMO 风场';
     },
     radarDataStatusLabel(state) {
-      if (state.radarDataStatus === 'loading') return '雷达更新';
-      if (state.radarDataStatus !== 'live') return 'DEMO 雷达';
       const frameIndex = useTimelineStore().currentFrameIndex;
       const forecastTimestamp = state.forecastFrames[frameIndex]?.timestamp;
-      if (!forecastTimestamp) return 'DEMO 雷达';
-      return findNearestRainViewerFrame(state.rainViewerFrames, forecastTimestamp)
-        ? '雷达 LIVE'
-        : 'DEMO 雷达';
+      if (state.radarDataStatus === 'live' && forecastTimestamp) {
+        const observedFrame = findNearestRainViewerFrame(state.rainViewerFrames, forecastTimestamp);
+        if (observedFrame) return '雷达 LIVE';
+      }
+      if (state.windDataStatus === 'live' && forecastTimestamp) {
+        const modelFrame = state.windForecastFrames.find((frame) => frame.timestamp === forecastTimestamp);
+        if (modelFrame) return '模式降水 LIVE';
+      }
+      if (state.radarDataStatus === 'loading' || state.windDataStatus === 'loading') return '降水更新';
+      return 'DEMO 雷达';
     },
     currentWeather(state) {
       const frameIndex = useTimelineStore().currentFrameIndex;
@@ -194,7 +198,7 @@ export const useWeatherStore = defineStore('weather', {
           this.windForecastFrames = [];
           this.windDataStatus = 'fallback';
           this.windDataSource = '演示风场';
-          this.windLastError = 'Forecast and wind-grid timelines are not aligned';
+          this.windLastError = 'Forecast and forecast-grid timelines are not aligned';
         }
       } else {
         this.windForecastFrames = [];
@@ -203,9 +207,9 @@ export const useWeatherStore = defineStore('weather', {
         if (windResult.status === 'rejected') {
           this.windLastError = windResult.reason instanceof Error
             ? windResult.reason.message
-            : 'Unknown live wind-grid error';
+            : 'Unknown live forecast-grid error';
         } else if (forecastResult.status === 'rejected') {
-          this.windLastError = 'City forecast unavailable; keep deterministic wind fallback';
+          this.windLastError = 'City forecast unavailable; keep deterministic forecast-grid fallback';
         }
       }
 
