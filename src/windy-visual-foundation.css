@@ -1,0 +1,362 @@
+/*
+ * RainScope Phase 1 — Windy-inspired visual foundation
+ *
+ * Presentation-only overrides for Dashboard V2. This file intentionally does
+ * not change layout semantics, MapLibre/deck.gl rendering, stores, or timeline
+ * behavior. Keep these rules after dashboard-v2.css in main.ts.
+ */
+
+.weather-dashboard--v2 {
+  --windy-canvas: #061421;
+  --windy-canvas-deep: #03101b;
+  --windy-surface: rgba(7, 25, 40, 0.82);
+  --windy-surface-strong: rgba(7, 25, 40, 0.92);
+  --windy-surface-soft: rgba(8, 31, 49, 0.68);
+  --windy-stroke: rgba(128, 180, 218, 0.14);
+  --windy-stroke-strong: rgba(128, 190, 232, 0.23);
+  --windy-divider: rgba(126, 169, 201, 0.14);
+  --windy-text: #edf5fb;
+  --windy-text-secondary: #a9bbc8;
+  --windy-text-muted: #738b9c;
+  --windy-accent: #35a7ff;
+  --windy-accent-soft: rgba(53, 167, 255, 0.12);
+  --windy-control-bg: rgba(3, 17, 29, 0.84);
+  --windy-control-bg-hover: rgba(10, 40, 63, 0.92);
+  --windy-panel-shadow: 0 12px 28px rgba(0, 5, 12, 0.16);
+  --windy-floating-shadow: 0 16px 38px rgba(0, 4, 10, 0.28);
+
+  background:
+    radial-gradient(circle at 52% 18%, rgba(30, 116, 177, 0.10), transparent 36%),
+    radial-gradient(circle at 78% 48%, rgba(18, 79, 117, 0.055), transparent 28%),
+    linear-gradient(180deg, var(--windy-canvas-deep) 0%, var(--windy-canvas) 46%, #06111d 100%);
+  color: var(--windy-text);
+}
+
+/* Shared panel treatment: less card-like, more integrated with the map canvas. */
+.weather-dashboard--v2 .dashboard-panel {
+  border: 1px solid var(--windy-stroke);
+  background: linear-gradient(180deg, rgba(8, 29, 47, 0.86), var(--windy-surface));
+  box-shadow: inset 0 1px rgba(222, 242, 255, 0.018), var(--windy-panel-shadow);
+  backdrop-filter: blur(10px) saturate(108%);
+}
+
+.weather-dashboard--v2 .weather-dashboard__left .dashboard-panel,
+.weather-dashboard--v2 .weather-dashboard__right .dashboard-panel,
+.weather-dashboard--v2 .weather-dashboard__trend.dashboard-panel,
+.weather-dashboard--v2 .weather-dashboard__timeline.dashboard-panel {
+  border-color: rgba(128, 180, 218, 0.11);
+  background: linear-gradient(180deg, rgba(7, 25, 41, 0.78), rgba(5, 20, 34, 0.76));
+}
+
+/* Map is deliberately the strongest surface in the composition. */
+.weather-dashboard--v2 .weather-map-panel {
+  border-color: var(--windy-stroke-strong);
+  background: #071826;
+  box-shadow:
+    inset 0 0 0 1px rgba(214, 238, 255, 0.018),
+    0 16px 34px rgba(0, 5, 12, 0.22);
+}
+
+.weather-dashboard--v2 .weather-map-panel__shade {
+  background:
+    linear-gradient(180deg, rgba(1, 12, 20, 0.03), transparent 30%),
+    radial-gradient(circle at 50% 48%, transparent 54%, rgba(2, 12, 20, 0.12) 100%);
+  pointer-events: none;
+}
+
+/* Header: information bar, not another floating card. */
+.weather-dashboard--v2 .weather-header--v2 {
+  border-bottom: 1px solid rgba(128, 180, 218, 0.07);
+}
+
+.weather-dashboard--v2 .weather-header--v2 h1 {
+  color: #f3f8fc;
+  font-weight: 620;
+  letter-spacing: -0.025em;
+}
+
+.weather-dashboard--v2 .weather-header__demo {
+  border-color: rgba(128, 180, 218, 0.12);
+  background: rgba(10, 31, 48, 0.52);
+  color: #9fb3c1;
+}
+
+.weather-dashboard--v2 .weather-header__metric {
+  color: var(--windy-text-secondary);
+}
+
+.weather-dashboard--v2 .weather-header__metric strong {
+  color: #eaf3f9;
+  font-weight: 520;
+}
+
+.weather-dashboard--v2 .weather-header__status i {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px rgba(24, 201, 120, 0.08);
+}
+
+.weather-dashboard--v2 .weather-header__update {
+  color: #72bfff;
+}
+
+.weather-dashboard--v2 .weather-header__icon-button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #bdcfdb;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.weather-dashboard--v2 .weather-header__icon-button:hover {
+  border-color: var(--windy-stroke);
+  background: rgba(16, 44, 66, 0.45);
+  color: #f1f7fb;
+}
+
+/* Typography hierarchy. */
+.weather-dashboard--v2 .station-rank__header h2,
+.weather-dashboard--v2 .alert-panel__header h2,
+.weather-dashboard--v2 .impact-panel__header h2,
+.weather-dashboard--v2 .trend-panel__header h2 {
+  color: #e7f0f6;
+  font-weight: 560;
+  letter-spacing: 0.005em;
+}
+
+.weather-dashboard--v2 .station-rank__header span,
+.weather-dashboard--v2 .alert-panel__header span,
+.weather-dashboard--v2 .impact-panel__header > span,
+.weather-dashboard--v2 .trend-panel__chart-title,
+.weather-dashboard--v2 .metric-panel--rain .metric-card > span {
+  color: var(--windy-text-muted);
+}
+
+.weather-dashboard--v2 .station-rank__header,
+.weather-dashboard--v2 .alert-panel__header,
+.weather-dashboard--v2 .impact-panel__header,
+.weather-dashboard--v2 .trend-panel__chart-section + .trend-panel__chart-section {
+  border-color: var(--windy-divider);
+}
+
+.weather-dashboard--v2 .metric-panel--rain .metric-card + .metric-card {
+  border-color: var(--windy-divider);
+}
+
+.weather-dashboard--v2 .metric-panel--rain .metric-card strong {
+  color: #eef7fc;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.weather-dashboard--v2 .station-rank__track {
+  height: 2px;
+  background: rgba(73, 118, 151, 0.24);
+}
+
+.weather-dashboard--v2 .station-rank__track i {
+  background: linear-gradient(90deg, #2288e6, #48b4ff);
+  box-shadow: none;
+}
+
+.weather-dashboard--v2 .station-rank__more,
+.weather-dashboard--v2 .impact-panel__more,
+.weather-dashboard--v2 .risk-banner > button {
+  color: #6dbbfa;
+}
+
+/* Risk banner: compact status strip instead of a dominant warning card. */
+.weather-dashboard--v2 .risk-banner {
+  border-color: rgba(241, 194, 56, 0.14);
+  background: linear-gradient(90deg, rgba(51, 40, 16, 0.35), rgba(8, 27, 43, 0.78) 32%, rgba(6, 24, 39, 0.72));
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+
+.weather-dashboard--v2 .risk-banner__icon {
+  width: 23px;
+  height: 23px;
+  flex-basis: 23px;
+  border-radius: 6px;
+  background: rgba(242, 195, 38, 0.92);
+  font-size: 15px;
+  box-shadow: none;
+}
+
+.weather-dashboard--v2 .risk-banner__main strong {
+  color: #eef4f8;
+  font-weight: 580;
+}
+
+.weather-dashboard--v2 .risk-banner__main > span:last-child {
+  color: #91a5b4;
+}
+
+/* Alert rows keep semantic warning color but lose decorative card weight. */
+.weather-dashboard--v2 .alert-panel--v2 .alert-card {
+  border-color: var(--windy-divider);
+  transition: background-color 140ms ease;
+}
+
+.weather-dashboard--v2 .alert-panel--v2 .alert-card:hover {
+  background: rgba(43, 112, 160, 0.055);
+}
+
+.weather-dashboard--v2 .alert-panel--v2 .alert-card__district,
+.weather-dashboard--v2 .alert-panel--v2 .alert-card__time,
+.weather-dashboard--v2 .impact-panel__empty {
+  color: var(--windy-text-muted);
+}
+
+/* Floating map controls: compact, translucent and visually attached to map. */
+.weather-dashboard--v2 .weather-map-panel__controls {
+  gap: 5px;
+}
+
+.weather-dashboard--v2 .weather-map-panel__controls button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(143, 197, 234, 0.18);
+  border-radius: 7px;
+  background: var(--windy-control-bg);
+  box-shadow: 0 8px 22px rgba(0, 4, 10, 0.19);
+  color: #d8e8f2;
+  backdrop-filter: blur(10px);
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.weather-dashboard--v2 .weather-map-panel__controls button:hover,
+.weather-dashboard--v2 .weather-map-panel__controls button.active {
+  border-color: rgba(89, 177, 240, 0.36);
+  background: var(--windy-control-bg-hover);
+  color: #ffffff;
+}
+
+.weather-dashboard--v2 .weather-map-panel__controls button:active {
+  transform: translateY(1px);
+}
+
+.weather-dashboard--v2 .weather-dashboard__center .weather-layer-popover__trigger {
+  width: 38px;
+  height: 48px;
+  border-color: rgba(143, 197, 234, 0.18);
+  border-radius: 7px;
+  background: var(--windy-control-bg);
+  box-shadow: 0 8px 22px rgba(0, 4, 10, 0.19);
+  color: #d8e8f2;
+  backdrop-filter: blur(10px);
+}
+
+.weather-dashboard--v2 .weather-dashboard__center .weather-layer-popover__trigger:hover {
+  border-color: rgba(89, 177, 240, 0.36);
+  background: var(--windy-control-bg-hover);
+  color: #ffffff;
+}
+
+.weather-dashboard--v2 .weather-dashboard__center .weather-layer-popover__trigger[aria-expanded="true"] {
+  border-color: rgba(67, 172, 247, 0.52);
+  background: rgba(18, 72, 108, 0.92);
+  color: #ffffff;
+}
+
+.weather-dashboard--v2 .weather-dashboard__center .weather-layer-popover__panel {
+  border-color: rgba(128, 190, 232, 0.20);
+  background: linear-gradient(180deg, rgba(6, 25, 41, 0.96), rgba(4, 19, 32, 0.96));
+  box-shadow: var(--windy-floating-shadow);
+  backdrop-filter: blur(16px) saturate(112%);
+}
+
+.weather-dashboard--v2 .weather-map-panel__layer-menu {
+  border-color: rgba(128, 190, 232, 0.20);
+  background: rgba(5, 22, 36, 0.95);
+  box-shadow: var(--windy-floating-shadow);
+  backdrop-filter: blur(14px);
+}
+
+/* Radar legend becomes a subtle in-map instrument. */
+.weather-dashboard--v2 .weather-dashboard__radar-legend {
+  padding: 7px 10px 8px;
+  border: 1px solid rgba(143, 197, 234, 0.13);
+  border-radius: 7px;
+  background: rgba(3, 17, 29, 0.68);
+  box-shadow: 0 8px 22px rgba(0, 4, 10, 0.14);
+  backdrop-filter: blur(9px);
+}
+
+.weather-dashboard--v2 .weather-legend__unit {
+  color: #8fa7b7;
+}
+
+.weather-dashboard--v2 .weather-legend__labels {
+  color: #9fb2c0;
+}
+
+.weather-dashboard--v2 .weather-legend__gradient {
+  height: 5px;
+  opacity: 0.90;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Trend area: thinner dividers and quieter labels keep the map dominant. */
+.weather-dashboard--v2 .trend-panel--v2 {
+  background: linear-gradient(180deg, rgba(7, 25, 40, 0.72), rgba(5, 20, 34, 0.70));
+}
+
+.weather-dashboard--v2 .trend-panel__chart-title {
+  letter-spacing: 0.01em;
+}
+
+.weather-dashboard--v2 .trend-panel__chart-title small {
+  color: #627b8d;
+}
+
+/* Timeline: one continuous instrument strip. */
+.weather-dashboard--v2 .timeline-panel {
+  border-color: rgba(128, 180, 218, 0.12);
+  background: linear-gradient(180deg, rgba(5, 22, 36, 0.84), rgba(4, 18, 31, 0.82));
+  box-shadow: 0 10px 24px rgba(0, 5, 12, 0.13);
+}
+
+.weather-dashboard--v2 .timeline-panel__play {
+  border: 1px solid rgba(143, 197, 234, 0.17) !important;
+  background: rgba(9, 31, 49, 0.9) !important;
+  box-shadow: none !important;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.weather-dashboard--v2 .timeline-panel__play:hover {
+  border-color: rgba(76, 175, 244, 0.40) !important;
+  background: rgba(17, 57, 87, 0.94) !important;
+}
+
+.weather-dashboard--v2 .timeline-panel__step,
+.weather-dashboard--v2 .timeline-panel__quick button {
+  border-color: rgba(128, 180, 218, 0.12);
+  background: rgba(7, 27, 43, 0.58);
+  color: #94a9b8;
+  box-shadow: none;
+}
+
+.weather-dashboard--v2 .timeline-panel__step:hover,
+.weather-dashboard--v2 .timeline-panel__quick button:hover {
+  border-color: rgba(76, 175, 244, 0.28);
+  background: rgba(15, 50, 75, 0.70);
+  color: #dbe9f2;
+}
+
+/* Global interaction polish for keyboard users. */
+.weather-dashboard--v2 button:focus-visible,
+.weather-dashboard--v2 input:focus-visible {
+  outline: 2px solid rgba(82, 176, 244, 0.72);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weather-dashboard--v2 *,
+  .weather-dashboard--v2 *::before,
+  .weather-dashboard--v2 *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
