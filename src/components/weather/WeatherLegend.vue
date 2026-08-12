@@ -1,6 +1,6 @@
 <template>
   <section class="weather-legend weather-legend--map" aria-label="雷达强度图例">
-    <span class="weather-legend__unit">dBZ</span>
+    <span class="weather-legend__unit">DEMO dBZ</span>
     <div class="weather-legend__scale">
       <div class="weather-legend__labels">
         <span v-for="item in labels" :key="item">{{ item }}</span>
