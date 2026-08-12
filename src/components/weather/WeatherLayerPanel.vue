@@ -46,9 +46,10 @@
         :class="{ 'is-active': layerStore[layer.enabledKey] }"
       >
         <label class="layer-panel__toggle">
-          <input v-model="layerStore[layer.enabledKey]" type="checkbox" />
+          <input v-model="layerStore[layer.enabledKey]" type="checkbox" :aria-label="layer.name" />
           <i class="layer-panel__swatch" :class="`layer-panel__swatch--${layer.tone}`" aria-hidden="true"></i>
           <span>{{ layer.name }}</span>
+          <small v-if="layer.enabledKey === 'windEnabled'" class="layer-panel__source" aria-hidden="true">{{ weatherStore.windDataStatusLabel }}</small>
         </label>
         <div class="layer-panel__opacity" :class="{ 'is-disabled': !layerStore[layer.enabledKey] }">
           <span>透明度</span>
@@ -69,8 +70,10 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useLayerStore } from '@/stores/layerStore';
+import { useWeatherStore } from '@/stores/weather';
 
 const layerStore = useLayerStore();
+const weatherStore = useWeatherStore();
 const optionalLayers = [
   { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind' },
   { name: '温度热力', enabledKey: 'temperatureEnabled', opacityKey: 'temperatureOpacity', tone: 'temperature' },
@@ -166,6 +169,18 @@ const activeLayerCount = computed(() => [
 .layer-panel__toggle > span {
   flex: 1;
   min-width: 0;
+}
+
+.layer-panel__source {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border: 1px solid rgba(86, 180, 239, 0.12);
+  border-radius: 999px;
+  color: #7fa9c2;
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .layer-panel__swatch {

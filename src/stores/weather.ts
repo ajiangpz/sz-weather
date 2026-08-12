@@ -3,6 +3,10 @@ import { useMapStore } from './mapStore';
 import { useTimelineStore } from './timelineStore';
 import { mockAlerts } from '@/mock/alerts';
 import { fetchShenzhenForecast, type ForecastFrame } from '@/services/openMeteo';
+import {
+  fetchShenzhenWindGrid,
+  type WindGridFrame,
+} from '@/services/openMeteoWindGrid';
 
 import {
   mockRadarBandsGeoJson,
@@ -17,6 +21,7 @@ import {
 } from '@/mock/weather';
 
 type WeatherDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
+type WindDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
 
 const createMockCurrentWeather = (frameIndex: number) => {
   const offset = frameIndex - 12;
@@ -45,6 +50,10 @@ export const useWeatherStore = defineStore('weather', {
     dataSource: '演示数据',
     lastError: null as string | null,
     forecastFrames: [] as ForecastFrame[],
+    windDataStatus: 'mock' as WindDataStatus,
+    windDataSource: '演示风场',
+    windLastError: null as string | null,
+    windForecastFrames: [] as WindGridFrame[],
     radarGeoJson: mockRadarGeoJson,
     radarBandsGeoJson: mockRadarBandsGeoJson,
     radarFragmentsGeoJson: mockRadarFragmentsGeoJson,
@@ -63,6 +72,11 @@ export const useWeatherStore = defineStore('weather', {
       if (state.dataStatus === 'fallback') return state.forecastFrames.length > 0 ? '预报缓存' : '演示数据';
       return '演示数据';
     },
+    windDataStatusLabel(state) {
+      if (state.windDataStatus === 'live') return '预报风场';
+      if (state.windDataStatus === 'loading') return '风场更新';
+      return 'DEMO 风场';
+    },
     currentWeather(state) {
       const frameIndex = useTimelineStore().currentFrameIndex;
       const frame = state.forecastFrames[frameIndex];
@@ -79,6 +93,14 @@ export const useWeatherStore = defineStore('weather', {
         condition: frame.condition,
       };
     },
+    currentWindGridFrame(state): WindGridFrame | null {
+      const frameIndex = useTimelineStore().currentFrameIndex;
+      const forecastTimestamp = state.forecastFrames[frameIndex]?.timestamp;
+      if (forecastTimestamp) {
+        return state.windForecastFrames.find((frame) => frame.timestamp === forecastTimestamp) ?? null;
+      }
+      return state.windForecastFrames[frameIndex] ?? null;
+    },
   },
   actions: {
     syncMapPopupToFrame() {
@@ -93,20 +115,58 @@ export const useWeatherStore = defineStore('weather', {
     async loadLiveForecast() {
       if (this.dataStatus === 'loading') return;
       this.dataStatus = 'loading';
+      this.windDataStatus = 'loading';
       this.lastError = null;
+      this.windLastError = null;
 
-      try {
-        const snapshot = await fetchShenzhenForecast();
+      const [forecastResult, windResult] = await Promise.allSettled([
+        fetchShenzhenForecast(),
+        fetchShenzhenWindGrid(),
+      ]);
+
+      if (forecastResult.status === 'fulfilled') {
+        const snapshot = forecastResult.value;
         this.forecastFrames = snapshot.frames;
         this.dashboardTrends = snapshot.dashboardTrends;
         this.updatedAt = snapshot.fetchedAt;
         this.dataStatus = 'live';
         this.dataSource = snapshot.source;
         useTimelineStore().setFrameTimes(snapshot.frames.map((frame) => frame.time), snapshot.currentIndex);
-      } catch (error) {
+      } else {
         this.dataStatus = 'fallback';
-        this.lastError = error instanceof Error ? error.message : 'Unknown live forecast error';
+        this.lastError = forecastResult.reason instanceof Error
+          ? forecastResult.reason.message
+          : 'Unknown live forecast error';
         this.dataSource = this.forecastFrames.length > 0 ? '缓存预报' : '演示数据';
+      }
+
+      if (forecastResult.status === 'fulfilled' && windResult.status === 'fulfilled') {
+        const forecastFrames = forecastResult.value.frames;
+        const windFrames = windResult.value.frames;
+        const timelinesAlign = forecastFrames.length === windFrames.length
+          && forecastFrames.every((frame, index) => frame.timestamp === windFrames[index]?.timestamp);
+
+        if (timelinesAlign) {
+          this.windForecastFrames = windFrames;
+          this.windDataStatus = 'live';
+          this.windDataSource = windResult.value.source;
+        } else {
+          this.windForecastFrames = [];
+          this.windDataStatus = 'fallback';
+          this.windDataSource = '演示风场';
+          this.windLastError = 'Forecast and wind-grid timelines are not aligned';
+        }
+      } else {
+        this.windForecastFrames = [];
+        this.windDataStatus = 'fallback';
+        this.windDataSource = '演示风场';
+        if (windResult.status === 'rejected') {
+          this.windLastError = windResult.reason instanceof Error
+            ? windResult.reason.message
+            : 'Unknown live wind-grid error';
+        } else if (forecastResult.status === 'rejected') {
+          this.windLastError = 'City forecast unavailable; keep deterministic wind fallback';
+        }
       }
 
       this.syncMapPopupToFrame();
