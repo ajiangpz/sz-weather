@@ -133,4 +133,44 @@ test.describe('RainScope dashboard smoke tests', () => {
       }
     }
   });
+
+  test('shows the existing point-weather data as a compact map picker', async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 1536, height: 1024 });
+    await page.goto('/');
+    await page.waitForTimeout(900);
+
+    const canvas = page.locator('.weather-map-panel__canvas');
+    const canvasBox = await canvas.boundingBox();
+    expect(canvasBox).not.toBeNull();
+
+    await page.mouse.click(
+      canvasBox.x + canvasBox.width * 0.54,
+      canvasBox.y + canvasBox.height * 0.55,
+    );
+
+    const popup = page.locator('.weather-map-panel__popup');
+    await expect(popup).toBeVisible();
+    await expect(popup.getByText('降雨强度：', { exact: true })).toBeVisible();
+    await expect(popup.getByText('温度：', { exact: true })).toBeVisible();
+    await expect(popup.getByText('风速：', { exact: true })).toBeVisible();
+
+    const [popupBox, mapShellBox] = await Promise.all([
+      popup.boundingBox(),
+      page.locator('.weather-dashboard__map-shell').boundingBox(),
+    ]);
+    expect(popupBox).not.toBeNull();
+    expect(mapShellBox).not.toBeNull();
+    expect(popupBox.x).toBeGreaterThanOrEqual(mapShellBox.x);
+    expect(popupBox.y).toBeGreaterThanOrEqual(mapShellBox.y);
+    expect(popupBox.x + popupBox.width).toBeLessThanOrEqual(mapShellBox.x + mapShellBox.width + 1);
+    expect(popupBox.y + popupBox.height).toBeLessThanOrEqual(mapShellBox.y + mapShellBox.height + 1);
+
+    await page.screenshot({
+      path: testInfo.outputPath('visual-qa-map-picker-1536x1024.png'),
+      fullPage: true,
+    });
+
+    await popup.getByRole('button', { name: '关闭' }).click();
+    await expect(popup).toBeHidden();
+  });
 });
