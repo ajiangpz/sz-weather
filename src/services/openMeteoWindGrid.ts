@@ -55,8 +55,8 @@ export const createWindGridPoints = (): WindGridPoint[] => Array.from(
   (_, index) => {
     const row = Math.floor(index / WIND_GRID_COLUMNS);
     const column = index % WIND_GRID_COLUMNS;
-    const longitudeRatio = WIND_GRID_COLUMNS === 1 ? 0.5 : column / (WIND_GRID_COLUMNS - 1);
-    const latitudeRatio = WIND_GRID_ROWS === 1 ? 0.5 : row / (WIND_GRID_ROWS - 1);
+    const longitudeRatio = column / (WIND_GRID_COLUMNS - 1);
+    const latitudeRatio = row / (WIND_GRID_ROWS - 1);
     return {
       longitude: round(WIND_GRID_BOUNDS.west + (WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west) * longitudeRatio),
       latitude: round(WIND_GRID_BOUNDS.south + (WIND_GRID_BOUNDS.north - WIND_GRID_BOUNDS.south) * latitudeRatio),
