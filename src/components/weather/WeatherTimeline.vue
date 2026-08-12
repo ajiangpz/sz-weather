@@ -21,7 +21,7 @@
         <span class="timeline-panel__past"></span>
         <span class="timeline-panel__forecast-zone"></span>
         <span class="timeline-panel__progress" :class="`timeline-panel__progress--${store.currentFramePhase}`" :style="{ width: `${progress}%` }"></span>
-        <span class="timeline-panel__forecast" :style="{ left: '50%' }"></span>
+        <span class="timeline-panel__forecast" :style="{ left: `${anchorProgress}%` }"></span>
         <span class="timeline-panel__marker" :style="{ left: `${progress}%` }">
           <i></i>
           <span class="timeline-panel__marker-phase">{{ phaseLabel }}</span>
@@ -29,15 +29,15 @@
         </span>
       </div>
       <div class="timeline-panel__ticks">
-        <button v-for="(time, index) in times" :key="time" type="button" :class="{ active: index === store.currentFrameIndex, past: index < 12, current: index === 12, forecast: index > 12 }" :aria-label="`${phaseName(index)} ${time}`" @click="store.setFrame(index)">
+        <button v-for="(time, index) in times" :key="`${time}-${index}`" type="button" :class="{ active: index === store.currentFrameIndex, past: index < store.currentFrameAnchorIndex, current: index === store.currentFrameAnchorIndex, forecast: index > store.currentFrameAnchorIndex }" :aria-label="`${phaseName(index)} ${time}`" @click="store.setFrame(index)">
           {{ time }}
         </button>
       </div>
     </div>
 
     <div class="timeline-panel__quick">
-      <button type="button" @click="store.stepFrame(-1)"><UiIcon name="chevron-left" />近小时</button>
-      <button type="button" @click="store.stepFrame(1)">逐10分钟<UiIcon name="chevron-right" /></button>
+      <button type="button" @click="store.stepFrame(-1)"><UiIcon name="chevron-left" />近时次</button>
+      <button type="button" @click="store.stepFrame(1)">逐15分钟<UiIcon name="chevron-right" /></button>
     </div>
   </section>
 </template>
@@ -48,13 +48,15 @@ import { useTimelineStore } from '@/stores/timelineStore';
 import UiIcon from './UiIcon.vue';
 
 const store = useTimelineStore();
-const times = Array.from({ length: 25 }, (_, index) => {
+const fallbackTimes = Array.from({ length: 25 }, (_, index) => {
   const totalMinutes = 12 * 60 + 30 + index * 10;
   return `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`;
 });
-const progress = computed(() => (store.currentFrameIndex / (times.length - 1)) * 100);
+const times = computed(() => store.frameTimes.length > 0 ? store.frameTimes : fallbackTimes);
+const progress = computed(() => (store.currentFrameIndex / Math.max(1, times.value.length - 1)) * 100);
+const anchorProgress = computed(() => (store.currentFrameAnchorIndex / Math.max(1, times.value.length - 1)) * 100);
 const phaseLabel = computed(() => ({ past: '过去', current: '当前', forecast: '预报' })[store.currentFramePhase]);
-const phaseName = (index: number) => index < 12 ? '过去时刻' : index > 12 ? '预报时刻' : '当前时刻';
+const phaseName = (index: number) => index < store.currentFrameAnchorIndex ? '过去时刻' : index > store.currentFrameAnchorIndex ? '预报时刻' : '当前时刻';
 let playbackTimer: ReturnType<typeof setInterval> | null = null;
 
 const stopTimer = () => {
