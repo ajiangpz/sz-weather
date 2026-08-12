@@ -2,7 +2,7 @@
   <section class="dashboard-panel risk-banner" aria-label="强降雨风险概览">
     <div class="risk-banner__main">
       <span class="risk-banner__icon" aria-hidden="true">!</span>
-      <strong>{{ title }}</strong>
+      <strong>DEMO · {{ title }}</strong>
       <span>{{ affectedCount }} 个区域受影响 · {{ activeAlerts.length }} 条预警生效</span>
     </div>
     <button type="button" :disabled="activeAlerts.length === 0" @click="focusPrimaryAlert">
