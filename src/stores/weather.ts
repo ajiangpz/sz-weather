@@ -7,6 +7,12 @@ import {
   fetchShenzhenWindGrid,
   type WindGridFrame,
 } from '@/services/openMeteoWindGrid';
+import {
+  buildRainViewerTileTemplate,
+  fetchRainViewerRadar,
+  findNearestRainViewerFrame,
+  type RainViewerRadarFrame,
+} from '@/services/rainViewer';
 
 import {
   mockRadarBandsGeoJson,
@@ -22,6 +28,7 @@ import {
 
 type WeatherDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
 type WindDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
+type RadarDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
 
 const createMockCurrentWeather = (frameIndex: number) => {
   const offset = frameIndex - 12;
@@ -54,6 +61,11 @@ export const useWeatherStore = defineStore('weather', {
     windDataSource: '演示风场',
     windLastError: null as string | null,
     windForecastFrames: [] as WindGridFrame[],
+    radarDataStatus: 'mock' as RadarDataStatus,
+    radarDataSource: '演示雷达',
+    radarLastError: null as string | null,
+    rainViewerHost: '',
+    rainViewerFrames: [] as RainViewerRadarFrame[],
     radarGeoJson: mockRadarGeoJson,
     radarBandsGeoJson: mockRadarBandsGeoJson,
     radarFragmentsGeoJson: mockRadarFragmentsGeoJson,
@@ -76,6 +88,16 @@ export const useWeatherStore = defineStore('weather', {
       if (state.windDataStatus === 'live') return '预报风场';
       if (state.windDataStatus === 'loading') return '风场更新';
       return 'DEMO 风场';
+    },
+    radarDataStatusLabel(state) {
+      if (state.radarDataStatus === 'loading') return '雷达更新';
+      if (state.radarDataStatus !== 'live') return 'DEMO 雷达';
+      const frameIndex = useTimelineStore().currentFrameIndex;
+      const forecastTimestamp = state.forecastFrames[frameIndex]?.timestamp;
+      if (!forecastTimestamp) return 'DEMO 雷达';
+      return findNearestRainViewerFrame(state.rainViewerFrames, forecastTimestamp)
+        ? '雷达 LIVE'
+        : 'DEMO 雷达';
     },
     currentWeather(state) {
       const frameIndex = useTimelineStore().currentFrameIndex;
@@ -101,6 +123,21 @@ export const useWeatherStore = defineStore('weather', {
       }
       return state.windForecastFrames[frameIndex] ?? null;
     },
+    currentRainViewerFrame(state): RainViewerRadarFrame | null {
+      if (state.radarDataStatus !== 'live') return null;
+      const frameIndex = useTimelineStore().currentFrameIndex;
+      const forecastTimestamp = state.forecastFrames[frameIndex]?.timestamp;
+      if (!forecastTimestamp) return null;
+      return findNearestRainViewerFrame(state.rainViewerFrames, forecastTimestamp);
+    },
+    currentRainViewerTileTemplate(state): string | null {
+      if (state.radarDataStatus !== 'live' || !state.rainViewerHost) return null;
+      const frameIndex = useTimelineStore().currentFrameIndex;
+      const forecastTimestamp = state.forecastFrames[frameIndex]?.timestamp;
+      if (!forecastTimestamp) return null;
+      const frame = findNearestRainViewerFrame(state.rainViewerFrames, forecastTimestamp);
+      return frame ? buildRainViewerTileTemplate(state.rainViewerHost, frame) : null;
+    },
   },
   actions: {
     syncMapPopupToFrame() {
@@ -116,12 +153,15 @@ export const useWeatherStore = defineStore('weather', {
       if (this.dataStatus === 'loading') return;
       this.dataStatus = 'loading';
       this.windDataStatus = 'loading';
+      this.radarDataStatus = 'loading';
       this.lastError = null;
       this.windLastError = null;
+      this.radarLastError = null;
 
-      const [forecastResult, windResult] = await Promise.allSettled([
+      const [forecastResult, windResult, radarResult] = await Promise.allSettled([
         fetchShenzhenForecast(),
         fetchShenzhenWindGrid(),
+        fetchRainViewerRadar(),
       ]);
 
       if (forecastResult.status === 'fulfilled') {
@@ -166,6 +206,25 @@ export const useWeatherStore = defineStore('weather', {
             : 'Unknown live wind-grid error';
         } else if (forecastResult.status === 'rejected') {
           this.windLastError = 'City forecast unavailable; keep deterministic wind fallback';
+        }
+      }
+
+      if (forecastResult.status === 'fulfilled' && radarResult.status === 'fulfilled') {
+        this.rainViewerHost = radarResult.value.host;
+        this.rainViewerFrames = radarResult.value.frames;
+        this.radarDataStatus = 'live';
+        this.radarDataSource = radarResult.value.source;
+      } else {
+        this.rainViewerHost = '';
+        this.rainViewerFrames = [];
+        this.radarDataStatus = 'fallback';
+        this.radarDataSource = '演示雷达';
+        if (radarResult.status === 'rejected') {
+          this.radarLastError = radarResult.reason instanceof Error
+            ? radarResult.reason.message
+            : 'Unknown live radar error';
+        } else if (forecastResult.status === 'rejected') {
+          this.radarLastError = 'City forecast unavailable; keep deterministic radar fallback';
         }
       }
 
