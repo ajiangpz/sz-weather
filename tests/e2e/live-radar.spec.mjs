@@ -83,7 +83,7 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('雷达 LIVE', { exact: true })).toBeVisible();
-  const radarToggle = layerPanel.getByRole('checkbox', { name: '降雨雷达' });
+  const radarToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   await expect(radarToggle).toBeChecked();
   await expect(windToggle).toBeChecked();
