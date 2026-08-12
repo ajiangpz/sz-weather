@@ -28,10 +28,10 @@ describe('wind deck layers', () => {
     expect(getWindParticleRate(6)).toBeGreaterThan(getWindParticleRate(2));
   });
 
-  it('uses deterministic non-grid particle selection at the denser target', () => {
+  it('uses deterministic non-grid particle selection at the budgeted target', () => {
     const selected = Array.from({ length: 300 }, (_, index) => index).filter(shouldRenderWindParticle);
-    expect(selected.length).toBeGreaterThanOrEqual(170);
-    expect(selected.length).toBeLessThanOrEqual(190);
+    expect(selected.length).toBeGreaterThanOrEqual(160);
+    expect(selected.length).toBeLessThanOrEqual(175);
     expect(selected.slice(0, 6)).not.toEqual([0, 3, 6, 9, 12, 15]);
   });
 
@@ -41,14 +41,14 @@ describe('wind deck layers', () => {
     expect(getWindLifecycleAlpha(0.99)).toBeLessThan(0.2);
   });
 
-  it('creates longer multi-segment trails with a brighter visual head', () => {
+  it('creates modestly longer trails without increasing segment count per particle', () => {
     const streams = Array.from({ length: 12 }, (_, index) => createStream(`wind-${index}`, 3 + index * 0.2, index * 0.001));
     const particles = createWindParticleStreaks(streams, 0.6);
     const segments = createWindParticleSegments(particles);
 
     expect(particles).toHaveLength(6);
     particles.forEach((particle) => {
-      expect(particle.path).toHaveLength(9);
+      expect(particle.path).toHaveLength(8);
       expect(particle.headPath).toEqual(particle.path.slice(-2));
 
       const source = streams.find((stream) => stream.id === particle.id);
@@ -57,7 +57,7 @@ describe('wind deck layers', () => {
       expect(particle.path.at(-1)).not.toEqual(source?.path.at(-1));
     });
 
-    expect(segments).toHaveLength(particles.length * 8);
+    expect(segments).toHaveLength(particles.length * 7);
     const firstParticleSegments = segments.filter((segment) => segment.id.startsWith(`${particles[0].id}-segment-`));
     expect(firstParticleSegments.at(-1)?.alpha).toBeGreaterThan(firstParticleSegments[0].alpha);
     expect(firstParticleSegments.at(-1)?.widthScale).toBeGreaterThan(firstParticleSegments[0].widthScale);
