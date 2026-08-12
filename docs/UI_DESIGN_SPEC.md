@@ -1,109 +1,146 @@
+# UI Design Spec — Dashboard V2
 
-# UI Design Spec
+## 1. Authority
 
-## 1. Target Page
+This document describes the current RainScope Dashboard V2 UI.
 
-Build a single-page weather visualization dashboard:
+`docs/DASHBOARD_LAYOUT_V2_SPEC.md` is the authoritative layout acceptance document. If an older document or screenshot conflicts with Dashboard V2, the V2 specification wins.
 
-```txt
-RainScope 深圳天气可视化大屏
+`docs/image.png` is a **legacy V1 reference** and must not be used to require the old permanent left layer/legend stack, old right metric/distribution stack, or old trend placement.
+
+## 2. Product goal
+
+RainScope is a professional Shenzhen weather-operations dashboard. The interface should be compact, restrained and information-led rather than decorative.
+
+The radar map is the absolute visual center. Side panels support the map and must not compete with it.
+
+Primary desktop validation sizes:
+
+- 1920×1080
+- 1536×1024
+- 1440×900
+
+## 3. Dashboard V2 layout
+
+```text
+┌────────────────────────────────────────────────────────────────────────────┐
+│ Header                                                                     │
+├──────────────┬──────────────────────────────────────────┬──────────────────┤
+│ Rain summary │ Strong-rain risk banner                  │ Weather alerts   │
+│ +            ├──────────────────────────────────────────┤                  │
+│ Station TOP3 │                  Radar map               ├──────────────────┤
+│              │                                          │ Impact areas     │
+├──────────────┴──────────────────────────────────────────┴──────────────────┤
+│ Trend · 全市 — Rainfall | Temperature/Humidity | Wind                     │
+├────────────────────────────────────────────────────────────────────────────┤
+│ Timeline                                                                   │
+└────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The dashboard should focus on Shenzhen weather visualization.
-
----
-
-## 2. Main Layout
-
-Use a 1920×1080 dashboard layout as the primary design target.
-Use `docs/image.png` as the primary visual reference for spacing, density, hierarchy, and panel placement.
-The reference image is 1536×1024. Treat it as the desktop effect baseline for proportions and density, not as a pixel-perfect template. The same full dashboard composition must remain visible at 1536×1024 and 1440px width.
-
-```txt
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Header                                                                       │
-├───────────────┬──────────────────────────────────────────────┬───────────────┤
-│ Left Panel     │ Main Map                                      │ Right Panel    │
-│ Layer Control  │ Rainfall Radar Layer                         │ Metrics        │
-│ Legend         │ Stations                                     │ Alerts         │
-│ Station Rank   │ Point Popup                                  │ Distribution   │
-├───────────────┴──────────────────────────────────────────────┴───────────────┤
-│ Trend Charts                                                                 │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Timeline                                                                      │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-Recommended grid:
+Desktop grid intent:
 
 ```scss
-.weather-dashboard__body {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 390px;
-  grid-template-rows: minmax(0, 1fr) 260px 96px;
-  gap: 16px;
-}
+grid-template-columns:
+  clamp(270px, 19vw, 310px)
+  minmax(0, 1fr)
+  clamp(300px, 20vw, 340px);
+
+grid-template-areas:
+  "left center right"
+  "trend trend trend"
+  "timeline timeline timeline";
 ```
 
-Header height:
-```
-72px
-```
+The exact compact values may change at 1440–1600px, but the middle column must remain wider than either side column.
 
-Page padding:
-```
-16px
-```
+## 4. Header
 
-Reference image interpretation:
+Header stays single-line on supported desktop widths.
 
-- Header, main three-column dashboard, trend charts, and bottom timeline are all visible in one viewport.
-- The map occupies the dominant center area and visually outweighs every panel.
-- The left column is compact and contains three stacked panels.
-- The right column is compact and contains metrics, two alert cards, and rainfall distribution.
-- The center trend panel shows three chart groups in a single row.
-- The bottom timeline spans the full width and keeps the current marker visually prominent.
-- Use the reference for relative density and hierarchy; do not copy every pixel mechanically.
+Left group:
 
-## 3. Header
+- RainScope logo and name
+- DEMO tag
+- 深圳市
+- current weather + temperature
+- humidity
+- wind speed
 
-Header should include:
+Right group:
 
-- Logo: blue rainfall/radar mark
-- Project name: `RainScope`
-- Subtitle: `深圳天气可视化大屏`
-- City selector: `深圳市`
-- Current weather: `中雨 29℃`
-- Humidity: `82%`
-- Wind speed: `5.2m/s`
-- Pressure: `1005hPa`
-- Update time: `2026-07-09 14:30:00`
-- Refresh button
-- Theme button
+- green data-health indicator
+- current update time
+- refresh icon
+- menu icon
 
-Header layout:
+Rules:
 
-- Brand block on the left.
-- City selector near the brand block.
-- Current condition centered and visually prominent.
-- Humidity, wind speed, and pressure shown as compact metric chips.
-- Update time and helper text on the right.
-- Refresh and dark-mode controls at the far right.
-- Header should be dense and single-line at desktop sizes.
+- `深圳市` must never wrap on desktop;
+- use weak vertical separators between information groups;
+- do not reintroduce pressure or duplicated weather metrics solely to fill space;
+- icon actions remain visually secondary to weather status.
 
-## 4. Left Panel
+## 5. Left auxiliary column
 
-Left panel includes:
+The left column contains only high-value rainfall information.
 
-1. WeatherLayerPanel
-2. WeatherLegend
-3. WeatherStationRank
+### Rain summary
 
-The left column should match the reference image density: stacked translucent panels with compact section titles and no marketing copy.
+One shared panel with three horizontal metrics:
 
-### Layer Control
+- 1h rainfall
+- 24h rainfall
+- maximum rain intensity
 
-Layers:
+Numbers carry the highest visual weight. Units and labels are secondary. Do not split the three values into nested cards.
+
+### Station TOP3
+
+Show the three stations with the highest current 24h rainfall from the existing station data.
+
+Each row contains:
+
+- station name;
+- rainfall value;
+- thin relative progress indicator.
+
+Station names must remain horizontally readable. Clicking a station keeps the existing map-selection behavior.
+
+## 6. Central map area
+
+The center contains:
+
+1. compact strong-rain risk banner;
+2. existing MapLibre/deck.gl map;
+3. radar dBZ legend inside the map;
+4. map interaction controls;
+5. floating full layer controls.
+
+### Risk banner
+
+Derive affected area and active-alert counts from current alert data. Do not invent data just to match a mockup.
+
+### Map implementation
+
+Keep the current MapLibre GL + deck.gl architecture and behavior.
+
+Do not change as part of layout work:
+
+- radar algorithm;
+- wind-field algorithm;
+- MapLibre initialization semantics;
+- timeline-to-radar frame behavior;
+- store data meaning.
+
+The basemap remains subdued and dark. Radar, stations and alert information must remain visually dominant.
+
+### Radar legend
+
+Display a compact horizontal dBZ scale inside the lower part of the map. It should not be a large independent card and must not obscure critical district labels.
+
+### Layer control
+
+The full existing controls must remain reachable from a floating map-layer entry:
 
 - 降雨雷达
 - 预警区域
@@ -112,237 +149,79 @@ Layers:
 - 温度热力
 - 湿度热力
 
-For MVP:
+Opacity controls remain linked to the enabled state of their respective layers. When a layer is disabled, its opacity control remains disabled.
 
-- 降雨雷达: enabled by default
-- 预警区域: enabled by default
-- 监测站点: enabled by default
-- 风场流线: visible as a disabled or optional control
-- 温度热力: visible as a disabled or optional control
-- 湿度热力: visible as a disabled or optional control
+## 7. Right risk column
 
-Layer controls should include an opacity slider for every enabled visual layer.
-The default opacity values should visually match the reference:
+The right column contains two panels only.
 
-- 降雨雷达: 70%
-- 预警区域: 60%
-- 风场流线: 50%
-- 温度热力: 60%
-- 湿度热力: 60%
+### Weather Alert
 
-### Rainfall Legend
+Show active alert count plus compact alert rows. Each row retains:
 
-Show rainfall levels:
+- alert icon;
+- title;
+- active/resolved state;
+- affected district summary;
+- issue time;
+- detail action.
 
-- 无雨
-- 小雨
-- 中雨
-- 大雨
-- 暴雨
-- 大暴雨
-- 特大暴雨
+Alert detail and map-focus behavior remain available.
 
-### Station Rank
+### Impact Area
 
-Show 24h rainfall ranking:
+Derive unique impact areas from currently active alert data. Display up to the most relevant four rows in the dashboard summary.
 
-- 大梧桐
-- 罗湖
-- 南山
-- 福田
-- 宝安
+Use small semantic risk colors rather than large colored backgrounds.
 
-Clicking a station should highlight the station on the map.
+## 8. Trend · 全市
 
-## 5. Main Map
+Trend is one full-width panel, not a center-column-only card.
 
-The map should be the visual center.
-In the reference image, the map is the largest single area and should occupy most of the center column above the trend chart.
+It contains three chart regions in one row:
 
-MVP decision:
+1. rainfall;
+2. temperature / humidity;
+3. wind speed.
 
-The current project already uses MapLibre GL with OSM raster tiles. Keep this implementation for now.
-On the `deckGL` branch, the rainfall radar overlay should be implemented with deck.gl on top of the existing MapLibre map.
+Use subtle vertical dividers. Do not create three nested dashboard cards.
 
-The OSM basemap must be visually restyled through container styling, layer paint settings, overlays, and CSS filters so it reads as a dark professional dashboard map. deck.gl should render the rainfall radar layer above the subdued basemap.
+Existing chart data and current-time markers remain authoritative.
 
-Do not make the product feel like a normal map/weather query app. The rainfall radar layer, station data, alert areas, and timeline state should remain the main visual story.
+## 9. Timeline
 
-The map should show:
+Timeline spans the full dashboard width and preserves the current data model:
 
-- Shenzhen area
-- District names
-- District boundaries
-- Rainfall radar layer
-- Weather stations
-- Alert area
-- Map point popup
-- Zoom controls
-- Current frame time
-- Scale bar
-- Layer shortcut button
-- Locate or target button
-- Clicked-point popup
+- play / pause;
+- frame stepping;
+- playback speed;
+- frame rail;
+- current marker;
+- current/forecast state.
 
-District labels:
+Do not introduce fake 1h/3h/6h behavior until the timeline data model supports those ranges. Visual resemblance must not override truthful interaction semantics.
 
-- 宝安区
-- 南山区
-- 福田区
-- 罗湖区
-- 龙华区
-- 龙岗区
-- 光明区
-- 坪山区
-- 大鹏新区
-- 盐田区
+## 10. Visual style
 
-Clicking the map should show a point weather popup.
+Use `docs/VISUAL_STYLE_GUIDE.md` for tokens and detailed styling. Dashboard V2 additionally requires:
 
-Popup content should follow the reference:
+- restrained borders;
+- minimal glow;
+- limited backdrop blur;
+- no card-inside-card decoration unless needed for interaction;
+- warning/danger colors only for meaningful states;
+- side panels remain visually quieter than the map;
+- dense but readable information spacing.
 
-- Popup title: `点击位置`
-- Longitude
-- Latitude
-- Current rainfall intensity
-- 1-hour rainfall
-- Temperature
-- Humidity
-- Wind speed
-- Wind direction
-- Alert summary when relevant
+## 11. Validation
 
-MapLibre styling requirements:
+Before merge:
 
-- Basemap should be subdued, dark, and cool-toned.
-- Rainfall layer should be more visually prominent than streets or labels.
-- OSM tiles may remain visible, but should not dominate the dashboard.
-- Map controls should match the dashboard style where practical.
-- Rainfall polygons/blobs should use semi-transparent continuous bands, not administrative blocks.
-- Future replacement with a simulated SVG/Canvas Shenzhen map is allowed, but not required for the current milestone.
-
-deck.gl radar overlay requirements:
-
-- Use the MapLibre map as the camera and interaction source.
-- Prefer `MapboxOverlay` from `@deck.gl/mapbox` for integration with MapLibre.
-- Use overlaid rendering for the first milestone; consider interleaved rendering only if layer ordering with vector map labels becomes necessary.
-- Initial radar rendering can use mock GeoJSON/cell data through deck.gl layers such as `GeoJsonLayer`, `PolygonLayer`, `PathLayer`, `ScatterplotLayer`, or `HeatmapLayer`.
-- The radar should visually match the reference image: broad blue/cyan rainfall fields, green/yellow/orange/red high-intensity cores, many small echo fragments, and softened irregular edges.
-- A later refinement may generate a raster radar texture per frame and render it with `BitmapLayer` if smoother radar bands are needed.
-- Radar opacity must be controlled by layer state.
-- Timeline frame changes should update deck.gl layer props rather than rebuilding the whole map.
-- deck.gl picking can be used for radar inspection later, but the MVP point popup may continue to use the MapLibre click coordinate.
-- Do not add WeatherLayers GL for the first pass unless the project starts consuming meteorological raster/tile data instead of mock data.
-
-## 6. Right Panel
-
-Right panel includes:
-
-1. WeatherMetricPanel
-2. WeatherAlertPanel
-3. RainDistributionChart
-
-The right column should be stacked as:
-
-1. 实时指标
-2. 天气预警
-3. 降雨强度分布
-
-### Metrics
-
-Display six metric cards:
-
-- 1小时降雨
-- 24小时降雨
-- 最大雨强
-- 当前温度
-- 相对湿度
-- 风速
-
-Metric cards should use a 2-column grid in the right panel at desktop size.
-Each card should include label, value, unit, and a small weather-related icon or visual mark.
-
-### Alerts
-
-Show two mock alerts:
-
-- 暴雨黄色预警
-- 雷雨大风蓝色预警
-
-Clicking an alert should highlight the related alert area on the map.
-
-Alert cards should include:
-
-- Alert icon
-- Alert title
-- Status badge: `生效中`
-- Publish time
-- Impact area
-- Forecast period
-- `查看详情` action
-
-### Distribution
-
-Use ECharts donut chart to show rainfall level distribution.
-
-## 7. Trend Chart Area
-
-Trend chart area includes:
-
-- Rainfall trend chart
-- Temperature and humidity chart
-- Wind speed chart
-
-Use ECharts.
-
-The charts should use compact dark-dashboard styling.
-The trend panel should match the reference image:
-
-- Title: `趋势分析（未来24小时）`
-- Tab-like controls for 降雨量、温度、湿度、风速
-- Three compact chart regions can be visible together on desktop.
-- Rainfall chart should combine rainfall bars and accumulated rainfall line.
-- Temperature and humidity chart should use two lines.
-- Wind chart should use one line.
-
-## 8. Timeline
-
-Timeline includes:
-
-- Play / pause button
-- Next frame button
-- Speed selector
-- Frame marks
-- Current frame marker
-- Current label
-- Step backward button
-- Step forward button
-
-Time range:
-
-```txt
-Past 2 hours + current + next 2 hours
-```
-
-Frame interval:
-
-```txt
-10 minutes
-```
-
-When the current frame changes:
-
-- Header time updates
-- Map rainfall layer updates
-- Metric cards update
-- Charts highlight current time
-
-Timeline visual requirements:
-
-- Full-width bottom panel.
-- Large play button on the left.
-- Speed selector near the play controls.
-- Horizontal time rail with 10-minute marks.
-- Current time marker uses a bright blue handle and `当前` label.
-- Forecast segment can be visually distinguished from past/current segment.
-- Right-side buttons should include `近小时` and `逐10分钟`.
+- `pnpm verify` passes;
+- `pnpm test:e2e` passes;
+- 1920×1080, 1536×1024 and 1440×900 Chromium screenshots are inspected manually;
+- no horizontal overflow exists at the three desktop widths;
+- Header and city selector remain one line;
+- center map is wider than both side columns;
+- full layer popover remains usable;
+- dynamic wind evidence is inspected in full Chromium QA when available.

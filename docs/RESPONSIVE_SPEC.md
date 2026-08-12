@@ -1,74 +1,152 @@
-# Responsive Spec
+# Responsive Spec — Dashboard V2
 
-## 1. Primary Target
+## 1. Authoritative desktop baseline
 
-Design first for 1920x1080.
+Dashboard V2 replaces the legacy V1 layout guidance. Use `docs/DASHBOARD_LAYOUT_V2_SPEC.md` together with this document.
 
-The dashboard should also work well at 1536x1024 because `docs/image.png` uses that size, and at 1440px width because that is a common development and review size.
+`docs/image.png` is a legacy V1 screenshot and is not authoritative for V2 panel placement.
 
-## 2. Desktop Layout
+Primary desktop validation viewports:
 
-For 1440px and wider:
+- 1920×1080
+- 1536×1024
+- 1440×900
 
-- Header stays at the top.
-- Left panel, map, and right panel are visible in one row.
-- Map is the largest visible region.
-- Trend charts sit below the main row.
-- Timeline sits at the bottom.
-- The desktop layout should resemble `docs/image.png`.
-- At 1536x1024, the dashboard should keep the same full first-screen composition as the reference image: header, side panels, map, trend charts, and timeline all visible.
+## 2. Desktop layout: 1440px and wider
 
-Recommended layout:
+All supported desktop widths keep the same semantic structure:
 
-```scss
-.weather-dashboard__body {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 390px;
-  grid-template-rows: minmax(0, 1fr) 260px 96px;
-  gap: 16px;
-}
+```text
+Header
+
+Left auxiliary | Center risk banner + map | Right risk panels
+
+Full-width Trend
+
+Full-width Timeline
 ```
 
-At 1920x1080, the right metrics panel should support a 2-column metric grid, and the center trend panel should support three chart regions.
+Required behavior:
 
-## 3. 1024px Layout
+- three main columns remain on one row;
+- map is wider than each side column;
+- Trend spans all three columns;
+- Timeline spans all three columns;
+- Header stays one line;
+- 深圳市 stays one line;
+- no horizontal page overflow;
+- core dashboard remains visible in the first screen.
 
-At tablet landscape width:
+Current wide-desktop intent:
 
-- Keep the map near the top.
-- Move left and right panels into a two-column area below or beside the map.
-- Keep charts compact.
-- Avoid horizontal overflow.
-- If there is not enough width for both side columns, stack right-panel content below the map before secondary left-panel content.
+```scss
+grid-template-columns:
+  clamp(270px, 19vw, 310px)
+  minmax(0, 1fr)
+  clamp(300px, 20vw, 340px);
 
-## 4. 768px Layout
+grid-template-rows:
+  minmax(0, 1fr)
+  clamp(185px, 21vh, 205px)
+  72px;
+```
 
-At tablet portrait width:
+For approximately 1321–1600px, compact the side columns, gaps, paddings and secondary typography before changing the three-column structure.
 
-- Use a single-column layout.
-- Show map first after the header.
-- Stack layer controls, metrics, alerts, and charts.
-- Timeline can use fewer visible frame marks.
+## 3. 1920×1080
 
-## 5. 375px Layout
+This is the widest validation target.
 
-At mobile width:
+- allow generous central map width;
+- keep side columns restrained;
+- maintain full single-line Header spacing;
+- Trend remains one row with three chart regions;
+- Timeline remains one row.
 
-- Keep the map usable and visible near the top.
-- Collapse secondary panels into compact sections.
-- Reduce chart height.
-- Simplify timeline controls to play/pause, next, and current label.
-- Avoid dense table-like layouts.
-- Hide nonessential header chips before wrapping the header into multiple crowded rows.
+Do not stretch side panels merely to consume empty space.
 
-## 6. Map Rule
+## 4. 1536×1024
 
-The map remains the primary visual element at every breakpoint.
+This is the primary density target for Dashboard V2.
 
-On small screens, do not bury the map below metrics or charts.
+- preserve the same first-screen composition as 1920;
+- reduce horizontal gaps and side-panel padding where useful;
+- map remains dominant;
+- floating layer popover must fit inside the map/center area without creating page overflow.
 
-## 7. Overflow Rule
+## 5. 1440×900
 
-No dashboard section should require horizontal scrolling at supported breakpoints.
+This is the minimum required desktop V2 width.
 
-Text should wrap before it overflows. Numeric metric values can reduce slightly in size on small screens.
+Must retain:
+
+- Header single-line;
+- three-column main row;
+- full-width one-row Trend;
+- full-width one-row Timeline;
+- readable station names;
+- readable alert titles;
+- usable layer popover;
+- no horizontal scroll.
+
+Allowed compaction:
+
+- smaller side columns;
+- smaller gaps;
+- 1–2px reduction in secondary typography;
+- reduced panel padding;
+- smaller non-primary icon buttons.
+
+Not allowed:
+
+- moving either side column below the map;
+- wrapping Trend into multiple rows;
+- wrapping Timeline controls into multiple rows;
+- hiding core weather status to solve Header width issues.
+
+## 6. Below desktop target
+
+Below the required desktop range, progressive reflow is allowed.
+
+### 1024–1320px
+
+- keep map high in the page;
+- allow a two-column layout;
+- move secondary risk/auxiliary content below the map where necessary;
+- keep Trend and Timeline full-width;
+- avoid horizontal overflow.
+
+### Tablet portrait / mobile
+
+- map stays near the top after Header;
+- stack secondary panels;
+- reduce chart height;
+- simplify Timeline density;
+- avoid dense desktop table-like layouts.
+
+Mobile behavior is not permitted to compromise the required 1440+ desktop composition.
+
+## 7. Map rule
+
+Map remains the primary visual element at every breakpoint.
+
+Do not bury the map below metric panels or charts.
+
+## 8. Overflow rule
+
+No supported layout may require page-level horizontal scrolling.
+
+Interactive popovers may scroll internally when their content cannot fit vertically, but must remain inside the viewport.
+
+## 9. Automated checks
+
+Chromium E2E should validate at all three desktop widths:
+
+- dashboard exists;
+- left, center and right regions exist;
+- center width > left width;
+- center width > right width;
+- document scrollWidth <= clientWidth + 1;
+- city label has one text rect and `white-space: nowrap`;
+- Trend and Timeline are visible;
+- screenshots are saved for visual inspection.
