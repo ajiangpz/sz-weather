@@ -72,6 +72,7 @@ const mapContainer = ref<HTMLDivElement | null>(null);
 const mapFailed = ref(false);
 const layerMenuOpen = ref(false);
 let map: Map | null = null;
+let mapStyleReady = false;
 let deckOverlay: MapboxOverlay | null = null;
 let districtMarkers: maplibregl.Marker[] = [];
 let stationMarkers: maplibregl.Marker[] = [];
@@ -254,7 +255,7 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
 };
 
 const syncRainViewerLayer = () => {
-  if (!map || !map.isStyleLoaded()) return;
+  if (!map || !mapStyleReady) return;
   const tileTemplate = store.currentRainViewerTileTemplate;
   const existingSource = map.getSource(rainViewerSourceId) as RasterTileSource | undefined;
 
@@ -723,12 +724,12 @@ onMounted(() => {
     mapResizeObserver.observe(mapContainer.value);
 
     map.once('style.load', () => {
-      map?.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
-
       if (!map) {
         return;
       }
 
+      mapStyleReady = true;
+      map.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
       radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
 
       currentWindStreams = createCurrentWindStreams();
@@ -855,6 +856,7 @@ watch(() => mapStore.activeAlertId, (alertId) => {
 
 onBeforeUnmount(() => {
   stopWindAnimation();
+  mapStyleReady = false;
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   mapResizeObserver?.disconnect();
   mapResizeObserver = null;
