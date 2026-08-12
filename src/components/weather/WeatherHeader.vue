@@ -29,9 +29,9 @@
     </div>
 
     <div class="weather-header__right">
-      <span class="weather-header__status"><i></i>数据正常</span>
+      <span class="weather-header__status" :title="store.dataSource"><i></i>{{ store.dataStatusLabel }}</span>
       <span class="weather-header__divider" aria-hidden="true"></span>
-      <strong class="weather-header__update">{{ timelineStore.currentFrameTime }} 更新</strong>
+      <strong class="weather-header__update">{{ updatedTime }} 更新</strong>
       <button class="weather-header__icon-button" type="button" aria-label="刷新数据" @click="store.refreshData()"><UiIcon name="refresh" /></button>
       <button class="weather-header__icon-button" type="button" aria-label="打开菜单"><UiIcon name="menu" /></button>
     </div>
@@ -39,13 +39,18 @@
 </template>
 
 <script setup lang="ts">
-import { useTimelineStore } from '@/stores/timelineStore';
+import { computed } from 'vue';
 import { useWeatherStore } from '@/stores/weather';
 import UiIcon from './UiIcon.vue';
 import WeatherIcon from './WeatherIcon.vue';
 
 const store = useWeatherStore();
-const timelineStore = useTimelineStore();
+const updatedTime = computed(() => store.updatedAt.toLocaleTimeString('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+}));
 </script>
 
 <style scoped>
