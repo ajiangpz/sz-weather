@@ -83,10 +83,10 @@ test.describe('RainScope dashboard smoke tests', () => {
     await layerButton.click();
 
     await expect(page.getByText('图层控制', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('温度热力')).toBeVisible();
-    await expect(page.getByLabel('湿度热力')).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: '温度热力' })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: '湿度热力' })).toBeVisible();
 
-    const radarToggle = page.getByLabel('降雨雷达');
+    const radarToggle = page.getByRole('checkbox', { name: '降雨雷达' });
     const radarOpacity = page.locator('.weather-layer-popover__panel .layer-panel__opacity input[type="range"]').first();
     await expect(radarToggle).toBeChecked();
     await expect(radarOpacity).toBeEnabled();
