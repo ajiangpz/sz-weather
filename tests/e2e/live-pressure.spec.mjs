@@ -63,6 +63,11 @@ const installRoutes = async (page, { includeGrid }) => {
   return times;
 };
 
+const selectPrimaryField = async (panel, name) => {
+  await panel.locator('.layer-panel__primary-option').filter({ hasText: name }).click();
+  await expect(panel.getByRole('radio', { name })).toBeChecked();
+};
+
 test('renders model pressure isolines as an independent forecast overlay', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   await installRoutes(page, { includeGrid: true });
@@ -74,12 +79,11 @@ test('renders model pressure isolines as an independent forecast overlay', async
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
 
-  const precipitationToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   const pressureToggle = layerPanel.getByRole('checkbox', { name: '气压等值线' });
   await expect(pressureToggle).toBeEnabled();
   await expect(pressureToggle).not.toBeChecked();
-  await precipitationToggle.uncheck();
+  await selectPrimaryField(layerPanel, '无底色');
   await windToggle.uncheck();
   await pressureToggle.check();
   await page.keyboard.press('Escape');
