@@ -1,4 +1,10 @@
-export const WIND_GRID_SOURCE = 'Open-Meteo Best Match forecast grid';
+import {
+  DEFAULT_FORECAST_MODEL,
+  getForecastModelProfile,
+  type ForecastModel,
+} from './forecastModel';
+
+export const WIND_GRID_SOURCE = getForecastModelProfile(DEFAULT_FORECAST_MODEL).windSourceLabel;
 export const WIND_GRID_COLUMNS = 5;
 export const WIND_GRID_ROWS = 3;
 export const WIND_GRID_BOUNDS = {
@@ -35,7 +41,7 @@ export interface WindGridFrame {
 }
 
 export interface LiveWindGridSnapshot {
-  source: typeof WIND_GRID_SOURCE;
+  source: string;
   fetchedAt: Date;
   currentIndex: number;
   frames: WindGridFrame[];
@@ -80,9 +86,9 @@ export const meteorologicalWindToVector = (speed: number, direction: number) => 
   };
 };
 
-export const buildOpenMeteoWindGridUrl = () => {
+export const buildOpenMeteoWindGridUrl = (model: ForecastModel = DEFAULT_FORECAST_MODEL) => {
   const points = createWindGridPoints();
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
+  const url = new URL(getForecastModelProfile(model).endpoint);
   url.searchParams.set('latitude', points.map((point) => point.latitude).join(','));
   url.searchParams.set('longitude', points.map((point) => point.longitude).join(','));
   url.searchParams.set(
@@ -109,6 +115,7 @@ const requireSeries = (series: number[] | undefined, name: string, expectedLengt
 export const createWindGridSnapshot = (
   payload: OpenMeteoWindLocationResponse[],
   fetchedAt = new Date(),
+  source = WIND_GRID_SOURCE,
 ): LiveWindGridSnapshot => {
   const expectedPoints = createWindGridPoints();
   if (!Array.isArray(payload) || payload.length !== expectedPoints.length) {
@@ -169,19 +176,23 @@ export const createWindGridSnapshot = (
   });
 
   return {
-    source: WIND_GRID_SOURCE,
+    source,
     fetchedAt,
     currentIndex: PAST_FRAME_COUNT,
     frames,
   };
 };
 
-export const fetchShenzhenWindGrid = async (timeoutMs = 6000): Promise<LiveWindGridSnapshot> => {
+export const fetchShenzhenWindGrid = async (
+  model: ForecastModel = DEFAULT_FORECAST_MODEL,
+  timeoutMs = 6000,
+): Promise<LiveWindGridSnapshot> => {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const profile = getForecastModelProfile(model);
 
   try {
-    const response = await fetch(buildOpenMeteoWindGridUrl(), {
+    const response = await fetch(buildOpenMeteoWindGridUrl(model), {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
@@ -189,7 +200,7 @@ export const fetchShenzhenWindGrid = async (timeoutMs = 6000): Promise<LiveWindG
       throw new Error(`Open-Meteo forecast grid request failed with ${response.status}`);
     }
     const payload = await response.json() as OpenMeteoWindLocationResponse[];
-    return createWindGridSnapshot(payload);
+    return createWindGridSnapshot(payload, new Date(), profile.windSourceLabel);
   } finally {
     window.clearTimeout(timeout);
   }

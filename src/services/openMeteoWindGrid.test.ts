@@ -40,6 +40,7 @@ describe('Open-Meteo forecast grid adapter', () => {
 
   it('requests wind and scalar forecast fields in one multi-coordinate request', () => {
     const url = new URL(buildOpenMeteoWindGridUrl());
+    expect(url.pathname).toBe('/v1/forecast');
     expect(url.hostname).toBe('api.open-meteo.com');
     expect(url.searchParams.get('latitude')?.split(',')).toHaveLength(15);
     expect(url.searchParams.get('longitude')?.split(',')).toHaveLength(15);
@@ -51,6 +52,13 @@ describe('Open-Meteo forecast grid adapter', () => {
     expect(url.searchParams.get('wind_speed_unit')).toBe('ms');
     expect(url.searchParams.get('precipitation_unit')).toBe('mm');
     expect(url.searchParams.get('cell_selection')).toBe('nearest');
+  });
+
+  it('routes the full multi-coordinate grid through the GFS endpoint', () => {
+    const url = new URL(buildOpenMeteoWindGridUrl('gfs'));
+    expect(url.pathname).toBe('/v1/gfs');
+    expect(url.searchParams.get('latitude')?.split(',')).toHaveLength(15);
+    expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
   });
 
   it('converts meteorological direction-from bearings to motion vectors', () => {
@@ -65,7 +73,11 @@ describe('Open-Meteo forecast grid adapter', () => {
 
   it('normalizes all scalar and vector values into the same centered 25-frame grid', () => {
     const payload = createPayload();
-    const snapshot = createWindGridSnapshot(payload, new Date('2026-08-12T10:05:00Z'));
+    const snapshot = createWindGridSnapshot(
+      payload,
+      new Date('2026-08-12T10:05:00Z'),
+      'Open-Meteo GFS forecast grid',
+    );
     expect(snapshot.frames).toHaveLength(25);
     expect(snapshot.currentIndex).toBe(12);
     expect(snapshot.frames[12].samples).toHaveLength(15);
@@ -83,5 +95,6 @@ describe('Open-Meteo forecast grid adapter', () => {
       && sample.pressure < 1100
     ))).toBe(true);
     expect(snapshot.frames[12].timestamp).toBe(payload[0].current.time);
+    expect(snapshot.source).toBe('Open-Meteo GFS forecast grid');
   });
 });

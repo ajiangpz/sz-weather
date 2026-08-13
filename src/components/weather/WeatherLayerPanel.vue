@@ -8,6 +8,23 @@
       <span>{{ activeLayerCount }} 开启</span>
     </div>
 
+    <div class="layer-panel__model" aria-label="预报模式">
+      <div class="layer-panel__model-row">
+        <span>预报模式</span>
+        <select
+          :value="weatherStore.forecastModel"
+          aria-label="预报模式"
+          :disabled="weatherStore.modelSwitching"
+          @change="handleForecastModelChange"
+        >
+          <option v-for="profile in forecastModelProfiles" :key="profile.id" :value="profile.id">
+            {{ profile.label }}
+          </option>
+        </select>
+      </div>
+      <small>{{ weatherStore.modelSwitching ? '模式切换中…' : weatherStore.forecastModelNote }}</small>
+    </div>
+
     <div class="layer-panel__section layer-panel__section--primary">
       <div class="layer-panel__section-title">
         <span>主气象场</span>
@@ -103,11 +120,16 @@
 
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import {
+  FORECAST_MODEL_PROFILES,
+  type ForecastModel,
+} from '@/services/forecastModel';
 import { type PrimaryWeatherField, useLayerStore } from '@/stores/layerStore';
 import { useWeatherStore } from '@/stores/weather';
 
 const layerStore = useLayerStore();
 const weatherStore = useWeatherStore();
+const forecastModelProfiles = Object.values(FORECAST_MODEL_PROFILES);
 
 const primaryFields = [
   { name: '降水', value: 'precipitation', tone: 'radar', requiresForecastGrid: false },
@@ -124,6 +146,11 @@ const overlayLayers = [
 ] as const;
 
 const hasLiveForecastGrid = computed(() => weatherStore.windDataStatus === 'live');
+
+const handleForecastModelChange = (event: Event) => {
+  const select = event.currentTarget as HTMLSelectElement;
+  void weatherStore.setForecastModel(select.value as ForecastModel);
+};
 
 const primaryField = computed<PrimaryWeatherField>({
   get: () => layerStore.primaryWeatherField,
@@ -203,6 +230,58 @@ const activeLayerCount = computed(() => [
   color: #87bddf;
   font-size: 9px;
   font-variant-numeric: tabular-nums;
+}
+
+.layer-panel__model {
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid rgba(126, 169, 201, 0.09);
+}
+
+.layer-panel__model-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.layer-panel__model-row > span {
+  color: #91a9b9;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.layer-panel__model select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  padding: 0 24px 0 8px;
+  border: 1px solid rgba(91, 177, 236, 0.18);
+  border-radius: 6px;
+  background: rgba(8, 29, 45, 0.82);
+  color: #d8e8f2;
+  font-size: 10px;
+  outline: none;
+}
+
+.layer-panel__model select:focus {
+  border-color: rgba(67, 169, 236, 0.48);
+}
+
+.layer-panel__model select:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.layer-panel__model > small {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #627f92;
+  font-size: 7px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .layer-panel__section + .layer-panel__section {

@@ -2,6 +2,11 @@ import { defineStore } from 'pinia';
 import { useMapStore } from './mapStore';
 import { useTimelineStore } from './timelineStore';
 import { mockAlerts } from '@/mock/alerts';
+import {
+  DEFAULT_FORECAST_MODEL,
+  getForecastModelProfile,
+  type ForecastModel,
+} from '@/services/forecastModel';
 import { fetchShenzhenForecast, type ForecastFrame } from '@/services/openMeteo';
 import {
   fetchShenzhenWindGrid,
@@ -53,6 +58,7 @@ export const useWeatherStore = defineStore('weather', {
     cityName: '深圳',
     center: [114.0579, 22.5431] as [number, number],
     updatedAt: new Date(),
+    forecastModel: DEFAULT_FORECAST_MODEL as ForecastModel,
     dataStatus: 'mock' as WeatherDataStatus,
     dataSource: '演示数据',
     lastError: null as string | null,
@@ -78,6 +84,15 @@ export const useWeatherStore = defineStore('weather', {
     alerts: mockAlerts,
   }),
   getters: {
+    forecastModelLabel(state) {
+      return getForecastModelProfile(state.forecastModel).label;
+    },
+    forecastModelNote(state) {
+      return getForecastModelProfile(state.forecastModel).note;
+    },
+    modelSwitching(state) {
+      return state.dataStatus === 'loading' || state.windDataStatus === 'loading';
+    },
     dataStatusLabel(state) {
       if (state.dataStatus === 'live') return '预报 LIVE';
       if (state.dataStatus === 'loading') return '预报更新';
@@ -153,8 +168,14 @@ export const useWeatherStore = defineStore('weather', {
         windSpeed: this.currentWeather.windSpeed,
       });
     },
+    async setForecastModel(model: ForecastModel) {
+      if (model === this.forecastModel || this.modelSwitching) return;
+      this.forecastModel = model;
+      await this.loadLiveForecast();
+    },
     async loadLiveForecast() {
       if (this.dataStatus === 'loading') return;
+      const requestedModel = this.forecastModel;
       this.dataStatus = 'loading';
       this.windDataStatus = 'loading';
       this.radarDataStatus = 'loading';
@@ -163,8 +184,8 @@ export const useWeatherStore = defineStore('weather', {
       this.radarLastError = null;
 
       const [forecastResult, windResult, radarResult] = await Promise.allSettled([
-        fetchShenzhenForecast(),
-        fetchShenzhenWindGrid(),
+        fetchShenzhenForecast(requestedModel),
+        fetchShenzhenWindGrid(requestedModel),
         fetchRainViewerRadar(),
       ]);
 
