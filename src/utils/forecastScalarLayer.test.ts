@@ -29,24 +29,29 @@ const createFrame = (): WindGridFrame => ({
   }),
 });
 
+const northEastTemperature = 24 + (WIND_GRID_COLUMNS - 1) + (WIND_GRID_ROWS - 1) * 2;
+const northEastHumidity = 60 + (WIND_GRID_COLUMNS - 1) * 4 + (WIND_GRID_ROWS - 1) * 6;
+const centerTemperature = (24 + northEastTemperature) / 2;
+const centerHumidity = (60 + northEastHumidity) / 2;
+
 describe('forecast scalar fields', () => {
-  it('returns exact temperature and humidity at grid points', () => {
+  it('returns exact temperature and humidity at China grid boundaries', () => {
     const frame = createFrame();
     expect(sampleForecastScalar(frame, 'temperature', WIND_GRID_BOUNDS.west, WIND_GRID_BOUNDS.south)).toBeCloseTo(24, 6);
-    expect(sampleForecastScalar(frame, 'humidity', WIND_GRID_BOUNDS.east, WIND_GRID_BOUNDS.north)).toBeCloseTo(88, 6);
+    expect(sampleForecastScalar(frame, 'humidity', WIND_GRID_BOUNDS.east, WIND_GRID_BOUNDS.north)).toBeCloseTo(northEastHumidity, 6);
   });
 
   it('bilinearly interpolates continuous scalar values', () => {
     const frame = createFrame();
     const longitude = (WIND_GRID_BOUNDS.west + WIND_GRID_BOUNDS.east) / 2;
     const latitude = (WIND_GRID_BOUNDS.south + WIND_GRID_BOUNDS.north) / 2;
-    expect(sampleForecastScalar(frame, 'temperature', longitude, latitude)).toBeCloseTo(28, 6);
-    expect(sampleForecastScalar(frame, 'humidity', longitude, latitude)).toBeCloseTo(74, 6);
+    expect(sampleForecastScalar(frame, 'temperature', longitude, latitude)).toBeCloseTo(centerTemperature, 6);
+    expect(sampleForecastScalar(frame, 'humidity', longitude, latitude)).toBeCloseTo(centerHumidity, 6);
   });
 
-  it('clamps out-of-grid coordinates to the field boundary', () => {
+  it('clamps out-of-grid coordinates to the China field boundary', () => {
     const frame = createFrame();
     expect(sampleForecastScalar(frame, 'temperature', WIND_GRID_BOUNDS.west - 2, WIND_GRID_BOUNDS.south - 2)).toBeCloseTo(24, 6);
-    expect(sampleForecastScalar(frame, 'humidity', WIND_GRID_BOUNDS.east + 2, WIND_GRID_BOUNDS.north + 2)).toBeCloseTo(88, 6);
+    expect(sampleForecastScalar(frame, 'humidity', WIND_GRID_BOUNDS.east + 2, WIND_GRID_BOUNDS.north + 2)).toBeCloseTo(northEastHumidity, 6);
   });
 });
