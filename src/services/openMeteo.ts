@@ -1,4 +1,5 @@
 import type { DashboardTrendData } from '@/types/weather';
+import { REFERENCE_FORECAST_LOCATION } from '@/config/chinaWeather';
 import {
   DEFAULT_FORECAST_MODEL,
   getForecastModelProfile,
@@ -6,7 +7,10 @@ import {
 } from './forecastModel';
 
 export const OPEN_METEO_SOURCE = getForecastModelProfile(DEFAULT_FORECAST_MODEL).sourceLabel;
-export const SHENZHEN_COORDINATES = { latitude: 22.5431, longitude: 114.0579 } as const;
+export const REFERENCE_FORECAST_COORDINATES = {
+  latitude: REFERENCE_FORECAST_LOCATION.latitude,
+  longitude: REFERENCE_FORECAST_LOCATION.longitude,
+} as const;
 
 const FRAME_PAST_COUNT = 12;
 const FRAME_FUTURE_COUNT = 12;
@@ -78,8 +82,8 @@ export const weatherCodeToCondition = (code: number) => {
 
 export const buildOpenMeteoForecastUrl = (model: ForecastModel = DEFAULT_FORECAST_MODEL) => {
   const url = new URL(getForecastModelProfile(model).endpoint);
-  url.searchParams.set('latitude', String(SHENZHEN_COORDINATES.latitude));
-  url.searchParams.set('longitude', String(SHENZHEN_COORDINATES.longitude));
+  url.searchParams.set('latitude', String(REFERENCE_FORECAST_COORDINATES.latitude));
+  url.searchParams.set('longitude', String(REFERENCE_FORECAST_COORDINATES.longitude));
   url.searchParams.set(
     'minutely_15',
     [
@@ -181,7 +185,7 @@ export const createForecastSnapshot = (
   };
 };
 
-export const fetchShenzhenForecast = async (
+export const fetchChinaReferenceForecast = async (
   model: ForecastModel = DEFAULT_FORECAST_MODEL,
   timeoutMs = 6000,
 ): Promise<LiveForecastSnapshot> => {
@@ -206,3 +210,6 @@ export const fetchShenzhenForecast = async (
     window.clearTimeout(timeout);
   }
 };
+
+/** @deprecated Use fetchChinaReferenceForecast. */
+export const fetchShenzhenForecast = fetchChinaReferenceForecast;
