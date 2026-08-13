@@ -27,7 +27,7 @@
         <div class="weather-legend__gradient weather-legend__gradient--humidity"></div>
       </div>
     </template>
-    <template v-else-if="weatherStore.currentRainViewerFrame">
+    <template v-else-if="layerStore.radarEnabled && weatherStore.currentRainViewerFrame">
       <span class="weather-legend__unit weather-legend__unit--live">雷达 LIVE</span>
       <span class="weather-legend__live-meta">观测 · 10 min</span>
       <a
@@ -37,7 +37,7 @@
         rel="noopener noreferrer"
       >RainViewer</a>
     </template>
-    <template v-else-if="weatherStore.currentWindGridFrame">
+    <template v-else-if="layerStore.radarEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--model">模式降水 LIVE</span>
       <span class="weather-legend__live-meta">mm / 15 min</span>
       <div class="weather-legend__scale weather-legend__scale--model">
@@ -47,7 +47,7 @@
         <div class="weather-legend__gradient weather-legend__gradient--model"></div>
       </div>
     </template>
-    <template v-else>
+    <template v-else-if="layerStore.radarEnabled">
       <span class="weather-legend__unit">DEMO dBZ</span>
       <div class="weather-legend__scale">
         <div class="weather-legend__labels">
