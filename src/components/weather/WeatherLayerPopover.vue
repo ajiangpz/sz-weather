@@ -100,28 +100,40 @@ onBeforeUnmount(() => {
   top: 44px;
   left: 0;
   width: 258px;
-  max-height: 360px;
+  max-height: 410px;
   overflow: auto;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
 }
 
 :deep(.weather-layer-popover__panel .panel-title) {
-  padding-block: 10px 8px;
+  padding-block: 9px 7px;
+}
+
+:deep(.weather-layer-popover__panel .layer-panel__section--primary) {
+  padding: 7px 12px 2px;
+}
+
+:deep(.weather-layer-popover__panel .layer-panel__section--overlays) {
+  margin-inline: 12px;
 }
 
 :deep(.weather-layer-popover__panel .layer-panel__list) {
-  gap: 5px;
-  padding: 8px 14px 12px;
+  gap: 4px;
+  padding: 5px 0 8px;
 }
 
 :deep(.weather-layer-popover__panel .layer-panel__toggle) {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 :deep(.weather-layer-popover__panel .layer-panel__opacity) {
   grid-template-columns: 42px minmax(0, 1fr) 34px;
-  padding-left: 24px;
-  font-size: 10px;
+  padding-left: 22px;
+  font-size: 9px;
+}
+
+:deep(.weather-layer-popover__panel .layer-panel__opacity--primary) {
+  padding-left: 0;
 }
 
 :global(.weather-dashboard--v2 .weather-map-panel__controls button[aria-label="图层"]) {
@@ -142,7 +154,7 @@ onBeforeUnmount(() => {
   .weather-layer-popover__panel {
     top: 42px;
     width: 244px;
-    max-height: 335px;
+    max-height: 392px;
   }
 }
 </style>
