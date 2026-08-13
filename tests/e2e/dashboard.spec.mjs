@@ -230,9 +230,13 @@ test.describe('RainScope China dashboard smoke tests', () => {
     await page.goto('/?weather=live');
     await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('北京 · 中雨', { exact: true })).toBeVisible();
-    await expect(page.getByText('全国预报风场', { exact: true })).toBeVisible();
     await expect(page.getByText('趋势 · 北京参考点', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: `当前时刻 ${times[12].slice(11, 16)}` })).toBeVisible();
     await expect(page.getByText('逐15分钟', { exact: true })).toBeVisible();
+
+    await page.getByRole('button', { name: '图层' }).click();
+    const layerPanel = page.locator('#weather-layer-popover-panel');
+    await expect(layerPanel.getByText('全国预报风场', { exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
   });
 });
