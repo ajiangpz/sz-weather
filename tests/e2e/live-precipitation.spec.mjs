@@ -45,6 +45,8 @@ const createForecastGridPayload = times => gridPoints().map((point, pointIndex) 
         const temporal = 1 - Math.abs(frameIndex - 16) / 6;
         return Number(Math.max(0.03, temporal * (0.4 + column * 0.6 + row * 0.35)).toFixed(3));
       }),
+      temperature_2m: times.map((_, frameIndex) => Number((26.2 + column * 0.95 + row * 0.35 + frameIndex * 0.05).toFixed(2))),
+      relative_humidity_2m: times.map((_, frameIndex) => Number((91 - column * 4.1 - row * 3.5 - frameIndex * 0.08).toFixed(1))),
     },
   };
 });
@@ -58,11 +60,7 @@ test('renders future model precipitation as a continuous live field when observe
   await page.route('https://api.open-meteo.com/**', async route => {
     const url = new URL(route.request().url());
     const isGridRequest = (url.searchParams.get('latitude') ?? '').includes(',');
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(isGridRequest ? gridPayload : cityPayload),
-    });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(isGridRequest ? gridPayload : cityPayload) });
   });
   await page.route('https://api.rainviewer.com/**', route => route.abort());
 
@@ -72,7 +70,7 @@ test('renders future model precipitation as a continuous live field when observe
   const futureIndex = 16;
   await page.getByRole('button', { name: `预报时刻 ${times[futureIndex].slice(11, 16)}` }).click();
 
-  const precipitationLegend = page.getByRole('region', { name: '降水图层图例' });
+  const precipitationLegend = page.getByRole('region', { name: '地图数据图例' });
   await expect(precipitationLegend.getByText('模式降水 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(precipitationLegend.getByText('mm / 15 min', { exact: true })).toBeVisible();
 
@@ -101,10 +99,7 @@ test('renders future model precipitation as a continuous live field when observe
   await precipitationToggle.check();
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
-  await page.screenshot({
-    path: testInfo.outputPath('visual-qa-model-precipitation-1536x1024.png'),
-    fullPage: true,
-  });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-1536x1024.png'), fullPage: true });
 
   const mapCanvas = page.locator('.weather-map-panel__canvas');
   const mapBox = await mapCanvas.boundingBox();
@@ -124,8 +119,5 @@ test('renders future model precipitation as a continuous live field when observe
   await expect(popupTitle).toHaveText(/模式预报 · \d+\.\d{2} mm\/15min/);
   await expect.poll(async () => popupTitle.textContent()).not.toBe(firstTitle);
 
-  await page.screenshot({
-    path: testInfo.outputPath('visual-qa-model-picker-1536x1024.png'),
-    fullPage: true,
-  });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-model-picker-1536x1024.png'), fullPage: true });
 });

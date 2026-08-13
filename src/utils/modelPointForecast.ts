@@ -1,11 +1,14 @@
 import type { WindGridFrame } from '@/services/openMeteoWindGrid';
 import { sampleForecastPrecipitation } from './forecastPrecipitationLayer';
+import { sampleForecastScalar } from './forecastScalarLayer';
 import { sampleForecastWindVector } from './liveWindField';
 
 export interface ModelPointForecastSummary {
   precipitation15m: number;
   rainfallIntensity: number;
   rainfall1h: number;
+  temperature: number;
+  humidity: number;
   windSpeed: number;
   windDirection: string;
 }
@@ -50,6 +53,8 @@ export const createModelPointForecastSummary = ({
     precipitation15m: round(precipitation15m, 2),
     rainfallIntensity: round(precipitation15m * 4, 1),
     rainfall1h: round(rainfall1h, 1),
+    temperature: round(sampleForecastScalar(frame, 'temperature', longitude, latitude), 1),
+    humidity: Math.round(sampleForecastScalar(frame, 'humidity', longitude, latitude)),
     windSpeed: round(wind.speed, 1),
     windDirection: formatWindDirection(direction),
   };

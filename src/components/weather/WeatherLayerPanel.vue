@@ -44,22 +44,38 @@
       <li
         v-for="layer in optionalLayers"
         :key="layer.name"
-        :class="{ 'is-active': layerStore[layer.enabledKey] }"
+        :class="{
+          'is-active': layerStore[layer.enabledKey],
+          'is-unavailable': layer.requiresForecastGrid && !hasLiveForecastGrid,
+        }"
       >
         <label class="layer-panel__toggle">
-          <input v-model="layerStore[layer.enabledKey]" type="checkbox" :aria-label="layer.name" />
+          <input
+            v-model="layerStore[layer.enabledKey]"
+            type="checkbox"
+            :aria-label="layer.name"
+            :disabled="layer.requiresForecastGrid && !hasLiveForecastGrid"
+          />
           <i class="layer-panel__swatch" :class="`layer-panel__swatch--${layer.tone}`" aria-hidden="true"></i>
           <span>{{ layer.name }}</span>
           <small v-if="layer.enabledKey === 'windEnabled'" class="layer-panel__source" aria-hidden="true">{{ weatherStore.windDataStatusLabel }}</small>
+          <small v-else-if="layer.requiresForecastGrid" class="layer-panel__source" aria-hidden="true">
+            {{ hasLiveForecastGrid ? '预报场' : '不可用' }}
+          </small>
         </label>
-        <div class="layer-panel__opacity" :class="{ 'is-disabled': !layerStore[layer.enabledKey] }">
+        <div
+          class="layer-panel__opacity"
+          :class="{
+            'is-disabled': !layerStore[layer.enabledKey] || (layer.requiresForecastGrid && !hasLiveForecastGrid),
+          }"
+        >
           <span>透明度</span>
           <input
             v-model.number="layerStore[layer.opacityKey]"
             type="range"
             min="0"
             max="100"
-            :disabled="!layerStore[layer.enabledKey]"
+            :disabled="!layerStore[layer.enabledKey] || (layer.requiresForecastGrid && !hasLiveForecastGrid)"
           />
           <strong>{{ layerStore[layer.opacityKey] }}%</strong>
         </div>
@@ -69,17 +85,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useLayerStore } from '@/stores/layerStore';
 import { useWeatherStore } from '@/stores/weather';
 
 const layerStore = useLayerStore();
 const weatherStore = useWeatherStore();
 const optionalLayers = [
-  { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind' },
-  { name: '温度热力', enabledKey: 'temperatureEnabled', opacityKey: 'temperatureOpacity', tone: 'temperature' },
-  { name: '湿度热力', enabledKey: 'humidityEnabled', opacityKey: 'humidityOpacity', tone: 'humidity' },
+  { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind', requiresForecastGrid: false },
+  { name: '温度热力', enabledKey: 'temperatureEnabled', opacityKey: 'temperatureOpacity', tone: 'temperature', requiresForecastGrid: true },
+  { name: '湿度热力', enabledKey: 'humidityEnabled', opacityKey: 'humidityOpacity', tone: 'humidity', requiresForecastGrid: true },
 ] as const;
+
+const hasLiveForecastGrid = computed(() => weatherStore.windDataStatus === 'live');
+
+watch(hasLiveForecastGrid, (available) => {
+  if (available) return;
+  layerStore.temperatureEnabled = false;
+  layerStore.humidityEnabled = false;
+});
+
+watch(() => layerStore.temperatureEnabled, (enabled) => {
+  if (enabled) layerStore.humidityEnabled = false;
+});
+
+watch(() => layerStore.humidityEnabled, (enabled) => {
+  if (enabled) layerStore.temperatureEnabled = false;
+});
 
 const activeLayerCount = computed(() => [
   layerStore.radarEnabled,
@@ -138,7 +170,7 @@ const activeLayerCount = computed(() => [
   position: relative;
   border-bottom: 1px solid rgba(126, 169, 201, 0.09);
   border-radius: 7px;
-  transition: background-color 140ms ease;
+  transition: background-color 140ms ease, opacity 140ms ease;
 }
 
 .layer-panel__list li:last-child {
@@ -147,6 +179,10 @@ const activeLayerCount = computed(() => [
 
 .layer-panel__list li.is-active {
   background: rgba(45, 130, 188, 0.055);
+}
+
+.layer-panel__list li.is-unavailable {
+  opacity: 0.52;
 }
 
 .layer-panel__toggle {
@@ -165,6 +201,10 @@ const activeLayerCount = computed(() => [
   margin: 0;
   accent-color: #35a7ff;
   cursor: pointer;
+}
+
+.layer-panel__toggle input:disabled {
+  cursor: not-allowed;
 }
 
 .layer-panel__toggle > span {

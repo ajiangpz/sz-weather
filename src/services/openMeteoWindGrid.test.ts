@@ -23,6 +23,8 @@ const createPayload = () => {
       wind_speed_10m: times.map((_, frameIndex) => 2.5 + pointIndex * 0.08 + frameIndex * 0.03),
       wind_direction_10m: times.map((_, frameIndex) => 80 + pointIndex * 2 + frameIndex),
       precipitation: times.map((_, frameIndex) => Math.max(0, (pointIndex % 5 - 1) * 0.08 + (frameIndex - 8) * 0.025)),
+      temperature_2m: times.map((_, frameIndex) => 26.5 + (pointIndex % 5) * 0.45 + frameIndex * 0.04),
+      relative_humidity_2m: times.map((_, frameIndex) => 88 - Math.floor(pointIndex / 5) * 4 - frameIndex * 0.15),
     },
   }));
 };
@@ -35,12 +37,14 @@ describe('Open-Meteo forecast grid adapter', () => {
     expect(new Set(points.map((point) => point.latitude)).size).toBe(WIND_GRID_ROWS);
   });
 
-  it('requests wind and precipitation samples in one multi-coordinate request', () => {
+  it('requests wind, precipitation, temperature and humidity in one multi-coordinate request', () => {
     const url = new URL(buildOpenMeteoWindGridUrl());
     expect(url.hostname).toBe('api.open-meteo.com');
     expect(url.searchParams.get('latitude')?.split(',')).toHaveLength(15);
     expect(url.searchParams.get('longitude')?.split(',')).toHaveLength(15);
-    expect(url.searchParams.get('minutely_15')).toBe('wind_speed_10m,wind_direction_10m,precipitation');
+    expect(url.searchParams.get('minutely_15')).toBe(
+      'wind_speed_10m,wind_direction_10m,precipitation,temperature_2m,relative_humidity_2m',
+    );
     expect(url.searchParams.get('past_minutely_15')).toBe('12');
     expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
     expect(url.searchParams.get('wind_speed_unit')).toBe('ms');
@@ -58,7 +62,7 @@ describe('Open-Meteo forecast grid adapter', () => {
     expect(eastWind.v).toBeCloseTo(0, 6);
   });
 
-  it('normalizes wind and precipitation into the same centered 25-frame grid', () => {
+  it('normalizes all scalar and vector values into the same centered 25-frame grid', () => {
     const payload = createPayload();
     const snapshot = createWindGridSnapshot(payload, new Date('2026-08-12T10:05:00Z'));
     expect(snapshot.frames).toHaveLength(25);
@@ -68,7 +72,11 @@ describe('Open-Meteo forecast grid adapter', () => {
       Number.isFinite(sample.u)
       && Number.isFinite(sample.v)
       && Number.isFinite(sample.precipitation)
+      && Number.isFinite(sample.temperature)
+      && Number.isFinite(sample.humidity)
       && sample.precipitation >= 0
+      && sample.humidity >= 0
+      && sample.humidity <= 100
     ))).toBe(true);
     expect(snapshot.frames[12].timestamp).toBe(payload[0].current.time);
   });

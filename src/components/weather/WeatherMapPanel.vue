@@ -29,10 +29,12 @@
     </div>
 
     <div v-if="layerMenuOpen" class="weather-map-panel__layer-menu">
-      <label><input v-model="layerStore.radarEnabled" type="checkbox" />降雨雷达</label>
+      <label><input v-model="layerStore.radarEnabled" type="checkbox" />降水图层</label>
       <label><input v-model="layerStore.alertEnabled" type="checkbox" />预警区域</label>
       <label><input v-model="layerStore.stationEnabled" type="checkbox" />监测站点</label>
       <label><input v-model="layerStore.windEnabled" type="checkbox" />风场流线</label>
+      <label><input v-model="layerStore.temperatureEnabled" type="checkbox" :disabled="store.windDataStatus !== 'live'" />温度热力</label>
+      <label><input v-model="layerStore.humidityEnabled" type="checkbox" :disabled="store.windDataStatus !== 'live'" />湿度热力</label>
     </div>
 
     <div class="weather-map-panel__scale">5 km</div>
@@ -54,6 +56,10 @@ import {
   createForecastPrecipitationBitmap,
   createForecastPrecipitationLayer,
 } from '@/utils/forecastPrecipitationLayer';
+import {
+  createForecastScalarBitmap,
+  createForecastScalarLayer,
+} from '@/utils/forecastScalarLayer';
 import { createForecastWindStreams } from '@/utils/liveWindField';
 import { createRadarBitmap, createRainRadarBitmapLayer, sampleRadarIntensity, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
 import { createWindFieldLayers } from '@/utils/windDeckLayers';
@@ -82,6 +88,8 @@ let districtMarkers: maplibregl.Marker[] = [];
 let stationMarkers: maplibregl.Marker[] = [];
 let radarBitmap: HTMLCanvasElement | null = null;
 let forecastPrecipitationBitmap: HTMLCanvasElement | null = null;
+let forecastTemperatureBitmap: HTMLCanvasElement | null = null;
+let forecastHumidityBitmap: HTMLCanvasElement | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
 let windAnimationFrame: number | null = null;
 let windParticlePhase = 0;
@@ -237,15 +245,25 @@ const createRadarFrame = (): FeatureCollection<Point, { intensity?: number }> =>
   };
 };
 
-const updateWeatherLayers = (rebuildBitmap = false) => {
+const rebuildModelBitmaps = () => {
   const modelFrame = store.currentWindGridFrame;
+  if (!modelFrame) {
+    forecastPrecipitationBitmap = null;
+    forecastTemperatureBitmap = null;
+    forecastHumidityBitmap = null;
+    return;
+  }
+  forecastPrecipitationBitmap = createForecastPrecipitationBitmap(modelFrame);
+  forecastTemperatureBitmap = createForecastScalarBitmap(modelFrame, 'temperature');
+  forecastHumidityBitmap = createForecastScalarBitmap(modelFrame, 'humidity');
+};
+
+const updateWeatherLayers = (rebuildBitmap = false) => {
   if (rebuildBitmap || !radarBitmap) {
     radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
   }
-  if (modelFrame && (rebuildBitmap || !forecastPrecipitationBitmap)) {
-    forecastPrecipitationBitmap = createForecastPrecipitationBitmap(modelFrame);
-  } else if (!modelFrame) {
-    forecastPrecipitationBitmap = null;
+  if (rebuildBitmap || (!forecastPrecipitationBitmap && store.currentWindGridFrame)) {
+    rebuildModelBitmaps();
   }
   if (!deckOverlay || !radarBitmap) return;
 
@@ -253,6 +271,22 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
   const modelPrecipitationActive = Boolean(forecastPrecipitationBitmap);
   deckOverlay.setProps({
     layers: [
+      ...(forecastTemperatureBitmap ? [
+        createForecastScalarLayer({
+          field: 'temperature',
+          image: forecastTemperatureBitmap,
+          opacity: layerStore.temperatureOpacity / 100,
+          visible: layerStore.temperatureEnabled,
+        }),
+      ] : []),
+      ...(forecastHumidityBitmap ? [
+        createForecastScalarLayer({
+          field: 'humidity',
+          image: forecastHumidityBitmap,
+          opacity: layerStore.humidityOpacity / 100,
+          visible: layerStore.humidityEnabled,
+        }),
+      ] : []),
       createRainRadarBitmapLayer({
         image: radarBitmap,
         bounds: radarBitmapBounds,
@@ -379,7 +413,6 @@ const createUrbanTextureLines = (): LineFeatureCollection['features'] => [
   ...Array.from({ length: 12 }, (_, index) => {
     const lat = 22.46 + index * 0.026;
     const start = 113.8 + (index % 3) * 0.018;
-
     return createLineFeature(
       `urban-east-west-${index}`,
       Array.from({ length: 7 }, (__, pointIndex) => [
@@ -391,7 +424,6 @@ const createUrbanTextureLines = (): LineFeatureCollection['features'] => [
   ...Array.from({ length: 10 }, (_, index) => {
     const lng = 113.84 + index * 0.07;
     const start = 22.43 + (index % 2) * 0.018;
-
     return createLineFeature(
       `urban-north-south-${index}`,
       Array.from({ length: 6 }, (__, pointIndex) => [
@@ -411,93 +443,33 @@ const darkBaseTiles = [
 const roadNetworkGeoJson: LineFeatureCollection = {
   type: 'FeatureCollection',
   features: [
-    {
-      type: 'Feature',
-      properties: { kind: 'expressway' },
-      geometry: { type: 'LineString', coordinates: [[113.77, 22.75], [113.84, 22.69], [113.91, 22.62], [113.99, 22.56], [114.06, 22.54]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'urban-axis' },
-      geometry: { type: 'LineString', coordinates: [[113.88, 22.52], [113.97, 22.53], [114.06, 22.54], [114.15, 22.56], [114.23, 22.58]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'ring-road' },
-      geometry: { type: 'LineString', coordinates: [[113.86, 22.61], [113.96, 22.64], [114.07, 22.63], [114.18, 22.64], [114.29, 22.68]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'east-corridor' },
-      geometry: { type: 'LineString', coordinates: [[114.1, 22.57], [114.21, 22.62], [114.33, 22.68], [114.47, 22.74]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'coastal-road' },
-      geometry: { type: 'LineString', coordinates: [[114.2, 22.55], [114.3, 22.55], [114.42, 22.59], [114.55, 22.62]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'north-south' },
-      geometry: { type: 'LineString', coordinates: [[114.02, 22.52], [114.04, 22.61], [114.06, 22.71], [114.11, 22.8]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'south-corridor' },
-      geometry: { type: 'LineString', coordinates: [[113.92, 22.43], [114.02, 22.47], [114.11, 22.52], [114.2, 22.56]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'pingshan-link' },
-      geometry: { type: 'LineString', coordinates: [[114.25, 22.61], [114.34, 22.64], [114.44, 22.67], [114.52, 22.71]] },
-    },
+    { type: 'Feature', properties: { kind: 'expressway' }, geometry: { type: 'LineString', coordinates: [[113.77, 22.75], [113.84, 22.69], [113.91, 22.62], [113.99, 22.56], [114.06, 22.54]] } },
+    { type: 'Feature', properties: { kind: 'urban-axis' }, geometry: { type: 'LineString', coordinates: [[113.88, 22.52], [113.97, 22.53], [114.06, 22.54], [114.15, 22.56], [114.23, 22.58]] } },
+    { type: 'Feature', properties: { kind: 'ring-road' }, geometry: { type: 'LineString', coordinates: [[113.86, 22.61], [113.96, 22.64], [114.07, 22.63], [114.18, 22.64], [114.29, 22.68]] } },
+    { type: 'Feature', properties: { kind: 'east-corridor' }, geometry: { type: 'LineString', coordinates: [[114.1, 22.57], [114.21, 22.62], [114.33, 22.68], [114.47, 22.74]] } },
+    { type: 'Feature', properties: { kind: 'coastal-road' }, geometry: { type: 'LineString', coordinates: [[114.2, 22.55], [114.3, 22.55], [114.42, 22.59], [114.55, 22.62]] } },
+    { type: 'Feature', properties: { kind: 'north-south' }, geometry: { type: 'LineString', coordinates: [[114.02, 22.52], [114.04, 22.61], [114.06, 22.71], [114.11, 22.8]] } },
+    { type: 'Feature', properties: { kind: 'south-corridor' }, geometry: { type: 'LineString', coordinates: [[113.92, 22.43], [114.02, 22.47], [114.11, 22.52], [114.2, 22.56]] } },
+    { type: 'Feature', properties: { kind: 'pingshan-link' }, geometry: { type: 'LineString', coordinates: [[114.25, 22.61], [114.34, 22.64], [114.44, 22.67], [114.52, 22.71]] } },
   ],
 };
 
 const waterTextureGeoJson: LineFeatureCollection = {
   type: 'FeatureCollection',
   features: [
-    {
-      type: 'Feature',
-      properties: { kind: 'shenzhen-bay' },
-      geometry: { type: 'LineString', coordinates: [[113.78, 22.47], [113.86, 22.44], [113.96, 22.43], [114.05, 22.47], [114.12, 22.5]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'pearl-river-estuary' },
-      geometry: { type: 'LineString', coordinates: [[113.75, 22.64], [113.79, 22.58], [113.83, 22.52], [113.87, 22.46]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'dapeng-bay' },
-      geometry: { type: 'LineString', coordinates: [[114.22, 22.51], [114.32, 22.48], [114.43, 22.47], [114.55, 22.53], [114.61, 22.62]] },
-    },
+    { type: 'Feature', properties: { kind: 'shenzhen-bay' }, geometry: { type: 'LineString', coordinates: [[113.78, 22.47], [113.86, 22.44], [113.96, 22.43], [114.05, 22.47], [114.12, 22.5]] } },
+    { type: 'Feature', properties: { kind: 'pearl-river-estuary' }, geometry: { type: 'LineString', coordinates: [[113.75, 22.64], [113.79, 22.58], [113.83, 22.52], [113.87, 22.46]] } },
+    { type: 'Feature', properties: { kind: 'dapeng-bay' }, geometry: { type: 'LineString', coordinates: [[114.22, 22.51], [114.32, 22.48], [114.43, 22.47], [114.55, 22.53], [114.61, 22.62]] } },
   ],
 };
 
 const terrainTextureGeoJson: LineFeatureCollection = {
   type: 'FeatureCollection',
   features: [
-    {
-      type: 'Feature',
-      properties: { kind: 'yangtai-mountain' },
-      geometry: { type: 'LineString', coordinates: [[113.88, 22.66], [113.93, 22.7], [114.0, 22.69], [114.03, 22.65], [113.98, 22.62], [113.91, 22.63], [113.88, 22.66]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'wutong-mountain' },
-      geometry: { type: 'LineString', coordinates: [[114.12, 22.56], [114.17, 22.6], [114.24, 22.59], [114.28, 22.55], [114.23, 22.52], [114.16, 22.52], [114.12, 22.56]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'maluan-mountain' },
-      geometry: { type: 'LineString', coordinates: [[114.29, 22.61], [114.36, 22.66], [114.45, 22.65], [114.48, 22.59], [114.4, 22.56], [114.32, 22.57], [114.29, 22.61]] },
-    },
-    {
-      type: 'Feature',
-      properties: { kind: 'dapeng-ridge' },
-      geometry: { type: 'LineString', coordinates: [[114.39, 22.72], [114.48, 22.76], [114.57, 22.71], [114.58, 22.64], [114.49, 22.61], [114.42, 22.65], [114.39, 22.72]] },
-    },
+    { type: 'Feature', properties: { kind: 'yangtai-mountain' }, geometry: { type: 'LineString', coordinates: [[113.88, 22.66], [113.93, 22.7], [114.0, 22.69], [114.03, 22.65], [113.98, 22.62], [113.91, 22.63], [113.88, 22.66]] } },
+    { type: 'Feature', properties: { kind: 'wutong-mountain' }, geometry: { type: 'LineString', coordinates: [[114.12, 22.56], [114.17, 22.6], [114.24, 22.59], [114.28, 22.55], [114.23, 22.52], [114.16, 22.52], [114.12, 22.56]] } },
+    { type: 'Feature', properties: { kind: 'maluan-mountain' }, geometry: { type: 'LineString', coordinates: [[114.29, 22.61], [114.36, 22.66], [114.45, 22.65], [114.48, 22.59], [114.4, 22.56], [114.32, 22.57], [114.29, 22.61]] } },
+    { type: 'Feature', properties: { kind: 'dapeng-ridge' }, geometry: { type: 'LineString', coordinates: [[114.39, 22.72], [114.48, 22.76], [114.57, 22.71], [114.58, 22.64], [114.49, 22.61], [114.42, 22.65], [114.39, 22.72]] } },
   ],
 };
 
@@ -520,9 +492,7 @@ const districtLabels = [
 ] satisfies Array<{ name: string; coordinates: [number, number] }>;
 
 onMounted(() => {
-  if (!mapContainer.value) {
-    return;
-  }
+  if (!mapContainer.value) return;
 
   try {
     map = new maplibregl.Map({
@@ -534,210 +504,79 @@ onMounted(() => {
       style: {
         version: 8,
         sources: {
-          darkBase: {
-            type: 'raster',
-            tiles: darkBaseTiles,
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors © CARTO',
-          },
-          districts: {
-            type: 'geojson',
-            data: shenzhenGeoJsonUrl,
-          },
-          roadNetwork: {
-            type: 'geojson',
-            data: roadNetworkGeoJson,
-          },
-          waterTexture: {
-            type: 'geojson',
-            data: waterTextureGeoJson,
-          },
-          terrainTexture: {
-            type: 'geojson',
-            data: terrainTextureGeoJson,
-          },
-          urbanTexture: {
-            type: 'geojson',
-            data: urbanTextureGeoJson,
-          },
-          alertArea: {
-            type: 'geojson',
-            data: alertAreaGeoJson,
-          },
+          darkBase: { type: 'raster', tiles: darkBaseTiles, tileSize: 256, attribution: '© OpenStreetMap contributors © CARTO' },
+          districts: { type: 'geojson', data: shenzhenGeoJsonUrl },
+          roadNetwork: { type: 'geojson', data: roadNetworkGeoJson },
+          waterTexture: { type: 'geojson', data: waterTextureGeoJson },
+          terrainTexture: { type: 'geojson', data: terrainTextureGeoJson },
+          urbanTexture: { type: 'geojson', data: urbanTextureGeoJson },
+          alertArea: { type: 'geojson', data: alertAreaGeoJson },
         },
         layers: [
+          { id: 'map-background', type: 'background', paint: { 'background-color': '#031120' } },
           {
-            id: 'map-background',
-            type: 'background',
-            paint: {
-              'background-color': '#031120',
-            },
+            id: 'dark-osm-base', type: 'raster', source: 'darkBase',
+            paint: { 'raster-opacity': 0.98, 'raster-saturation': -0.18, 'raster-brightness-min': 0.1, 'raster-brightness-max': 0.94, 'raster-contrast': 0.04 },
           },
           {
-            id: 'dark-osm-base',
-            type: 'raster',
-            source: 'darkBase',
-            paint: {
-              'raster-opacity': 0.98,
-              'raster-saturation': -0.18,
-              'raster-brightness-min': 0.1,
-              'raster-brightness-max': 0.94,
-              'raster-contrast': 0.04,
-            },
+            id: 'urban-road-grain-shadow', type: 'line', source: 'urbanTexture',
+            paint: { 'line-color': 'rgba(2, 8, 16, 0.6)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 12, 3.2], 'line-blur': 1.1, 'line-opacity': 0.44 },
           },
           {
-            id: 'urban-road-grain-shadow',
-            type: 'line',
-            source: 'urbanTexture',
-            paint: {
-              'line-color': 'rgba(2, 8, 16, 0.6)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.4, 12, 3.2],
-              'line-blur': 1.1,
-              'line-opacity': 0.44,
-            },
+            id: 'urban-road-grain', type: 'line', source: 'urbanTexture',
+            paint: { 'line-color': 'rgba(123, 161, 184, 0.22)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.35, 12, 1.1], 'line-opacity': 0.7 },
           },
           {
-            id: 'urban-road-grain',
-            type: 'line',
-            source: 'urbanTexture',
-            paint: {
-              'line-color': 'rgba(123, 161, 184, 0.22)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.35, 12, 1.1],
-              'line-opacity': 0.7,
-            },
+            id: 'water-texture', type: 'line', source: 'waterTexture',
+            paint: { 'line-color': 'rgba(78, 177, 225, 0.34)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.1, 12, 2.8], 'line-blur': 1.4, 'line-opacity': 0.78 },
           },
           {
-            id: 'water-texture',
-            type: 'line',
-            source: 'waterTexture',
-            paint: {
-              'line-color': 'rgba(78, 177, 225, 0.34)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.1, 12, 2.8],
-              'line-blur': 1.4,
-              'line-opacity': 0.78,
-            },
+            id: 'terrain-contours', type: 'line', source: 'terrainTexture',
+            paint: { 'line-color': 'rgba(113, 174, 155, 0.2)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 12, 2.1], 'line-dasharray': [1.4, 2.4], 'line-blur': 0.6, 'line-opacity': 0.84 },
           },
           {
-            id: 'terrain-contours',
-            type: 'line',
-            source: 'terrainTexture',
-            paint: {
-              'line-color': 'rgba(113, 174, 155, 0.2)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.8, 12, 2.1],
-              'line-dasharray': [1.4, 2.4],
-              'line-blur': 0.6,
-              'line-opacity': 0.84,
-            },
+            id: 'road-network-shadow', type: 'line', source: 'roadNetwork',
+            paint: { 'line-color': 'rgba(10, 21, 34, 0.72)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2, 12, 5.4], 'line-blur': 1.2, 'line-opacity': 0.72 },
           },
           {
-            id: 'road-network-shadow',
-            type: 'line',
-            source: 'roadNetwork',
-            paint: {
-              'line-color': 'rgba(10, 21, 34, 0.72)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 2, 12, 5.4],
-              'line-blur': 1.2,
-              'line-opacity': 0.72,
-            },
+            id: 'road-network-thread', type: 'line', source: 'roadNetwork',
+            paint: { 'line-color': 'rgba(168, 207, 226, 0.38)', 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.9, 12, 2.6], 'line-opacity': 0.82 },
           },
           {
-            id: 'road-network-thread',
-            type: 'line',
-            source: 'roadNetwork',
-            paint: {
-              'line-color': 'rgba(168, 207, 226, 0.38)',
-              'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.9, 12, 2.6],
-              'line-opacity': 0.82,
-            },
-          },
-          {
-            id: 'district-fill',
-            type: 'fill',
-            source: 'districts',
+            id: 'district-fill', type: 'fill', source: 'districts',
             paint: {
               'fill-color': [
-                'match',
-                ['get', 'name'],
-                '宝安区',
-                '#0b3150',
-                '南山区',
-                '#0a4059',
-                '福田区',
-                '#0b3a5e',
-                '罗湖区',
-                '#10365c',
-                '盐田区',
-                '#0f465a',
-                '龙华区',
-                '#0b3558',
-                '龙岗区',
-                '#123055',
-                '坪山区',
-                '#0c3d54',
-                '光明区',
-                '#0a3859',
-                '大鹏新区',
-                '#123a4f',
-                '#0b304f',
+                'match', ['get', 'name'],
+                '宝安区', '#0b3150', '南山区', '#0a4059', '福田区', '#0b3a5e', '罗湖区', '#10365c',
+                '盐田区', '#0f465a', '龙华区', '#0b3558', '龙岗区', '#123055', '坪山区', '#0c3d54',
+                '光明区', '#0a3859', '大鹏新区', '#123a4f', '#0b304f',
               ],
               'fill-opacity': 0.18,
             },
           },
           {
-            id: 'district-glow',
-            type: 'line',
-            source: 'districts',
-            paint: {
-              'line-color': 'rgba(77, 178, 255, 0.32)',
-              'line-width': 4,
-              'line-blur': 4,
-              'line-opacity': 0.48,
-            },
+            id: 'district-glow', type: 'line', source: 'districts',
+            paint: { 'line-color': 'rgba(77, 178, 255, 0.32)', 'line-width': 4, 'line-blur': 4, 'line-opacity': 0.48 },
           },
           {
-            id: 'district-outline',
-            type: 'line',
-            source: 'districts',
-            paint: {
-              'line-color': 'rgba(186, 228, 255, 0.76)',
-              'line-width': 1,
-              'line-opacity': 0.82,
-            },
+            id: 'district-outline', type: 'line', source: 'districts',
+            paint: { 'line-color': 'rgba(186, 228, 255, 0.76)', 'line-width': 1, 'line-opacity': 0.82 },
           },
           {
-            id: 'alert-area-fill',
-            type: 'fill',
-            source: 'alertArea',
-            filter: ['==', ['get', 'id'], mapStore.activeAlertId],
-            layout: {
-              visibility: layerStore.alertEnabled ? 'visible' : 'none',
-            },
-            paint: {
-              'fill-color': mapStore.activeAlertId === 'wind-blue' ? '#3b82f6' : '#facc15',
-              'fill-opacity': layerStore.alertOpacity / 100 * 0.14,
-            },
+            id: 'alert-area-fill', type: 'fill', source: 'alertArea', filter: ['==', ['get', 'id'], mapStore.activeAlertId],
+            layout: { visibility: layerStore.alertEnabled ? 'visible' : 'none' },
+            paint: { 'fill-color': mapStore.activeAlertId === 'wind-blue' ? '#3b82f6' : '#facc15', 'fill-opacity': layerStore.alertOpacity / 100 * 0.14 },
           },
           {
-            id: 'alert-area-outline',
-            type: 'line',
-            source: 'alertArea',
-            filter: ['==', ['get', 'id'], mapStore.activeAlertId],
-            layout: {
-              visibility: layerStore.alertEnabled ? 'visible' : 'none',
-            },
-            paint: {
-              'line-color': mapStore.activeAlertId === 'wind-blue' ? '#60a5fa' : '#facc15',
-              'line-width': 2,
-              'line-dasharray': [2, 1.5],
-              'line-opacity': layerStore.alertOpacity / 100,
-            },
+            id: 'alert-area-outline', type: 'line', source: 'alertArea', filter: ['==', ['get', 'id'], mapStore.activeAlertId],
+            layout: { visibility: layerStore.alertEnabled ? 'visible' : 'none' },
+            paint: { 'line-color': mapStore.activeAlertId === 'wind-blue' ? '#60a5fa' : '#facc15', 'line-width': 2, 'line-dasharray': [2, 1.5], 'line-opacity': layerStore.alertOpacity / 100 },
           },
         ],
       } as StyleSpecification,
     });
 
     map.on('click', handleMapClick);
-
     mapResizeObserver = new ResizeObserver(() => {
       if (!map) return;
       map.resize();
@@ -746,54 +585,22 @@ onMounted(() => {
     mapResizeObserver.observe(mapContainer.value);
 
     map.once('style.load', () => {
-      if (!map) {
-        return;
-      }
-
+      if (!map) return;
       mapStyleReady = true;
       map.fitBounds(shenzhenBounds, { padding: 24, duration: 0 });
       radarBitmap = createRadarBitmap({ points: createRadarFrame(), bounds: radarBitmapBounds });
-      const modelFrame = store.currentWindGridFrame;
-      forecastPrecipitationBitmap = modelFrame ? createForecastPrecipitationBitmap(modelFrame) : null;
-
+      rebuildModelBitmaps();
       currentWindStreams = createCurrentWindStreams();
-      const observedRadarActive = Boolean(store.currentRainViewerTileTemplate);
-      deckOverlay = new MapboxOverlay({
-        interleaved: false,
-        layers: [
-          createRainRadarBitmapLayer({
-            image: radarBitmap,
-            bounds: radarBitmapBounds,
-            opacity: layerStore.radarOpacity / 100,
-            visible: layerStore.radarEnabled && !observedRadarActive && !forecastPrecipitationBitmap,
-          }),
-          ...(forecastPrecipitationBitmap ? [
-            createForecastPrecipitationLayer({
-              image: forecastPrecipitationBitmap,
-              opacity: layerStore.radarOpacity / 100,
-              visible: layerStore.radarEnabled && !observedRadarActive,
-            }),
-          ] : []),
-          ...createWindFieldLayers({
-            streams: currentWindStreams,
-            opacity: layerStore.windOpacity / 100,
-            visible: layerStore.windEnabled,
-            particlePhase: windParticlePhase,
-          }),
-        ],
-      });
+      deckOverlay = new MapboxOverlay({ interleaved: false, layers: [] });
       map.addControl(deckOverlay);
+      updateWeatherLayers();
       syncRainViewerLayer();
 
       districtMarkers = districtLabels.map((district) => {
         const element = document.createElement('span');
         element.className = 'weather-map-panel__district-label';
         element.textContent = district.name;
-
-        return new maplibregl.Marker({
-          element,
-          anchor: 'center',
-        }).setLngLat(district.coordinates).addTo(map as Map);
+        return new maplibregl.Marker({ element, anchor: 'center' }).setLngLat(district.coordinates).addTo(map as Map);
       });
 
       stationMarkers = store.stations.map((station) => {
@@ -837,6 +644,19 @@ watch(
   },
 );
 
+watch(
+  () => [layerStore.temperatureEnabled, layerStore.temperatureOpacity, layerStore.humidityEnabled, layerStore.humidityOpacity],
+  () => updateWeatherLayers(),
+);
+
+watch(() => layerStore.temperatureEnabled, (enabled) => {
+  if (enabled) layerStore.humidityEnabled = false;
+});
+
+watch(() => layerStore.humidityEnabled, (enabled) => {
+  if (enabled) layerStore.temperatureEnabled = false;
+});
+
 watch(() => timelineStore.currentFrameIndex, () => {
   currentWindStreams = createCurrentWindStreams();
   syncRainViewerLayer();
@@ -855,10 +675,7 @@ watch(() => store.windForecastFrames, () => {
   updateWeatherLayers(true);
 });
 
-watch(() => store.currentRainViewerTileTemplate, () => {
-  syncRainViewerLayer();
-});
-
+watch(() => store.currentRainViewerTileTemplate, () => syncRainViewerLayer());
 watch(() => [layerStore.stationEnabled, mapStore.activeStationId], updateStationMarkers);
 
 watch(() => layerStore.alertEnabled, (enabled) => {

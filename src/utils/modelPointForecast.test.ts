@@ -32,6 +32,8 @@ const createFrames = (): WindGridFrame[] => Array.from({ length: 6 }, (_, frameI
       u,
       v,
       precipitation: 0.25 + frameIndex * 0.25 + column * 0.05,
+      temperature: 26 + frameIndex * 0.2 + column * 0.5 + row * 0.3,
+      humidity: 72 + frameIndex + column * 2 + row * 3,
     };
   }),
 }));
@@ -51,7 +53,7 @@ describe('model point forecast summary', () => {
     expect(formatWindDirection(315)).toBe('西北风');
   });
 
-  it('derives the 15-minute amount, equivalent rate and preceding-hour accumulation', () => {
+  it('derives precipitation, scalar weather values and wind from the clicked point', () => {
     const frames = createFrames();
     const longitude = WIND_GRID_BOUNDS.west;
     const latitude = WIND_GRID_BOUNDS.south;
@@ -66,6 +68,8 @@ describe('model point forecast summary', () => {
     expect(summary?.precipitation15m).toBeCloseTo(1.25, 6);
     expect(summary?.rainfallIntensity).toBeCloseTo(5, 6);
     expect(summary?.rainfall1h).toBeCloseTo(3.5, 6);
+    expect(summary?.temperature).toBeCloseTo(26.8, 6);
+    expect(summary?.humidity).toBe(76);
     expect(summary?.windSpeed).toBeCloseTo(4, 6);
     expect(summary?.windDirection).toBe('西风');
   });
