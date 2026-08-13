@@ -13,5 +13,7 @@ export const useLayerStore = defineStore('layers', {
     temperatureOpacity: 60,
     humidityEnabled: false,
     humidityOpacity: 60,
+    pressureEnabled: false,
+    pressureOpacity: 72,
   }),
 });
