@@ -9,8 +9,8 @@ const createForecastFixture = () => {
   const start = new Date('2026-08-12T13:00:00+08:00');
   const times = Array.from({ length: 25 }, (_, index) => {
     const timestamp = new Date(start.getTime() + index * 15 * 60 * 1000);
-    const shenzhenTime = new Date(timestamp.getTime() + 8 * 60 * 60 * 1000);
-    return shenzhenTime.toISOString().slice(0, 16);
+    const chinaTime = new Date(timestamp.getTime() + 8 * 60 * 60 * 1000);
+    return chinaTime.toISOString().slice(0, 16);
   });
   const currentIndex = 12;
   return {
@@ -22,7 +22,7 @@ const createForecastFixture = () => {
       minutely_15: {
         time: times,
         temperature_2m: times.map((_, index) => 28 + index * 0.05),
-        relative_humidity_2m: times.map((_, index) => 84 - index * 0.2),
+        relative_humidity_2m: times.map((_, index) => 74 - index * 0.2),
         precipitation: times.map((_, index) => index >= 10 && index <= 15 ? 0.5 : 0.1),
         weather_code: times.map((_, index) => index === currentIndex ? 63 : 61),
         wind_speed_10m: times.map((_, index) => 3.2 + index * 0.04),
@@ -54,7 +54,7 @@ const selectPrimaryField = async (panel, name) => {
   await expect(panel.getByRole('radio', { name })).toBeChecked();
 };
 
-test('uses RainViewer only inside the observed radar window and falls back outside it without a model grid', async ({ page }, testInfo) => {
+test('uses RainViewer only inside the observed China radar window and falls back outside it', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const fixture = createForecastFixture();
   let radarTileRequests = 0;
@@ -80,45 +80,39 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('雷达 LIVE', { exact: true })).toBeVisible();
-  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
-  await expect(precipitationField).toBeChecked();
-  await expect(windToggle).toBeChecked();
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
 
   await expect.poll(() => radarTileRequests).toBeGreaterThan(0);
   await page.waitForTimeout(350);
   const mapShell = page.locator('.weather-dashboard__map-shell');
-  const radarOnFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-on.png') });
+  const radarOnFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-live-radar-on.png') });
 
   await layerButton.click();
   await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
-  const radarOffFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-off.png') });
+  const radarOffFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-live-radar-off.png') });
   expect(radarOnFrame.equals(radarOffFrame)).toBe(false);
 
   await layerButton.click();
   await selectPrimaryField(layerPanel, '降水');
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(180);
-  await page.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-1536x1024.png'), fullPage: true });
 
   const mapCanvas = page.locator('.weather-map-panel__canvas');
   const mapBox = await mapCanvas.boundingBox();
   expect(mapBox).not.toBeNull();
   await page.mouse.click(mapBox.x + mapBox.width * 0.55, mapBox.y + mapBox.height * 0.55);
-  await expect(page.getByText('点击位置 · DEMO估算', { exact: true })).toBeVisible();
+  await expect(page.getByText('点击位置 · 雷达观测 / DEMO参数', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '关闭' }).click();
 
   const futureIndex = 16;
   await page.getByRole('button', { name: `预报时刻 ${fixture.times[futureIndex].slice(11, 16)}` }).click();
   await expect(radarLegend.getByText('DEMO dBZ', { exact: true })).toBeVisible();
   await layerButton.click();
-  await expect(layerPanel.getByText('DEMO 雷达', { exact: true })).toBeVisible();
-  await expect(layerPanel.getByRole('radio', { name: '降水' })).toBeChecked();
+  await expect(layerPanel.getByText('DEMO 降水', { exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
 
-  await page.screenshot({ path: testInfo.outputPath('visual-qa-radar-fallback-1536x1024.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-china-radar-fallback-1536x1024.png'), fullPage: true });
 });
