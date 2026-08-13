@@ -1,6 +1,11 @@
 import type { DashboardTrendData } from '@/types/weather';
+import {
+  DEFAULT_FORECAST_MODEL,
+  getForecastModelProfile,
+  type ForecastModel,
+} from './forecastModel';
 
-export const OPEN_METEO_SOURCE = 'Open-Meteo Best Match';
+export const OPEN_METEO_SOURCE = getForecastModelProfile(DEFAULT_FORECAST_MODEL).sourceLabel;
 export const SHENZHEN_COORDINATES = { latitude: 22.5431, longitude: 114.0579 } as const;
 
 const FRAME_PAST_COUNT = 12;
@@ -25,7 +30,7 @@ export interface ForecastFrame {
 }
 
 export interface LiveForecastSnapshot {
-  source: typeof OPEN_METEO_SOURCE;
+  source: string;
   fetchedAt: Date;
   currentIndex: number;
   frames: ForecastFrame[];
@@ -71,8 +76,8 @@ export const weatherCodeToCondition = (code: number) => {
   return '阴';
 };
 
-export const buildOpenMeteoForecastUrl = () => {
-  const url = new URL('https://api.open-meteo.com/v1/forecast');
+export const buildOpenMeteoForecastUrl = (model: ForecastModel = DEFAULT_FORECAST_MODEL) => {
+  const url = new URL(getForecastModelProfile(model).endpoint);
   url.searchParams.set('latitude', String(SHENZHEN_COORDINATES.latitude));
   url.searchParams.set('longitude', String(SHENZHEN_COORDINATES.longitude));
   url.searchParams.set(
@@ -105,6 +110,7 @@ const requireSeries = (series: number[] | undefined, name: string, expectedLengt
 export const createForecastSnapshot = (
   payload: OpenMeteoForecastResponse,
   fetchedAt = new Date(),
+  source = OPEN_METEO_SOURCE,
 ): LiveForecastSnapshot => {
   const minutely = payload.minutely_15;
   const times = minutely?.time;
@@ -167,7 +173,7 @@ export const createForecastSnapshot = (
   };
 
   return {
-    source: OPEN_METEO_SOURCE,
+    source,
     fetchedAt,
     currentIndex: FRAME_PAST_COUNT,
     frames,
@@ -175,19 +181,27 @@ export const createForecastSnapshot = (
   };
 };
 
-export const fetchShenzhenForecast = async (timeoutMs = 6000): Promise<LiveForecastSnapshot> => {
+export const fetchShenzhenForecast = async (
+  model: ForecastModel = DEFAULT_FORECAST_MODEL,
+  timeoutMs = 6000,
+): Promise<LiveForecastSnapshot> => {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const profile = getForecastModelProfile(model);
 
   try {
-    const response = await fetch(buildOpenMeteoForecastUrl(), {
+    const response = await fetch(buildOpenMeteoForecastUrl(model), {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
     if (!response.ok) {
       throw new Error(`Open-Meteo request failed with ${response.status}`);
     }
-    return createForecastSnapshot(await response.json() as OpenMeteoForecastResponse);
+    return createForecastSnapshot(
+      await response.json() as OpenMeteoForecastResponse,
+      new Date(),
+      profile.sourceLabel,
+    );
   } finally {
     window.clearTimeout(timeout);
   }
