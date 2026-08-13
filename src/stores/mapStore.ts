@@ -34,6 +34,8 @@ export const useMapStore = defineStore('map', {
     },
     syncPopup(popup: Partial<MapPointPopup>) {
       if (!this.popup) return;
+      const isCityReferencePopup = this.popup.label?.endsWith('城市参考点');
+      if (isCityReferencePopup && popup.label === undefined) return;
       this.popup = { ...this.popup, ...popup };
     },
   },
