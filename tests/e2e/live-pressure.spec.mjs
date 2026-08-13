@@ -86,6 +86,7 @@ test('renders model pressure isolines as an independent forecast overlay', async
 
   const legend = page.getByRole('region', { name: '地图数据图例' });
   await expect(legend.getByText('模式等压线 · 0.5 hPa', { exact: true })).toBeVisible();
+  await expect(legend.getByText('模式降水 LIVE', { exact: true })).toHaveCount(0);
   await page.waitForTimeout(250);
 
   const mapShell = page.locator('.weather-dashboard__map-shell');
