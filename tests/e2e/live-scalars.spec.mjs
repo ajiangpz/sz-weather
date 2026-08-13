@@ -48,7 +48,12 @@ const createGridPayload = times => gridPoints().map((point, pointIndex) => {
   };
 });
 
-test('renders mutually exclusive live temperature and humidity forecast fields', async ({ page }, testInfo) => {
+const selectPrimaryField = async (panel, name) => {
+  await panel.locator('.layer-panel__primary-option').filter({ hasText: name }).click();
+  await expect(panel.getByRole('radio', { name })).toBeChecked();
+};
+
+test('renders precipitation, temperature and humidity as mutually exclusive primary fields', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const times = createTimeline();
   const cityPayload = createCityPayload(times);
@@ -72,25 +77,31 @@ test('renders mutually exclusive live temperature and humidity forecast fields',
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
 
-  const precipitationToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
+  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
+  const temperatureField = layerPanel.getByRole('radio', { name: '温度' });
+  const humidityField = layerPanel.getByRole('radio', { name: '湿度' });
+  const noneField = layerPanel.getByRole('radio', { name: '无底色' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
-  const temperatureToggle = layerPanel.getByRole('checkbox', { name: '温度热力' });
-  const humidityToggle = layerPanel.getByRole('checkbox', { name: '湿度热力' });
   const pressureToggle = layerPanel.getByRole('checkbox', { name: '气压等值线' });
 
-  await expect(temperatureToggle).toBeEnabled();
-  await expect(humidityToggle).toBeEnabled();
+  await expect(precipitationField).toBeChecked();
+  await expect(temperatureField).toBeEnabled();
+  await expect(humidityField).toBeEnabled();
+  await expect(noneField).toBeEnabled();
   await expect(pressureToggle).toBeEnabled();
-  const temperatureRow = layerPanel.locator('li').filter({ hasText: '温度热力' });
-  const humidityRow = layerPanel.locator('li').filter({ hasText: '湿度热力' });
+
+  const temperatureCard = layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '温度' });
+  const humidityCard = layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '湿度' });
   const pressureRow = layerPanel.locator('li').filter({ hasText: '气压等值线' });
-  await expect(temperatureRow.getByText('预报场', { exact: true })).toBeVisible();
-  await expect(humidityRow.getByText('预报场', { exact: true })).toBeVisible();
+  await expect(temperatureCard.getByText('预报场', { exact: true })).toBeVisible();
+  await expect(humidityCard.getByText('预报场', { exact: true })).toBeVisible();
   await expect(pressureRow.getByText('预报场', { exact: true })).toBeVisible();
-  await precipitationToggle.uncheck();
+
   await windToggle.uncheck();
-  await temperatureToggle.check();
-  await expect(humidityToggle).not.toBeChecked();
+  await selectPrimaryField(layerPanel, '温度');
+  await expect(precipitationField).not.toBeChecked();
+  await expect(humidityField).not.toBeChecked();
+  await expect(noneField).not.toBeChecked();
   await expect(pressureToggle).not.toBeChecked();
   await page.keyboard.press('Escape');
 
@@ -103,8 +114,10 @@ test('renders mutually exclusive live temperature and humidity forecast fields',
   const temperatureFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-temperature-field.png') });
 
   await layerButton.click();
-  await humidityToggle.check();
-  await expect(temperatureToggle).not.toBeChecked();
+  await selectPrimaryField(layerPanel, '湿度');
+  await expect(temperatureField).not.toBeChecked();
+  await expect(precipitationField).not.toBeChecked();
+  await expect(noneField).not.toBeChecked();
   await expect(pressureToggle).not.toBeChecked();
   await page.keyboard.press('Escape');
   await expect(legend.getByText('湿度预报场', { exact: true })).toBeVisible();
@@ -114,8 +127,18 @@ test('renders mutually exclusive live temperature and humidity forecast fields',
   const humidityFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-humidity-field.png') });
   expect(temperatureFrame.equals(humidityFrame)).toBe(false);
 
+  await layerButton.click();
+  await selectPrimaryField(layerPanel, '无底色');
+  await expect(temperatureField).not.toBeChecked();
+  await expect(humidityField).not.toBeChecked();
+  await expect(precipitationField).not.toBeChecked();
+  await page.keyboard.press('Escape');
+  await expect(legend.getByText('温度预报场', { exact: true })).toHaveCount(0);
+  await expect(legend.getByText('湿度预报场', { exact: true })).toHaveCount(0);
+  await expect(legend.getByText('模式降水 LIVE', { exact: true })).toHaveCount(0);
+
   await page.screenshot({
-    path: testInfo.outputPath('visual-qa-scalar-fields-1536x1024.png'),
+    path: testInfo.outputPath('visual-qa-primary-fields-1536x1024.png'),
     fullPage: true,
   });
 });
