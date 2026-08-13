@@ -52,6 +52,11 @@ const createForecastGridPayload = times => gridPoints().map((point, pointIndex) 
   };
 });
 
+const selectPrimaryField = async (panel, name) => {
+  await panel.locator('.layer-panel__primary-option').filter({ hasText: name }).click();
+  await expect(panel.getByRole('radio', { name })).toBeChecked();
+};
+
 test('renders future model precipitation as a continuous live field when observed radar is unavailable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const times = createTimeline();
@@ -79,9 +84,9 @@ test('renders future model precipitation as a continuous live field when observe
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('模式降水 LIVE', { exact: true })).toBeVisible();
-  const precipitationToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
+  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
-  await expect(precipitationToggle).toBeChecked();
+  await expect(precipitationField).toBeChecked();
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
 
@@ -90,14 +95,14 @@ test('renders future model precipitation as a continuous live field when observe
   const precipitationOn = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-on.png') });
 
   await layerButton.click();
-  await precipitationToggle.uncheck();
+  await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
   const precipitationOff = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-off.png') });
   expect(precipitationOn.equals(precipitationOff)).toBe(false);
 
   await layerButton.click();
-  await precipitationToggle.check();
+  await selectPrimaryField(layerPanel, '降水');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
   await page.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-1536x1024.png'), fullPage: true });
