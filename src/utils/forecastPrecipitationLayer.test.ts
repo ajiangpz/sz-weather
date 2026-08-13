@@ -29,23 +29,26 @@ const createFrame = (): WindGridFrame => ({
   }),
 });
 
+const northEastValue = (WIND_GRID_COLUMNS - 1) + (WIND_GRID_ROWS - 1) * 2;
+const centerValue = northEastValue / 2;
+
 describe('forecast precipitation field', () => {
-  it('returns exact values at sampling-grid points', () => {
+  it('returns exact values at China sampling-grid boundaries', () => {
     const frame = createFrame();
     expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.west, WIND_GRID_BOUNDS.south)).toBeCloseTo(0, 6);
-    expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.east, WIND_GRID_BOUNDS.north)).toBeCloseTo(8, 6);
+    expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.east, WIND_GRID_BOUNDS.north)).toBeCloseTo(northEastValue, 6);
   });
 
   it('bilinearly interpolates a continuous value between grid points', () => {
     const frame = createFrame();
     const longitude = (WIND_GRID_BOUNDS.west + WIND_GRID_BOUNDS.east) / 2;
     const latitude = (WIND_GRID_BOUNDS.south + WIND_GRID_BOUNDS.north) / 2;
-    expect(sampleForecastPrecipitation(frame, longitude, latitude)).toBeCloseTo(4, 6);
+    expect(sampleForecastPrecipitation(frame, longitude, latitude)).toBeCloseTo(centerValue, 6);
   });
 
-  it('clamps sampling to the forecast-grid boundary', () => {
+  it('clamps sampling to the China forecast-grid boundary', () => {
     const frame = createFrame();
     expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.west - 5, WIND_GRID_BOUNDS.south - 5)).toBeCloseTo(0, 6);
-    expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.east + 5, WIND_GRID_BOUNDS.north + 5)).toBeCloseTo(8, 6);
+    expect(sampleForecastPrecipitation(frame, WIND_GRID_BOUNDS.east + 5, WIND_GRID_BOUNDS.north + 5)).toBeCloseTo(northEastValue, 6);
   });
 });
