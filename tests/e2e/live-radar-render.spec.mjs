@@ -49,6 +49,12 @@ const createRainViewerPayload = currentTimestamp => {
   };
 };
 
+const selectPrimaryField = async (panel, name) => {
+  const option = panel.locator('.layer-panel__primary-option').filter({ hasText: name });
+  await option.click();
+  await expect(panel.getByRole('radio', { name })).toBeChecked();
+};
+
 test('renders a visibly distinguishable RainViewer raster contribution', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const fixture = createForecastFixture();
@@ -77,8 +83,9 @@ test('renders a visibly distinguishable RainViewer raster contribution', async (
   const layerButton = page.getByRole('button', { name: '图层' });
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
-  const radarToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
+  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
+  await expect(precipitationField).toBeChecked();
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
 
@@ -87,7 +94,7 @@ test('renders a visibly distinguishable RainViewer raster contribution', async (
   const radarOnFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-visible-on.png') });
 
   await layerButton.click();
-  await radarToggle.uncheck();
+  await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(250);
   const radarOffFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-visible-off.png') });
