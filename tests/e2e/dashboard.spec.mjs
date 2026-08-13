@@ -144,13 +144,13 @@ test.describe('RainScope China dashboard smoke tests', () => {
     const noneField = layerPanel.getByRole('radio', { name: '无底色' });
     const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
     const alertToggle = layerPanel.getByRole('checkbox', { name: '预警区域' });
-    const stationToggle = layerPanel.getByRole('checkbox', { name: '监测站点' });
+    const cityToggle = layerPanel.getByRole('checkbox', { name: '重点城市' });
 
     await expect(precipitationField).toBeChecked();
     await expect(noneField).toBeEnabled();
     await expect(windToggle).toBeChecked();
     await expect(alertToggle).toBeChecked();
-    await expect(stationToggle).toBeChecked();
+    await expect(cityToggle).toBeChecked();
 
     await layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '无底色' }).click();
     await expect(noneField).toBeChecked();
