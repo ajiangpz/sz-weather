@@ -1,15 +1,16 @@
 import { defineStore } from 'pinia';
+import { CHINA_CENTER, REFERENCE_FORECAST_LOCATION } from '@/config/chinaWeather';
+import { mockChinaAlerts, mockChinaCities } from '@/mock/chinaWeather';
 import { useMapStore } from './mapStore';
 import { useTimelineStore } from './timelineStore';
-import { mockAlerts } from '@/mock/alerts';
 import {
   DEFAULT_FORECAST_MODEL,
   getForecastModelProfile,
   type ForecastModel,
 } from '@/services/forecastModel';
-import { fetchShenzhenForecast, type ForecastFrame } from '@/services/openMeteo';
+import { fetchChinaReferenceForecast, type ForecastFrame } from '@/services/openMeteo';
 import {
-  fetchShenzhenWindGrid,
+  fetchChinaForecastGrid,
   type WindGridFrame,
 } from '@/services/openMeteoWindGrid';
 import {
@@ -28,7 +29,6 @@ import {
   mockDashboardTrends,
   mockRainDistribution,
   mockRainfallTrend,
-  mockStations,
 } from '@/mock/weather';
 
 type WeatherDataStatus = 'mock' | 'loading' | 'live' | 'fallback';
@@ -39,24 +39,32 @@ const createMockCurrentWeather = (frameIndex: number) => {
   const offset = frameIndex - 12;
   const rainWave = Math.sin(offset * 0.34);
   const temperatureWave = Math.sin(offset * 0.22);
-  const rainfall1h = Math.max(0.6, 12.4 + rainWave * 5.2);
-  const maxRainIntensity = Math.max(4, 28.6 + rainWave * 9.4);
+  const rainfall1h = Math.max(0.2, 2.4 + rainWave * 1.8);
+  const maxRainIntensity = Math.max(1, 8.6 + rainWave * 4.4);
   return {
     rainfall1h: Number(rainfall1h.toFixed(1)),
-    rainfall24h: Number((36.8 + rainWave * 3.6).toFixed(1)),
+    rainfall24h: Number((8.8 + rainWave * 2.6).toFixed(1)),
     maxRainIntensity: Number(maxRainIntensity.toFixed(1)),
-    temperature: Number((29 + temperatureWave * 1.4).toFixed(1)),
-    humidity: Math.round(82 + rainWave * 5),
-    windSpeed: Number((5.2 + Math.sin(offset * 0.31) * 1.2).toFixed(1)),
-    pressure: Math.round(1005 - rainWave * 3),
-    condition: maxRainIntensity >= 32 ? '大雨' : maxRainIntensity >= 16 ? '中雨' : '小雨',
+    temperature: Number((28 + temperatureWave * 1.8).toFixed(1)),
+    humidity: Math.round(66 + rainWave * 6),
+    windSpeed: Number((3.2 + Math.sin(offset * 0.31) * 1.2).toFixed(1)),
+    pressure: Math.round(1008 - rainWave * 3),
+    condition: maxRainIntensity >= 16 ? '中雨' : maxRainIntensity >= 4 ? '小雨' : '多云',
   };
 };
 
+const createFallbackNationalOverview = () => ({
+  maxRainIntensity: 42.8,
+  maxTemperature: 36.4,
+  minTemperature: 12.8,
+  maxWindSpeed: 13.6,
+});
+
 export const useWeatherStore = defineStore('weather', {
   state: () => ({
-    cityName: '深圳',
-    center: [114.0579, 22.5431] as [number, number],
+    cityName: '中国',
+    referenceLocationName: REFERENCE_FORECAST_LOCATION.name,
+    center: [...CHINA_CENTER] as [number, number],
     updatedAt: new Date(),
     forecastModel: DEFAULT_FORECAST_MODEL as ForecastModel,
     dataStatus: 'mock' as WeatherDataStatus,
@@ -64,7 +72,7 @@ export const useWeatherStore = defineStore('weather', {
     lastError: null as string | null,
     forecastFrames: [] as ForecastFrame[],
     windDataStatus: 'mock' as WindDataStatus,
-    windDataSource: '演示风场',
+    windDataSource: '演示全国风场',
     windLastError: null as string | null,
     windForecastFrames: [] as WindGridFrame[],
     radarDataStatus: 'mock' as RadarDataStatus,
@@ -80,8 +88,8 @@ export const useWeatherStore = defineStore('weather', {
     rainfallTrend: mockRainfallTrend,
     dashboardTrends: mockDashboardTrends,
     rainDistribution: mockRainDistribution,
-    stations: mockStations,
-    alerts: mockAlerts,
+    stations: mockChinaCities,
+    alerts: mockChinaAlerts,
   }),
   getters: {
     forecastModelLabel(state) {
@@ -100,9 +108,9 @@ export const useWeatherStore = defineStore('weather', {
       return '演示数据';
     },
     windDataStatusLabel(state) {
-      if (state.windDataStatus === 'live') return '预报风场';
+      if (state.windDataStatus === 'live') return '全国预报风场';
       if (state.windDataStatus === 'loading') return '风场更新';
-      return 'DEMO 风场';
+      return 'DEMO 全国风场';
     },
     radarDataStatusLabel(state) {
       const frameIndex = useTimelineStore().currentFrameIndex;
@@ -116,7 +124,7 @@ export const useWeatherStore = defineStore('weather', {
         if (modelFrame) return '模式降水 LIVE';
       }
       if (state.radarDataStatus === 'loading' || state.windDataStatus === 'loading') return '降水更新';
-      return 'DEMO 雷达';
+      return 'DEMO 降水';
     },
     currentWeather(state) {
       const frameIndex = useTimelineStore().currentFrameIndex;
@@ -141,6 +149,16 @@ export const useWeatherStore = defineStore('weather', {
         return state.windForecastFrames.find((frame) => frame.timestamp === forecastTimestamp) ?? null;
       }
       return state.windForecastFrames[frameIndex] ?? null;
+    },
+    nationalOverview(): { maxRainIntensity: number; maxTemperature: number; minTemperature: number; maxWindSpeed: number } {
+      const frame = this.currentWindGridFrame;
+      if (!frame || frame.samples.length === 0) return createFallbackNationalOverview();
+      return {
+        maxRainIntensity: Number(Math.max(...frame.samples.map((sample) => sample.precipitation * 4)).toFixed(1)),
+        maxTemperature: Number(Math.max(...frame.samples.map((sample) => sample.temperature)).toFixed(1)),
+        minTemperature: Number(Math.min(...frame.samples.map((sample) => sample.temperature)).toFixed(1)),
+        maxWindSpeed: Number(Math.max(...frame.samples.map((sample) => sample.speed)).toFixed(1)),
+      };
     },
     currentRainViewerFrame(state): RainViewerRadarFrame | null {
       if (state.radarDataStatus !== 'live') return null;
@@ -184,8 +202,8 @@ export const useWeatherStore = defineStore('weather', {
       this.radarLastError = null;
 
       const [forecastResult, windResult, radarResult] = await Promise.allSettled([
-        fetchShenzhenForecast(requestedModel),
-        fetchShenzhenWindGrid(requestedModel),
+        fetchChinaReferenceForecast(requestedModel),
+        fetchChinaForecastGrid(requestedModel),
         fetchRainViewerRadar(),
       ]);
 
@@ -195,13 +213,13 @@ export const useWeatherStore = defineStore('weather', {
         this.dashboardTrends = snapshot.dashboardTrends;
         this.updatedAt = snapshot.fetchedAt;
         this.dataStatus = 'live';
-        this.dataSource = snapshot.source;
+        this.dataSource = `${snapshot.source} · ${this.referenceLocationName}参考点`;
         useTimelineStore().setFrameTimes(snapshot.frames.map((frame) => frame.time), snapshot.currentIndex);
       } else {
         this.dataStatus = 'fallback';
         this.lastError = forecastResult.reason instanceof Error
           ? forecastResult.reason.message
-          : 'Unknown live forecast error';
+          : 'Unknown reference forecast error';
         this.dataSource = this.forecastFrames.length > 0 ? '缓存预报' : '演示数据';
       }
 
@@ -214,23 +232,23 @@ export const useWeatherStore = defineStore('weather', {
         if (timelinesAlign) {
           this.windForecastFrames = windFrames;
           this.windDataStatus = 'live';
-          this.windDataSource = windResult.value.source;
+          this.windDataSource = `${windResult.value.source} · 中国概览网格`;
         } else {
           this.windForecastFrames = [];
           this.windDataStatus = 'fallback';
-          this.windDataSource = '演示风场';
-          this.windLastError = 'Forecast and forecast-grid timelines are not aligned';
+          this.windDataSource = '演示全国风场';
+          this.windLastError = 'Reference forecast and China forecast-grid timelines are not aligned';
         }
       } else {
         this.windForecastFrames = [];
         this.windDataStatus = 'fallback';
-        this.windDataSource = '演示风场';
+        this.windDataSource = '演示全国风场';
         if (windResult.status === 'rejected') {
           this.windLastError = windResult.reason instanceof Error
             ? windResult.reason.message
-            : 'Unknown live forecast-grid error';
+            : 'Unknown China forecast-grid error';
         } else if (forecastResult.status === 'rejected') {
-          this.windLastError = 'City forecast unavailable; keep deterministic forecast-grid fallback';
+          this.windLastError = 'Reference forecast unavailable; keep deterministic forecast-grid fallback';
         }
       }
 
@@ -249,7 +267,7 @@ export const useWeatherStore = defineStore('weather', {
             ? radarResult.reason.message
             : 'Unknown live radar error';
         } else if (forecastResult.status === 'rejected') {
-          this.radarLastError = 'City forecast unavailable; keep deterministic radar fallback';
+          this.radarLastError = 'Reference forecast unavailable; keep deterministic radar fallback';
         }
       }
 
