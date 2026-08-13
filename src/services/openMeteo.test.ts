@@ -34,6 +34,7 @@ const createPayload = (): OpenMeteoForecastResponse => {
 describe('Open-Meteo forecast adapter', () => {
   it('requests a 24-hour precipitation history and 15-minute Shenzhen forecast window', () => {
     const url = new URL(buildOpenMeteoForecastUrl());
+    expect(url.pathname).toBe('/v1/forecast');
     expect(url.hostname).toBe('api.open-meteo.com');
     expect(url.searchParams.get('timezone')).toBe('Asia/Shanghai');
     expect(url.searchParams.get('past_minutely_15')).toBe('96');
@@ -43,10 +44,17 @@ describe('Open-Meteo forecast adapter', () => {
     expect(url.searchParams.get('minutely_15')).toContain('wind_speed_10m');
   });
 
+  it('routes GFS through the dedicated Open-Meteo GFS endpoint', () => {
+    const url = new URL(buildOpenMeteoForecastUrl('gfs'));
+    expect(url.hostname).toBe('api.open-meteo.com');
+    expect(url.pathname).toBe('/v1/gfs');
+    expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
+  });
+
   it('normalizes the live response into a centered 25-frame timeline', () => {
     const payload = createPayload();
     const fetchedAt = new Date('2026-08-12T08:30:00Z');
-    const snapshot = createForecastSnapshot(payload, fetchedAt);
+    const snapshot = createForecastSnapshot(payload, fetchedAt, 'Open-Meteo GFS');
 
     expect(snapshot.frames).toHaveLength(25);
     expect(snapshot.currentIndex).toBe(12);
@@ -57,6 +65,7 @@ describe('Open-Meteo forecast adapter', () => {
     expect(snapshot.dashboardTrends.times).toHaveLength(25);
     expect(snapshot.dashboardTrends.windSpeed[12]).toBe(snapshot.frames[12].windSpeed);
     expect(snapshot.fetchedAt).toBe(fetchedAt);
+    expect(snapshot.source).toBe('Open-Meteo GFS');
   });
 
   it('maps WMO weather codes to compact Chinese conditions', () => {
