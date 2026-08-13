@@ -2,6 +2,10 @@ import { defineStore } from 'pinia';
 
 const DEFAULT_FRAME_COUNT = 25;
 const DEFAULT_ANCHOR_INDEX = 12;
+const PLAYBACK_BASE_INTERVAL_MS = 1200;
+
+export const PLAYBACK_SPEED_OPTIONS = [0.5, 1, 2] as const;
+export type PlaybackSpeed = (typeof PLAYBACK_SPEED_OPTIONS)[number];
 
 const createFallbackTime = (index: number) => {
   const totalMinutes = 12 * 60 + 30 + index * 10;
@@ -14,7 +18,7 @@ export const useTimelineStore = defineStore('timeline', {
     currentFrameAnchorIndex: DEFAULT_ANCHOR_INDEX,
     frameTimes: [] as string[],
     isPlaying: false,
-    playbackSpeed: 1 as 1 | 2 | 4,
+    playbackSpeed: 1 as PlaybackSpeed,
   }),
   getters: {
     frameCount(state) {
@@ -27,6 +31,9 @@ export const useTimelineStore = defineStore('timeline', {
       if (state.currentFrameIndex < state.currentFrameAnchorIndex) return 'past';
       if (state.currentFrameIndex > state.currentFrameAnchorIndex) return 'forecast';
       return 'current';
+    },
+    playbackIntervalMs(state) {
+      return PLAYBACK_BASE_INTERVAL_MS / state.playbackSpeed;
     },
   },
   actions: {
@@ -44,8 +51,8 @@ export const useTimelineStore = defineStore('timeline', {
       const lastIndex = this.frameCount - 1;
       this.currentFrameIndex = next > lastIndex ? 0 : next < 0 ? lastIndex : next;
     },
-    cyclePlaybackSpeed() {
-      this.playbackSpeed = this.playbackSpeed === 1 ? 2 : this.playbackSpeed === 2 ? 4 : 1;
+    setPlaybackSpeed(speed: PlaybackSpeed) {
+      this.playbackSpeed = speed;
     },
   },
 });
