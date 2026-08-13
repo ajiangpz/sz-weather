@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  REFERENCE_FORECAST_COORDINATES,
   buildOpenMeteoForecastUrl,
   createForecastSnapshot,
   weatherCodeToCondition,
@@ -32,10 +33,12 @@ const createPayload = (): OpenMeteoForecastResponse => {
 };
 
 describe('Open-Meteo forecast adapter', () => {
-  it('requests a 24-hour precipitation history and 15-minute Shenzhen forecast window', () => {
+  it('requests a 24-hour precipitation history and 15-minute Beijing reference window', () => {
     const url = new URL(buildOpenMeteoForecastUrl());
     expect(url.pathname).toBe('/v1/forecast');
     expect(url.hostname).toBe('api.open-meteo.com');
+    expect(Number(url.searchParams.get('latitude'))).toBeCloseTo(REFERENCE_FORECAST_COORDINATES.latitude, 4);
+    expect(Number(url.searchParams.get('longitude'))).toBeCloseTo(REFERENCE_FORECAST_COORDINATES.longitude, 4);
     expect(url.searchParams.get('timezone')).toBe('Asia/Shanghai');
     expect(url.searchParams.get('past_minutely_15')).toBe('96');
     expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
