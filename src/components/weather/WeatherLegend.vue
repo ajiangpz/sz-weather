@@ -1,5 +1,12 @@
 <template>
   <section class="weather-legend weather-legend--map" aria-label="地图数据图例">
+    <span
+      v-if="layerStore.pressureEnabled && weatherStore.currentWindGridFrame"
+      class="weather-legend__pressure"
+    >
+      <i aria-hidden="true"></i>
+      模式等压线 · 0.5 hPa
+    </span>
     <template v-if="layerStore.temperatureEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--temperature">温度预报场</span>
       <span class="weather-legend__live-meta">°C</span>
@@ -65,6 +72,22 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 </script>
 
 <style scoped>
+.weather-legend__pressure {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #cfe1ec;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.weather-legend__pressure i {
+  width: 16px;
+  height: 1px;
+  background: rgba(211, 231, 244, 0.86);
+  box-shadow: 0 0 3px rgba(160, 210, 240, 0.24);
+}
+
 .weather-legend__unit--live {
   color: #cfeeff;
 }
