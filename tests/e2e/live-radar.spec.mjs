@@ -104,7 +104,7 @@ test('uses RainViewer only inside the observed China radar window and falls back
   const mapBox = await mapCanvas.boundingBox();
   expect(mapBox).not.toBeNull();
   await page.mouse.click(mapBox.x + mapBox.width * 0.55, mapBox.y + mapBox.height * 0.55);
-  await expect(page.getByText('点击位置 · 雷达观测 / DEMO参数', { exact: true })).toBeVisible();
+  await expect(page.getByText('点击位置 · 雷达图层 LIVE / 北京参考参数', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '关闭' }).click();
 
   const futureIndex = 16;
