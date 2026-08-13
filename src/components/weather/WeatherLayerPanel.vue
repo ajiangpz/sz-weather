@@ -95,6 +95,7 @@ const optionalLayers = [
   { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind', requiresForecastGrid: false },
   { name: '温度热力', enabledKey: 'temperatureEnabled', opacityKey: 'temperatureOpacity', tone: 'temperature', requiresForecastGrid: true },
   { name: '湿度热力', enabledKey: 'humidityEnabled', opacityKey: 'humidityOpacity', tone: 'humidity', requiresForecastGrid: true },
+  { name: '气压等值线', enabledKey: 'pressureEnabled', opacityKey: 'pressureOpacity', tone: 'pressure', requiresForecastGrid: true },
 ] as const;
 
 const hasLiveForecastGrid = computed(() => weatherStore.windDataStatus === 'live');
@@ -103,6 +104,7 @@ watch(hasLiveForecastGrid, (available) => {
   if (available) return;
   layerStore.temperatureEnabled = false;
   layerStore.humidityEnabled = false;
+  layerStore.pressureEnabled = false;
 });
 
 watch(() => layerStore.temperatureEnabled, (enabled) => {
@@ -120,6 +122,7 @@ const activeLayerCount = computed(() => [
   layerStore.windEnabled,
   layerStore.temperatureEnabled,
   layerStore.humidityEnabled,
+  layerStore.pressureEnabled,
 ].filter(Boolean).length);
 </script>
 
@@ -239,6 +242,13 @@ const activeLayerCount = computed(() => [
 .layer-panel__swatch--wind { background: #59c8ff; }
 .layer-panel__swatch--temperature { background: #ff9f43; }
 .layer-panel__swatch--humidity { background: #3ed6c5; }
+.layer-panel__swatch--pressure {
+  width: 9px;
+  height: 2px;
+  flex-basis: 9px;
+  border-radius: 999px;
+  background: #d3e7f4;
+}
 
 .layer-panel__opacity {
   align-items: center;
