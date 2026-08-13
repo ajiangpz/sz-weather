@@ -62,7 +62,7 @@ test.describe('RainScope China dashboard smoke tests', () => {
     await expect(page.getByRole('complementary', { name: '全国天气与重点城市概览' })).toBeVisible();
     await expect(page.getByRole('region', { name: '全国天气主视图' })).toBeVisible();
     await expect(page.getByRole('complementary', { name: '全国预警与重点影响区域' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '强降雨风险概览' })).toBeVisible();
+    await expect(page.getByRole('region', { name: '全国气象风险概览' })).toBeVisible();
     await expect(page.getByRole('region', { name: '中国天气地图' })).toBeVisible();
     await expect(page.getByText('中国', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('趋势 · 北京参考点', { exact: true })).toBeVisible();
