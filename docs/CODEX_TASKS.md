@@ -183,5 +183,5 @@ Rules:
 ### Pending tasks
 
 <!-- Add implementation-ready tasks below this line. Example:
-- [ ] Add 0.5x, 1x, and 2x playback-speed controls to WeatherTimeline
+- [x] Add 0.5x, 1x, and 2x playback-speed controls to WeatherTimeline
 -->
