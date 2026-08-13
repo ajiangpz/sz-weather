@@ -43,6 +43,7 @@ const createGridPayload = times => gridPoints().map((point, pointIndex) => {
       precipitation: times.map(() => 0.08),
       temperature_2m: times.map((_, frameIndex) => Number((23.5 + column * 2.4 + row * 0.8 + frameIndex * 0.04).toFixed(2))),
       relative_humidity_2m: times.map((_, frameIndex) => Number((96 - column * 9 - row * 6 - frameIndex * 0.05).toFixed(1))),
+      surface_pressure: times.map((_, frameIndex) => Number((1002.2 + column * 0.7 + row * 0.35 + frameIndex * 0.02).toFixed(2))),
     },
   };
 });
