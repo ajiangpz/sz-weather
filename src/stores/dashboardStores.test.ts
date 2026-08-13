@@ -30,6 +30,20 @@ describe('dashboard stores', () => {
     expect(timeline.currentFramePhase).toBe('current');
   });
 
+  it('maps explicit playback speeds to deterministic timer intervals', () => {
+    const timeline = useTimelineStore();
+    expect(timeline.playbackSpeed).toBe(1);
+    expect(timeline.playbackIntervalMs).toBe(1200);
+
+    timeline.setPlaybackSpeed(0.5);
+    expect(timeline.playbackSpeed).toBe(0.5);
+    expect(timeline.playbackIntervalMs).toBe(2400);
+
+    timeline.setPlaybackSpeed(2);
+    expect(timeline.playbackSpeed).toBe(2);
+    expect(timeline.playbackIntervalMs).toBe(600);
+  });
+
   it('uses real forecast labels when a live timeline is hydrated', () => {
     const timeline = useTimelineStore();
     const times = Array.from({ length: 25 }, (_, index) => `${String(9 + Math.floor(index / 4)).padStart(2, '0')}:${String((index % 4) * 15).padStart(2, '0')}`);
