@@ -1,8 +1,8 @@
 <template>
   <section class="dashboard-panel station-rank">
     <div class="station-rank__header">
-      <h2>站点雨量 TOP3</h2>
-      <span>DEMO · mm</span>
+      <h2>重点城市降水 TOP3</h2>
+      <span>DEMO · mm/24h</span>
     </div>
 
     <ol>
@@ -19,7 +19,7 @@
       </li>
     </ol>
 
-    <button class="station-rank__more" type="button">查看更多站点 ›</button>
+    <button class="station-rank__more" type="button">查看更多城市 ›</button>
   </section>
 </template>
 
