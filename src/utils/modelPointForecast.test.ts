@@ -34,6 +34,7 @@ const createFrames = (): WindGridFrame[] => Array.from({ length: 6 }, (_, frameI
       precipitation: 0.25 + frameIndex * 0.25 + column * 0.05,
       temperature: 26 + frameIndex * 0.2 + column * 0.5 + row * 0.3,
       humidity: 72 + frameIndex + column * 2 + row * 3,
+      pressure: 1003 + column * 0.5 + row * 0.25,
     };
   }),
 }));
