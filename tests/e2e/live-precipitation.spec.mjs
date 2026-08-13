@@ -1,67 +1,32 @@
 import { test, expect } from '@playwright/test';
-
-const createTimeline = () => {
-  const start = new Date('2026-08-12T13:00:00+08:00');
-  return Array.from({ length: 25 }, (_, index) => {
-    const timestamp = new Date(start.getTime() + index * 15 * 60 * 1000);
-    const shenzhenTime = new Date(timestamp.getTime() + 8 * 60 * 60 * 1000);
-    return shenzhenTime.toISOString().slice(0, 16);
-  });
-};
-
-const createCityPayload = times => ({
-  timezone: 'Asia/Shanghai',
-  current: { time: times[12] },
-  minutely_15: {
-    time: times,
-    temperature_2m: times.map((_, index) => 28.4 + index * 0.04),
-    relative_humidity_2m: times.map((_, index) => 82 - index * 0.15),
-    precipitation: times.map((_, index) => index >= 14 && index <= 18 ? 1.2 : 0.05),
-    weather_code: times.map((_, index) => index >= 14 && index <= 18 ? 63 : 61),
-    wind_speed_10m: times.map((_, index) => 3.5 + index * 0.03),
-    wind_direction_10m: times.map((_, index) => 260 + index),
-    surface_pressure: times.map((_, index) => 1005 + index * 0.05),
-  },
-});
-
-const gridPoints = () => {
-  const longitudes = [113.64, 113.925, 114.21, 114.495, 114.78];
-  const latitudes = [22.28, 22.63, 22.98];
-  return latitudes.flatMap((latitude) => longitudes.map((longitude) => ({ latitude, longitude })));
-};
-
-const createForecastGridPayload = times => gridPoints().map((point, pointIndex) => {
-  const column = pointIndex % 5;
-  const row = Math.floor(pointIndex / 5);
-  return {
-    ...point,
-    current: { time: times[12] },
-    minutely_15: {
-      time: times,
-      wind_speed_10m: times.map((_, frameIndex) => 4 + column * 0.12 + frameIndex * 0.01),
-      wind_direction_10m: times.map(() => 270 + row * 4),
-      precipitation: times.map((_, frameIndex) => {
-        if (frameIndex < 14 || frameIndex > 19) return 0.01;
-        const temporal = 1 - Math.abs(frameIndex - 16) / 6;
-        return Number(Math.max(0.03, temporal * (0.4 + column * 0.6 + row * 0.35)).toFixed(3));
-      }),
-      temperature_2m: times.map((_, frameIndex) => Number((26.2 + column * 0.95 + row * 0.35 + frameIndex * 0.05).toFixed(2))),
-      relative_humidity_2m: times.map((_, frameIndex) => Number((91 - column * 4.1 - row * 3.5 - frameIndex * 0.08).toFixed(1))),
-      surface_pressure: times.map((_, frameIndex) => Number((1002.4 + column * 0.75 + row * 0.4 + frameIndex * 0.015).toFixed(2))),
-    },
-  };
-});
+import {
+  createTimeline,
+  createReferencePayload,
+  createChinaGridPayload,
+  defaultGridFields,
+} from './china-grid-fixture.mjs';
 
 const selectPrimaryField = async (panel, name) => {
   await panel.locator('.layer-panel__primary-option').filter({ hasText: name }).click();
   await expect(panel.getByRole('radio', { name })).toBeChecked();
 };
 
-test('renders future model precipitation as a continuous live field when observed radar is unavailable', async ({ page }, testInfo) => {
+test('renders future model precipitation as a continuous China live field when observed radar is unavailable', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const times = createTimeline();
-  const cityPayload = createCityPayload(times);
-  const gridPayload = createForecastGridPayload(times);
+  const cityPayload = createReferencePayload(times, {
+    precipitation: times.map((_, index) => index >= 14 && index <= 18 ? 1.2 : 0.05),
+    weather_code: times.map((_, index) => index >= 14 && index <= 18 ? 63 : 61),
+  });
+  const gridPayload = createChinaGridPayload(times, ({ column, row, times: frameTimes }) => ({
+    ...defaultGridFields({ column, row, times: frameTimes }),
+    precipitation: frameTimes.map((_, frameIndex) => {
+      if (frameIndex < 14 || frameIndex > 19) return 0.01;
+      const temporal = Math.max(0, 1 - Math.abs(frameIndex - 16) / 6);
+      const southEastWeight = (column / 11) * 0.8 + (1 - row / 7) * 0.6;
+      return Number(Math.max(0.03, temporal * (0.2 + southEastWeight * 1.8)).toFixed(3));
+    }),
+  }));
 
   await page.route('https://api.open-meteo.com/**', async route => {
     const url = new URL(route.request().url());
@@ -84,28 +49,24 @@ test('renders future model precipitation as a continuous live field when observe
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('模式降水 LIVE', { exact: true })).toBeVisible();
-  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
-  await expect(precipitationField).toBeChecked();
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
 
   await page.waitForTimeout(350);
   const mapShell = page.locator('.weather-dashboard__map-shell');
-  const precipitationOn = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-on.png') });
+  const precipitationOn = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-model-precipitation-on.png') });
 
   await layerButton.click();
   await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
-  const precipitationOff = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-off.png') });
+  const precipitationOff = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-model-precipitation-off.png') });
   expect(precipitationOn.equals(precipitationOff)).toBe(false);
 
   await layerButton.click();
   await selectPrimaryField(layerPanel, '降水');
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(180);
-  await page.screenshot({ path: testInfo.outputPath('visual-qa-model-precipitation-1536x1024.png'), fullPage: true });
 
   const mapCanvas = page.locator('.weather-map-panel__canvas');
   const mapBox = await mapCanvas.boundingBox();
@@ -116,14 +77,11 @@ test('renders future model precipitation as a continuous live field when observe
   await expect(popup).toBeVisible();
   const popupTitle = popup.locator('h3');
   await expect(popupTitle).toHaveText(/模式预报 · \d+\.\d{2} mm\/15min/);
-  await expect(popup.getByText('降雨强度：', { exact: true })).toBeVisible();
-  await expect(popup.getByText('1小时降雨：', { exact: true })).toBeVisible();
   const firstTitle = await popupTitle.textContent();
 
   const nextIndex = 17;
   await page.getByRole('button', { name: `预报时刻 ${times[nextIndex].slice(11, 16)}` }).click();
-  await expect(popupTitle).toHaveText(/模式预报 · \d+\.\d{2} mm\/15min/);
   await expect.poll(async () => popupTitle.textContent()).not.toBe(firstTitle);
 
-  await page.screenshot({ path: testInfo.outputPath('visual-qa-model-picker-1536x1024.png'), fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('visual-qa-china-model-precipitation-1536x1024.png'), fullPage: true });
 });

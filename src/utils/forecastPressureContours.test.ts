@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  WIND_GRID_BOUNDS,
   WIND_GRID_COLUMNS,
   WIND_GRID_ROWS,
   createWindGridPoints,
@@ -37,25 +38,27 @@ const createPressureFrame = (): WindGridFrame => {
 };
 
 describe('forecast pressure contours', () => {
-  it('bilinearly samples pressure inside the 5x3 forecast grid', () => {
+  it('bilinearly samples pressure inside the China forecast grid', () => {
     const frame = createPressureFrame();
-    const center = sampleForecastPressure(frame, 114.21, 22.63);
-    expect(center).toBeGreaterThan(1002.5);
-    expect(center).toBeLessThan(1004.5);
+    const centerLongitude = (WIND_GRID_BOUNDS.west + WIND_GRID_BOUNDS.east) / 2;
+    const centerLatitude = (WIND_GRID_BOUNDS.south + WIND_GRID_BOUNDS.north) / 2;
+    const center = sampleForecastPressure(frame, centerLongitude, centerLatitude);
+    const expected = 1001.2 + ((WIND_GRID_COLUMNS - 1) / 2) * 0.8 + ((WIND_GRID_ROWS - 1) / 2) * 0.45;
+    expect(center).toBeCloseTo(expected, 6);
   });
 
   it('builds bounded contour levels inside the frame pressure range', () => {
     const frame = createPressureFrame();
     const levels = createPressureLevels(frame);
     expect(levels.length).toBeGreaterThan(2);
-    expect(levels.length).toBeLessThanOrEqual(12);
+    expect(levels.length).toBeLessThanOrEqual(24);
     expect(levels.every((level) => Number.isInteger(level / PRESSURE_CONTOUR_INTERVAL_HPA))).toBe(true);
     const minimum = Math.min(...frame.samples.map((sample) => sample.pressure));
     const maximum = Math.max(...frame.samples.map((sample) => sample.pressure));
     expect(levels.every((level) => level > minimum && level < maximum)).toBe(true);
   });
 
-  it('creates deterministic line segments inside Shenzhen forecast bounds', () => {
+  it('creates deterministic line segments inside China forecast bounds', () => {
     const frame = createPressureFrame();
     const first = createForecastPressureContours(frame, 24, 16);
     const second = createForecastPressureContours(frame, 24, 16);

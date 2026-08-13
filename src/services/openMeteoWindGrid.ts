@@ -1,3 +1,4 @@
+import { CHINA_BOUNDS } from '@/config/chinaWeather';
 import {
   DEFAULT_FORECAST_MODEL,
   getForecastModelProfile,
@@ -5,13 +6,13 @@ import {
 } from './forecastModel';
 
 export const WIND_GRID_SOURCE = getForecastModelProfile(DEFAULT_FORECAST_MODEL).windSourceLabel;
-export const WIND_GRID_COLUMNS = 5;
-export const WIND_GRID_ROWS = 3;
+export const WIND_GRID_COLUMNS = 12;
+export const WIND_GRID_ROWS = 8;
 export const WIND_GRID_BOUNDS = {
-  west: 113.64,
-  east: 114.78,
-  south: 22.28,
-  north: 22.98,
+  west: CHINA_BOUNDS[0][0],
+  east: CHINA_BOUNDS[1][0],
+  south: CHINA_BOUNDS[0][1],
+  north: CHINA_BOUNDS[1][1],
 } as const;
 
 const PAST_FRAME_COUNT = 12;
@@ -183,9 +184,9 @@ export const createWindGridSnapshot = (
   };
 };
 
-export const fetchShenzhenWindGrid = async (
+export const fetchChinaForecastGrid = async (
   model: ForecastModel = DEFAULT_FORECAST_MODEL,
-  timeoutMs = 6000,
+  timeoutMs = 8000,
 ): Promise<LiveWindGridSnapshot> => {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -205,3 +206,6 @@ export const fetchShenzhenWindGrid = async (
     window.clearTimeout(timeout);
   }
 };
+
+/** @deprecated Use fetchChinaForecastGrid. */
+export const fetchShenzhenWindGrid = fetchChinaForecastGrid;

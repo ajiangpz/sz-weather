@@ -1,7 +1,7 @@
 <template>
   <section class="dashboard-panel trend-panel trend-panel--v2">
     <div class="trend-panel__header">
-      <h2>趋势 · 全市</h2>
+      <h2>趋势 · {{ store.referenceLocationName }}参考点</h2>
     </div>
 
     <div class="trend-panel__charts">
@@ -25,4 +25,7 @@
 import RainTrendChart from '@/components/charts/RainTrendChart.vue';
 import TemperatureHumidityChart from '@/components/charts/TemperatureHumidityChart.vue';
 import WindSpeedChart from '@/components/charts/WindSpeedChart.vue';
+import { useWeatherStore } from '@/stores/weather';
+
+const store = useWeatherStore();
 </script>

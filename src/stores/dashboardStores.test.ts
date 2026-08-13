@@ -1,7 +1,7 @@
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { mockStations } from '@/mock/weather';
+import { mockChinaCities } from '@/mock/chinaWeather';
 import { useLayerStore } from './layerStore';
 import { useMapStore } from './mapStore';
 import { useTimelineStore } from './timelineStore';
@@ -58,12 +58,18 @@ describe('dashboard stores', () => {
     expect(timeline.currentFrameIndex).toBe(24);
   });
 
-  it('creates a typed popup when selecting a station', () => {
+  it('creates a China city reference popup and protects its values from generic timeline sync', () => {
     const map = useMapStore();
-    const station = mockStations[0];
-    map.selectStation(station);
-    expect(map.activeStationId).toBe(station.id);
-    expect(map.popup?.label).toContain(station.name);
-    expect(map.popup?.rainfall1h).toBe(station.rainfall1h);
+    const city = mockChinaCities[0];
+    map.selectStation(city);
+
+    expect(map.activeStationId).toBe(city.id);
+    expect(map.popup?.label).toBe(`${city.name}城市参考点`);
+    expect(map.popup?.rainfall1h).toBe(city.rainfall1h);
+    expect(map.popup?.temperature).toBe(city.temperature);
+
+    map.syncPopup({ rainfall1h: 99, temperature: -20 });
+    expect(map.popup?.rainfall1h).toBe(city.rainfall1h);
+    expect(map.popup?.temperature).toBe(city.temperature);
   });
 });

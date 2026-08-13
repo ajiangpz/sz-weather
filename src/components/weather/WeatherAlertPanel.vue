@@ -33,7 +33,7 @@
               <WeatherIcon :name="detailAlert.icon" />
             </div>
             <div>
-              <span class="alert-dialog__eyebrow">深圳市气象预警 · DEMO</span>
+              <span class="alert-dialog__eyebrow">全国气象风险 · DEMO</span>
               <h2 :id="`alert-title-${detailAlert.id}`">{{ detailAlert.title }}</h2>
             </div>
             <button ref="closeButton" class="alert-dialog__close" type="button" aria-label="关闭预警详情" @click="closeAlert">×</button>
