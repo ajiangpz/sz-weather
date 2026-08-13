@@ -115,6 +115,7 @@ test('keeps pressure isolines unavailable when the forecast grid falls back', as
   const layerPanel = page.locator('#weather-layer-popover-panel');
   const pressureToggle = layerPanel.getByRole('checkbox', { name: '气压等值线' });
   await expect(pressureToggle).toBeDisabled();
-  const pressureRow = layerPanel.locator('li').filter({ has: pressureToggle });
+  const pressureRow = layerPanel.locator('li').filter({ hasText: '气压等值线' });
+  await expect(pressureRow).toHaveCount(1);
   await expect(pressureRow.getByText('不可用', { exact: true })).toBeVisible();
 });
