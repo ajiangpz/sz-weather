@@ -24,6 +24,7 @@ const createFrame = (): WindGridFrame => ({
       precipitation: 0.5,
       temperature: 24 + column + row * 2,
       humidity: 60 + column * 4 + row * 6,
+      pressure: 1004,
     };
   }),
 });

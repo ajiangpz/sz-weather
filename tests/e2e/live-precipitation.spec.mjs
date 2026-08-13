@@ -47,6 +47,7 @@ const createForecastGridPayload = times => gridPoints().map((point, pointIndex) 
       }),
       temperature_2m: times.map((_, frameIndex) => Number((26.2 + column * 0.95 + row * 0.35 + frameIndex * 0.05).toFixed(2))),
       relative_humidity_2m: times.map((_, frameIndex) => Number((91 - column * 4.1 - row * 3.5 - frameIndex * 0.08).toFixed(1))),
+      surface_pressure: times.map((_, frameIndex) => Number((1002.4 + column * 0.75 + row * 0.4 + frameIndex * 0.015).toFixed(2))),
     },
   };
 });

@@ -43,6 +43,7 @@ const createGridPayload = times => gridPoints().map((point, pointIndex) => {
       precipitation: times.map(() => 0.08),
       temperature_2m: times.map((_, frameIndex) => Number((23.5 + column * 2.4 + row * 0.8 + frameIndex * 0.04).toFixed(2))),
       relative_humidity_2m: times.map((_, frameIndex) => Number((96 - column * 9 - row * 6 - frameIndex * 0.05).toFixed(1))),
+      surface_pressure: times.map((_, frameIndex) => Number((1002.2 + column * 0.7 + row * 0.35 + frameIndex * 0.02).toFixed(2))),
     },
   };
 });
@@ -75,14 +76,22 @@ test('renders mutually exclusive live temperature and humidity forecast fields',
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   const temperatureToggle = layerPanel.getByRole('checkbox', { name: '温度热力' });
   const humidityToggle = layerPanel.getByRole('checkbox', { name: '湿度热力' });
+  const pressureToggle = layerPanel.getByRole('checkbox', { name: '气压等值线' });
 
   await expect(temperatureToggle).toBeEnabled();
   await expect(humidityToggle).toBeEnabled();
-  await expect(layerPanel.getByText('预报场', { exact: true })).toHaveCount(2);
+  await expect(pressureToggle).toBeEnabled();
+  const temperatureRow = layerPanel.locator('li').filter({ hasText: '温度热力' });
+  const humidityRow = layerPanel.locator('li').filter({ hasText: '湿度热力' });
+  const pressureRow = layerPanel.locator('li').filter({ hasText: '气压等值线' });
+  await expect(temperatureRow.getByText('预报场', { exact: true })).toBeVisible();
+  await expect(humidityRow.getByText('预报场', { exact: true })).toBeVisible();
+  await expect(pressureRow.getByText('预报场', { exact: true })).toBeVisible();
   await precipitationToggle.uncheck();
   await windToggle.uncheck();
   await temperatureToggle.check();
   await expect(humidityToggle).not.toBeChecked();
+  await expect(pressureToggle).not.toBeChecked();
   await page.keyboard.press('Escape');
 
   const legend = page.getByRole('region', { name: '地图数据图例' });
@@ -96,6 +105,7 @@ test('renders mutually exclusive live temperature and humidity forecast fields',
   await layerButton.click();
   await humidityToggle.check();
   await expect(temperatureToggle).not.toBeChecked();
+  await expect(pressureToggle).not.toBeChecked();
   await page.keyboard.press('Escape');
   await expect(legend.getByText('湿度预报场', { exact: true })).toBeVisible();
   await expect(legend.getByText('%', { exact: true })).toBeVisible();

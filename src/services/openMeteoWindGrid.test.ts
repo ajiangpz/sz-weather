@@ -25,6 +25,7 @@ const createPayload = () => {
       precipitation: times.map((_, frameIndex) => Math.max(0, (pointIndex % 5 - 1) * 0.08 + (frameIndex - 8) * 0.025)),
       temperature_2m: times.map((_, frameIndex) => 26.5 + (pointIndex % 5) * 0.45 + frameIndex * 0.04),
       relative_humidity_2m: times.map((_, frameIndex) => 88 - Math.floor(pointIndex / 5) * 4 - frameIndex * 0.15),
+      surface_pressure: times.map((_, frameIndex) => 1002.5 + (pointIndex % 5) * 0.55 + Math.floor(pointIndex / 5) * 0.35 + frameIndex * 0.02),
     },
   }));
 };
@@ -37,13 +38,13 @@ describe('Open-Meteo forecast grid adapter', () => {
     expect(new Set(points.map((point) => point.latitude)).size).toBe(WIND_GRID_ROWS);
   });
 
-  it('requests wind, precipitation, temperature and humidity in one multi-coordinate request', () => {
+  it('requests wind and scalar forecast fields in one multi-coordinate request', () => {
     const url = new URL(buildOpenMeteoWindGridUrl());
     expect(url.hostname).toBe('api.open-meteo.com');
     expect(url.searchParams.get('latitude')?.split(',')).toHaveLength(15);
     expect(url.searchParams.get('longitude')?.split(',')).toHaveLength(15);
     expect(url.searchParams.get('minutely_15')).toBe(
-      'wind_speed_10m,wind_direction_10m,precipitation,temperature_2m,relative_humidity_2m',
+      'wind_speed_10m,wind_direction_10m,precipitation,temperature_2m,relative_humidity_2m,surface_pressure',
     );
     expect(url.searchParams.get('past_minutely_15')).toBe('12');
     expect(url.searchParams.get('forecast_minutely_15')).toBe('13');
@@ -74,9 +75,12 @@ describe('Open-Meteo forecast grid adapter', () => {
       && Number.isFinite(sample.precipitation)
       && Number.isFinite(sample.temperature)
       && Number.isFinite(sample.humidity)
+      && Number.isFinite(sample.pressure)
       && sample.precipitation >= 0
       && sample.humidity >= 0
       && sample.humidity <= 100
+      && sample.pressure > 900
+      && sample.pressure < 1100
     ))).toBe(true);
     expect(snapshot.frames[12].timestamp).toBe(payload[0].current.time);
   });

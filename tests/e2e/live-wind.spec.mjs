@@ -45,6 +45,7 @@ const createWindGridPayload = (times) => windGridPoints().map((point, pointIndex
     }),
     temperature_2m: times.map((_, frameIndex) => Number((27 + (pointIndex % 5) * 0.55 + Math.floor(pointIndex / 5) * 0.2 + frameIndex * 0.04).toFixed(2))),
     relative_humidity_2m: times.map((_, frameIndex) => Number((88 - (pointIndex % 5) * 2.4 - Math.floor(pointIndex / 5) * 3 - frameIndex * 0.12).toFixed(1))),
+    surface_pressure: times.map((_, frameIndex) => Number((1002.8 + (pointIndex % 5) * 0.6 + Math.floor(pointIndex / 5) * 0.3 + frameIndex * 0.02).toFixed(2))),
   },
 }));
 

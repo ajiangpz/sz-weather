@@ -35,6 +35,7 @@
       <label><input v-model="layerStore.windEnabled" type="checkbox" />风场流线</label>
       <label><input v-model="layerStore.temperatureEnabled" type="checkbox" :disabled="store.windDataStatus !== 'live'" />温度热力</label>
       <label><input v-model="layerStore.humidityEnabled" type="checkbox" :disabled="store.windDataStatus !== 'live'" />湿度热力</label>
+      <label><input v-model="layerStore.pressureEnabled" type="checkbox" :disabled="store.windDataStatus !== 'live'" />气压等值线</label>
     </div>
 
     <div class="weather-map-panel__scale">5 km</div>
@@ -56,6 +57,11 @@ import {
   createForecastPrecipitationBitmap,
   createForecastPrecipitationLayer,
 } from '@/utils/forecastPrecipitationLayer';
+import {
+  createForecastPressureContours,
+  createForecastPressureLayer,
+  type PressureContourSegment,
+} from '@/utils/forecastPressureContours';
 import {
   createForecastScalarBitmap,
   createForecastScalarLayer,
@@ -90,6 +96,7 @@ let radarBitmap: HTMLCanvasElement | null = null;
 let forecastPrecipitationBitmap: HTMLCanvasElement | null = null;
 let forecastTemperatureBitmap: HTMLCanvasElement | null = null;
 let forecastHumidityBitmap: HTMLCanvasElement | null = null;
+let forecastPressureContours: PressureContourSegment[] = [];
 let mapResizeObserver: ResizeObserver | null = null;
 let windAnimationFrame: number | null = null;
 let windParticlePhase = 0;
@@ -251,11 +258,13 @@ const rebuildModelBitmaps = () => {
     forecastPrecipitationBitmap = null;
     forecastTemperatureBitmap = null;
     forecastHumidityBitmap = null;
+    forecastPressureContours = [];
     return;
   }
   forecastPrecipitationBitmap = createForecastPrecipitationBitmap(modelFrame);
   forecastTemperatureBitmap = createForecastScalarBitmap(modelFrame, 'temperature');
   forecastHumidityBitmap = createForecastScalarBitmap(modelFrame, 'humidity');
+  forecastPressureContours = createForecastPressureContours(modelFrame);
 };
 
 const updateWeatherLayers = (rebuildBitmap = false) => {
@@ -300,6 +309,11 @@ const updateWeatherLayers = (rebuildBitmap = false) => {
           visible: layerStore.radarEnabled && !observedRadarActive,
         }),
       ] : []),
+      createForecastPressureLayer({
+        segments: forecastPressureContours,
+        opacity: layerStore.pressureOpacity / 100,
+        visible: layerStore.pressureEnabled && forecastPressureContours.length > 0,
+      }),
       ...createWindFieldLayers({
         streams: currentWindStreams,
         opacity: layerStore.windOpacity / 100,
@@ -645,7 +659,14 @@ watch(
 );
 
 watch(
-  () => [layerStore.temperatureEnabled, layerStore.temperatureOpacity, layerStore.humidityEnabled, layerStore.humidityOpacity],
+  () => [
+    layerStore.temperatureEnabled,
+    layerStore.temperatureOpacity,
+    layerStore.humidityEnabled,
+    layerStore.humidityOpacity,
+    layerStore.pressureEnabled,
+    layerStore.pressureOpacity,
+  ],
   () => updateWeatherLayers(),
 );
 

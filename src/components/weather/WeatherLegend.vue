@@ -1,5 +1,12 @@
 <template>
   <section class="weather-legend weather-legend--map" aria-label="地图数据图例">
+    <span
+      v-if="layerStore.pressureEnabled && weatherStore.currentWindGridFrame"
+      class="weather-legend__pressure"
+    >
+      <i aria-hidden="true"></i>
+      模式等压线 · 0.5 hPa
+    </span>
     <template v-if="layerStore.temperatureEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--temperature">温度预报场</span>
       <span class="weather-legend__live-meta">°C</span>
@@ -20,7 +27,7 @@
         <div class="weather-legend__gradient weather-legend__gradient--humidity"></div>
       </div>
     </template>
-    <template v-else-if="weatherStore.currentRainViewerFrame">
+    <template v-else-if="layerStore.radarEnabled && weatherStore.currentRainViewerFrame">
       <span class="weather-legend__unit weather-legend__unit--live">雷达 LIVE</span>
       <span class="weather-legend__live-meta">观测 · 10 min</span>
       <a
@@ -30,7 +37,7 @@
         rel="noopener noreferrer"
       >RainViewer</a>
     </template>
-    <template v-else-if="weatherStore.currentWindGridFrame">
+    <template v-else-if="layerStore.radarEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--model">模式降水 LIVE</span>
       <span class="weather-legend__live-meta">mm / 15 min</span>
       <div class="weather-legend__scale weather-legend__scale--model">
@@ -40,7 +47,7 @@
         <div class="weather-legend__gradient weather-legend__gradient--model"></div>
       </div>
     </template>
-    <template v-else>
+    <template v-else-if="layerStore.radarEnabled">
       <span class="weather-legend__unit">DEMO dBZ</span>
       <div class="weather-legend__scale">
         <div class="weather-legend__labels">
@@ -65,6 +72,22 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 </script>
 
 <style scoped>
+.weather-legend__pressure {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #cfe1ec;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.weather-legend__pressure i {
+  width: 16px;
+  height: 1px;
+  background: rgba(211, 231, 244, 0.86);
+  box-shadow: 0 0 3px rgba(160, 210, 240, 0.24);
+}
+
 .weather-legend__unit--live {
   color: #cfeeff;
 }
