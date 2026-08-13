@@ -4,10 +4,21 @@
       <button class="timeline-panel__play" type="button" :aria-label="store.isPlaying ? '暂停' : '播放'" @click="togglePlayback">
         <UiIcon :name="store.isPlaying ? 'pause' : 'play'" />
       </button>
-      <div class="timeline-panel__transport" aria-label="时间轴步进控制">
+      <div class="timeline-panel__transport" aria-label="时间轴步进与播放速度控制">
         <button class="timeline-panel__step timeline-panel__step--previous" type="button" aria-label="上一帧" @click="store.stepFrame(-1)"><UiIcon name="step" /></button>
         <button class="timeline-panel__step" type="button" aria-label="下一帧" @click="store.stepFrame(1)"><UiIcon name="step" /></button>
-        <button class="timeline-panel__speed" type="button" aria-label="播放速度" @click="store.cyclePlaybackSpeed()"><span>{{ store.playbackSpeed }}x</span><UiIcon name="chevron-down" /></button>
+        <button
+          v-for="speed in PLAYBACK_SPEED_OPTIONS"
+          :key="speed"
+          class="timeline-panel__speed"
+          :class="{ 'is-active': store.playbackSpeed === speed }"
+          type="button"
+          :aria-label="`播放速度 ${speed}x`"
+          :aria-pressed="store.playbackSpeed === speed"
+          @click="store.setPlaybackSpeed(speed)"
+        >
+          {{ speed }}x
+        </button>
       </div>
     </div>
 
@@ -44,7 +55,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, watch } from 'vue';
-import { useTimelineStore } from '@/stores/timelineStore';
+import { PLAYBACK_SPEED_OPTIONS, useTimelineStore } from '@/stores/timelineStore';
 import UiIcon from './UiIcon.vue';
 
 const store = useTimelineStore();
@@ -67,7 +78,7 @@ const stopTimer = () => {
 
 const startTimer = () => {
   stopTimer();
-  playbackTimer = setInterval(() => store.stepFrame(1), 1200 / store.playbackSpeed);
+  playbackTimer = setInterval(() => store.stepFrame(1), store.playbackIntervalMs);
 };
 
 const togglePlayback = () => {
@@ -151,17 +162,17 @@ onBeforeUnmount(stopTimer);
 }
 
 .timeline-panel__speed {
-  min-width: 47px;
-  gap: 3px;
-  padding-inline: 7px;
-  color: #a8c0cf !important;
-  font-size: 10px;
+  width: 38px;
+  padding: 0;
+  color: #7894a6 !important;
+  font-size: 9px;
+  font-weight: 550;
   font-variant-numeric: tabular-nums;
 }
 
-.timeline-panel__speed .ui-icon {
-  width: 11px;
-  height: 11px;
+.timeline-panel__speed.is-active {
+  background: rgba(48, 139, 202, 0.18) !important;
+  color: #dceffb !important;
 }
 
 .timeline-panel__rail {
@@ -326,6 +337,10 @@ onBeforeUnmount(stopTimer);
 
   .timeline-panel__transport button {
     height: 30px !important;
+  }
+
+  .timeline-panel__speed {
+    width: 35px;
   }
 
   .timeline-panel__meta {
