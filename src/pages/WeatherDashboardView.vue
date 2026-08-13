@@ -56,9 +56,11 @@ const syncModelPointPopup = () => {
   if (!popup || !isMapPointPopup) return;
 
   if (weatherStore.currentRainViewerFrame) {
-    if (popup.label?.startsWith('模式预报')) {
-      mapStore.syncPopup({ label: '点击位置 · 雷达观测 / 模式参数' });
-    }
+    mapStore.syncPopup({
+      label: weatherStore.currentWindGridFrame
+        ? '点击位置 · 雷达观测 / 模式参数'
+        : '点击位置 · 雷达观测 / DEMO参数',
+    });
     return;
   }
 
