@@ -55,15 +55,6 @@ const syncModelPointPopup = () => {
   const isMapPointPopup = popup?.label?.startsWith('点击位置') || popup?.label?.startsWith('模式预报');
   if (!popup || !isMapPointPopup) return;
 
-  if (weatherStore.currentRainViewerFrame) {
-    mapStore.syncPopup({
-      label: weatherStore.currentWindGridFrame
-        ? '点击位置 · 雷达观测 / 模式参数'
-        : '点击位置 · 雷达观测 / DEMO参数',
-    });
-    return;
-  }
-
   const summary = createModelPointForecastSummary({
     frames: weatherStore.windForecastFrames,
     frameIndex: timelineStore.currentFrameIndex,
@@ -71,23 +62,31 @@ const syncModelPointPopup = () => {
     latitude: popup.latitude,
   });
 
-  if (!summary) {
-    if (popup.label?.startsWith('模式预报')) {
-      mapStore.syncPopup({ label: '点击位置' });
-    }
+  if (summary) {
+    const radarSuffix = weatherStore.currentRainViewerFrame ? ' · 雷达图层 LIVE' : '';
+    mapStore.syncPopup({
+      label: `模式预报 · ${summary.precipitation15m.toFixed(2)} mm/15min${radarSuffix}`,
+      rainfallIntensity: summary.rainfallIntensity,
+      rainfall1h: summary.rainfall1h,
+      temperature: summary.temperature,
+      humidity: summary.humidity,
+      windSpeed: summary.windSpeed,
+      windDirection: summary.windDirection,
+      alertTitle: undefined,
+    });
     return;
   }
 
-  mapStore.syncPopup({
-    label: `模式预报 · ${summary.precipitation15m.toFixed(2)} mm/15min`,
-    rainfallIntensity: summary.rainfallIntensity,
-    rainfall1h: summary.rainfall1h,
-    temperature: summary.temperature,
-    humidity: summary.humidity,
-    windSpeed: summary.windSpeed,
-    windDirection: summary.windDirection,
-    alertTitle: undefined,
-  });
+  if (weatherStore.currentRainViewerFrame) {
+    mapStore.syncPopup({
+      label: `点击位置 · 雷达图层 LIVE / ${weatherStore.referenceLocationName}参考参数`,
+    });
+    return;
+  }
+
+  if (popup.label?.startsWith('模式预报')) {
+    mapStore.syncPopup({ label: '点击位置' });
+  }
 };
 
 watch(
