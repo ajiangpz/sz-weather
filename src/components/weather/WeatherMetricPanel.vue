@@ -1,5 +1,5 @@
 <template>
-  <section class="dashboard-panel metric-panel metric-panel--rain" aria-label="降雨概览">
+  <section class="dashboard-panel metric-panel metric-panel--rain" aria-label="全国天气概览">
     <article v-for="metric in metrics" :key="metric.label" class="metric-card">
       <span>{{ metric.label }}</span>
       <strong>{{ metric.value }}</strong>
@@ -14,8 +14,8 @@ import { useWeatherStore } from '@/stores/weather';
 
 const store = useWeatherStore();
 const metrics = computed(() => [
-  { label: '1h 降雨', value: store.currentWeather.rainfall1h.toFixed(1), unit: 'mm' },
-  { label: '24h 降雨', value: store.currentWeather.rainfall24h.toFixed(1), unit: 'mm' },
-  { label: '最大雨强', value: store.currentWeather.maxRainIntensity.toFixed(1), unit: 'mm/h' },
+  { label: '最高温', value: store.nationalOverview.maxTemperature.toFixed(1), unit: '°C' },
+  { label: '最低温', value: store.nationalOverview.minTemperature.toFixed(1), unit: '°C' },
+  { label: '最大雨强', value: store.nationalOverview.maxRainIntensity.toFixed(1), unit: 'mm/h' },
 ]);
 </script>
