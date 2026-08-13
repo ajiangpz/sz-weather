@@ -49,6 +49,11 @@ const createRainViewerPayload = (currentTimestamp) => {
   };
 };
 
+const selectPrimaryField = async (panel, name) => {
+  await panel.locator('.layer-panel__primary-option').filter({ hasText: name }).click();
+  await expect(panel.getByRole('radio', { name })).toBeChecked();
+};
+
 test('uses RainViewer only inside the observed radar window and falls back outside it without a model grid', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1536, height: 1024 });
   const fixture = createForecastFixture();
@@ -75,9 +80,9 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
   await expect(layerPanel.getByText('雷达 LIVE', { exact: true })).toBeVisible();
-  const radarToggle = layerPanel.getByRole('checkbox', { name: '降水图层' });
+  const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
-  await expect(radarToggle).toBeChecked();
+  await expect(precipitationField).toBeChecked();
   await expect(windToggle).toBeChecked();
   await windToggle.uncheck();
   await page.keyboard.press('Escape');
@@ -88,14 +93,14 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   const radarOnFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-on.png') });
 
   await layerButton.click();
-  await radarToggle.uncheck();
+  await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
   const radarOffFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-map-off.png') });
   expect(radarOnFrame.equals(radarOffFrame)).toBe(false);
 
   await layerButton.click();
-  await radarToggle.check();
+  await selectPrimaryField(layerPanel, '降水');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(180);
   await page.screenshot({ path: testInfo.outputPath('visual-qa-live-radar-1536x1024.png'), fullPage: true });
@@ -112,6 +117,7 @@ test('uses RainViewer only inside the observed radar window and falls back outsi
   await expect(radarLegend.getByText('DEMO dBZ', { exact: true })).toBeVisible();
   await layerButton.click();
   await expect(layerPanel.getByText('DEMO 雷达', { exact: true })).toBeVisible();
+  await expect(layerPanel.getByRole('radio', { name: '降水' })).toBeChecked();
   await page.keyboard.press('Escape');
 
   await page.screenshot({ path: testInfo.outputPath('visual-qa-radar-fallback-1536x1024.png'), fullPage: true });
