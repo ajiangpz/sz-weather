@@ -57,6 +57,9 @@ test('switches city forecast and forecast grid to GFS together', async ({ page }
     const payload = multiCoordinate
       ? createGridPayload(times, isGfs ? 1 : 0)
       : createCityPayload(times, isGfs ? 1 : 0);
+    if (isGfs) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
