@@ -74,7 +74,7 @@ test.describe('RainScope dashboard smoke tests', () => {
     }
   });
 
-  test('keeps full layer controls available from the map overlay', async ({ page }) => {
+  test('keeps primary weather fields single-select and overlays independently available', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1536, height: 1024 });
     await page.goto('/');
 
@@ -82,23 +82,49 @@ test.describe('RainScope dashboard smoke tests', () => {
     await expect(layerButton).toBeVisible();
     await layerButton.click();
 
-    await expect(page.getByText('图层控制', { exact: true })).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: '温度热力' })).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: '湿度热力' })).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: '风场流线' })).toBeChecked();
+    const layerPanel = page.locator('#weather-layer-popover-panel');
+    await expect(layerPanel.getByText('图层控制', { exact: true })).toBeVisible();
+    await expect(layerPanel.getByText('主气象场', { exact: true })).toBeVisible();
+    await expect(layerPanel.getByText('叠加层', { exact: true })).toBeVisible();
 
-    const radarToggle = page.getByRole('checkbox', { name: '降水图层' });
-    const radarOpacity = page.locator('.weather-layer-popover__panel .layer-panel__opacity input[type="range"]').first();
-    await expect(radarToggle).toBeChecked();
-    await expect(radarOpacity).toBeEnabled();
+    const precipitationField = layerPanel.getByRole('radio', { name: '降水' });
+    const temperatureField = layerPanel.getByRole('radio', { name: '温度' });
+    const humidityField = layerPanel.getByRole('radio', { name: '湿度' });
+    const noneField = layerPanel.getByRole('radio', { name: '无底色' });
+    const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
+    const pressureToggle = layerPanel.getByRole('checkbox', { name: '气压等值线' });
+    const alertToggle = layerPanel.getByRole('checkbox', { name: '预警区域' });
+    const stationToggle = layerPanel.getByRole('checkbox', { name: '监测站点' });
 
-    await radarToggle.uncheck();
-    await expect(radarOpacity).toBeDisabled();
-    await radarToggle.check();
-    await expect(radarOpacity).toBeEnabled();
+    await expect(precipitationField).toBeChecked();
+    await expect(temperatureField).toBeDisabled();
+    await expect(humidityField).toBeDisabled();
+    await expect(noneField).toBeEnabled();
+    await expect(windToggle).toBeChecked();
+    await expect(pressureToggle).toBeDisabled();
+    await expect(alertToggle).toBeChecked();
+    await expect(stationToggle).toBeChecked();
+
+    const primaryOpacity = layerPanel.getByRole('slider', { name: '主气象场透明度' });
+    await expect(primaryOpacity).toBeEnabled();
+
+    await layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '无底色' }).click();
+    await expect(noneField).toBeChecked();
+    await expect(precipitationField).not.toBeChecked();
+    await expect(layerPanel.getByRole('slider', { name: '主气象场透明度' })).toHaveCount(0);
+
+    await layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '降水' }).click();
+    await expect(precipitationField).toBeChecked();
+    await expect(noneField).not.toBeChecked();
+    await expect(layerPanel.getByRole('slider', { name: '主气象场透明度' })).toBeEnabled();
+
+    await page.screenshot({
+      path: testInfo.outputPath('visual-qa-primary-field-selector-1536x1024.png'),
+      fullPage: true,
+    });
 
     await page.keyboard.press('Escape');
-    await expect(page.getByText('图层控制', { exact: true })).toBeHidden();
+    await expect(layerPanel.getByText('图层控制', { exact: true })).toBeHidden();
   });
 
   test('keeps district labels compact and readable on supported desktop viewports', async ({ page }) => {

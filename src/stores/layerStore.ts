@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
 
+export type PrimaryWeatherField = 'precipitation' | 'temperature' | 'humidity' | 'none';
+
 export const useLayerStore = defineStore('layers', {
   state: () => ({
     radarEnabled: true,
@@ -16,4 +18,19 @@ export const useLayerStore = defineStore('layers', {
     pressureEnabled: false,
     pressureOpacity: 72,
   }),
+  getters: {
+    primaryWeatherField(state): PrimaryWeatherField {
+      if (state.temperatureEnabled) return 'temperature';
+      if (state.humidityEnabled) return 'humidity';
+      if (state.radarEnabled) return 'precipitation';
+      return 'none';
+    },
+  },
+  actions: {
+    setPrimaryWeatherField(field: PrimaryWeatherField) {
+      this.radarEnabled = field === 'precipitation';
+      this.temperatureEnabled = field === 'temperature';
+      this.humidityEnabled = field === 'humidity';
+    },
+  },
 });
