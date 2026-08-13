@@ -1,6 +1,8 @@
 import type { WindStream } from '@/types/weather';
 import {
   WIND_GRID_BOUNDS,
+  WIND_GRID_COLUMNS,
+  WIND_GRID_ROWS,
   type WindGridFrame,
   type WindGridSample,
 } from '@/services/openMeteoWindGrid';
@@ -16,6 +18,8 @@ const noise = (seed: number) => {
   const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
   return value - Math.floor(value);
 };
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+const interpolate = (left: number, right: number, ratio: number) => left + (right - left) * ratio;
 
 const normalizeVector = ({ u, v, speed }: WindVector): WindVector => {
   const magnitude = Math.hypot(u, v);
@@ -23,11 +27,28 @@ const normalizeVector = ({ u, v, speed }: WindVector): WindVector => {
   return { u: u / magnitude, v: v / magnitude, speed };
 };
 
-const distanceSquared = (sample: WindGridSample, longitude: number, latitude: number) => {
-  const longitudeScale = Math.cos(latitude * Math.PI / 180);
-  const dx = (sample.longitude - longitude) * longitudeScale;
-  const dy = sample.latitude - latitude;
-  return dx * dx + dy * dy;
+const getSample = (frame: WindGridFrame, column: number, row: number): WindGridSample | undefined => (
+  frame.samples[row * WIND_GRID_COLUMNS + column]
+);
+
+const interpolateVector = (
+  bottomLeft: WindGridSample,
+  bottomRight: WindGridSample,
+  topLeft: WindGridSample,
+  topRight: WindGridSample,
+  horizontalRatio: number,
+  verticalRatio: number,
+): WindVector => {
+  const interpolateField = (field: 'u' | 'v' | 'speed') => {
+    const bottom = interpolate(bottomLeft[field], bottomRight[field], horizontalRatio);
+    const top = interpolate(topLeft[field], topRight[field], horizontalRatio);
+    return interpolate(bottom, top, verticalRatio);
+  };
+  return {
+    u: interpolateField('u'),
+    v: interpolateField('v'),
+    speed: interpolateField('speed'),
+  };
 };
 
 export const sampleForecastWindVector = (
@@ -37,33 +58,40 @@ export const sampleForecastWindVector = (
 ): WindVector => {
   if (frame.samples.length === 0) return { u: 1, v: 0, speed: 0 };
 
-  const nearest = [...frame.samples]
-    .map((sample) => ({ sample, distance: distanceSquared(sample, longitude, latitude) }))
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, 4);
+  const longitudeRatio = clamp(
+    (longitude - WIND_GRID_BOUNDS.west) / (WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west),
+    0,
+    1,
+  );
+  const latitudeRatio = clamp(
+    (latitude - WIND_GRID_BOUNDS.south) / (WIND_GRID_BOUNDS.north - WIND_GRID_BOUNDS.south),
+    0,
+    1,
+  );
+  const gridX = longitudeRatio * (WIND_GRID_COLUMNS - 1);
+  const gridY = latitudeRatio * (WIND_GRID_ROWS - 1);
+  const left = Math.floor(gridX);
+  const right = Math.min(WIND_GRID_COLUMNS - 1, left + 1);
+  const bottom = Math.floor(gridY);
+  const top = Math.min(WIND_GRID_ROWS - 1, bottom + 1);
+  const bottomLeft = getSample(frame, left, bottom);
+  const bottomRight = getSample(frame, right, bottom);
+  const topLeft = getSample(frame, left, top);
+  const topRight = getSample(frame, right, top);
 
-  if (nearest[0].distance < 1e-10) {
-    const { u, v, speed } = nearest[0].sample;
-    return { u, v, speed };
+  if (!bottomLeft || !bottomRight || !topLeft || !topRight) {
+    const fallback = frame.samples[0];
+    return { u: fallback.u, v: fallback.v, speed: fallback.speed };
   }
 
-  let weightTotal = 0;
-  let u = 0;
-  let v = 0;
-  let speed = 0;
-  nearest.forEach(({ sample, distance }) => {
-    const weight = 1 / Math.max(distance, 0.00008);
-    weightTotal += weight;
-    u += sample.u * weight;
-    v += sample.v * weight;
-    speed += sample.speed * weight;
-  });
-
-  return {
-    u: u / weightTotal,
-    v: v / weightTotal,
-    speed: speed / weightTotal,
-  };
+  return interpolateVector(
+    bottomLeft,
+    bottomRight,
+    topLeft,
+    topRight,
+    gridX - left,
+    gridY - bottom,
+  );
 };
 
 const traceStream = (
@@ -101,6 +129,7 @@ export const createForecastWindStreams = (frame: WindGridFrame, density = 1.12):
   const rows = Math.max(6, Math.round(15 * density));
   const longitudeSpan = WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west;
   const latitudeSpan = WIND_GRID_BOUNDS.north - WIND_GRID_BOUNDS.south;
+  const nationalStep = Math.max(0.0085, longitudeSpan / 480);
 
   return Array.from({ length: columns * rows }, (_, index) => {
     const row = Math.floor(index / columns);
@@ -114,7 +143,7 @@ export const createForecastWindStreams = (frame: WindGridFrame, density = 1.12):
     const totalSteps = 14 + Math.floor(noise(index * 5.3 + 7) * 21);
     const backwardSteps = Math.max(6, Math.round(totalSteps * (0.38 + noise(index + 19) * 0.2)));
     const forwardSteps = totalSteps - backwardSteps;
-    const step = 0.0085 + noise(index * 4.1 + 3) * 0.0025;
+    const step = nationalStep * (1 + noise(index * 4.1 + 3) * 0.28);
     const backward = traceStream(frame, start, -1, backwardSteps, step).reverse();
     const forward = traceStream(frame, start, 1, forwardSteps, step);
     const path = [
