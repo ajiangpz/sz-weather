@@ -16,7 +16,7 @@ export const FORECAST_MODEL_PROFILES: Record<ForecastModel, ForecastModelProfile
     sourceLabel: 'Open-Meteo Best Match',
     windSourceLabel: 'Open-Meteo Best Match forecast grid',
     endpoint: 'https://api.open-meteo.com/v1/forecast',
-    note: '自动选择当前地点最合适的预报模式',
+    note: '参考点自动匹配模式；全国网格使用同一模式入口',
   },
   gfs: {
     id: 'gfs',
@@ -24,7 +24,7 @@ export const FORECAST_MODEL_PROFILES: Record<ForecastModel, ForecastModelProfile
     sourceLabel: 'Open-Meteo GFS',
     windSourceLabel: 'Open-Meteo GFS forecast grid',
     endpoint: 'https://api.open-meteo.com/v1/gfs',
-    note: 'NOAA 全球预报；深圳 15 分钟帧由小时数据插值',
+    note: 'NOAA 全球预报；全国 15 分钟展示帧由小时数据插值',
   },
 };
 
