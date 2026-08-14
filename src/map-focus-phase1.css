@@ -1,0 +1,134 @@
+/* Phase 1: a dedicated map-first canvas. Dashboard modules remain available in
+ * source but are intentionally not mounted while the radar presentation is tuned. */
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.weather-dashboard--map-focus {
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0;
+  overflow: hidden;
+  background: #020b13;
+}
+
+.weather-dashboard--map-focus .weather-dashboard__body--map-focus {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.weather-dashboard--map-focus .weather-dashboard__map-shell {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.weather-dashboard--map-focus .weather-dashboard__map-shell::after {
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(1, 8, 14, 0.12), transparent 14%),
+    radial-gradient(circle at 50% 48%, transparent 68%, rgba(1, 8, 14, 0.12) 100%);
+}
+
+.weather-dashboard--map-focus .weather-map-panel__time {
+  top: 12px;
+  left: 98px;
+  display: block;
+  padding: 8px 10px;
+  border-color: rgba(143, 197, 234, 0.14);
+  border-radius: 7px;
+  background: rgba(3, 17, 29, 0.72);
+  box-shadow: 0 10px 28px rgba(0, 4, 10, 0.18);
+  color: #b9ccd8;
+  font-size: 11px;
+  backdrop-filter: blur(10px);
+}
+
+.weather-dashboard--map-focus .weather-map-panel__data-status {
+  position: absolute;
+  z-index: 7;
+  top: 12px;
+  left: 286px;
+  display: inline-flex;
+  height: 31px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid rgba(143, 197, 234, 0.12);
+  border-radius: 7px;
+  background: rgba(3, 17, 29, 0.66);
+  box-shadow: 0 10px 28px rgba(0, 4, 10, 0.16);
+  color: #a9bfcc;
+  font-size: 11px;
+  backdrop-filter: blur(10px);
+}
+
+.weather-dashboard--map-focus .weather-map-panel__data-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #21c978;
+  box-shadow: 0 0 9px rgba(33, 201, 120, 0.32);
+}
+
+.weather-dashboard--map-focus .weather-dashboard__radar-legend {
+  right: 16px;
+  bottom: 16px;
+  width: min(520px, calc(100vw - 110px));
+  padding: 9px 12px 10px;
+  background: rgba(3, 17, 29, 0.74);
+}
+
+.weather-dashboard--map-focus .weather-map-panel__scale {
+  left: 16px;
+  bottom: 16px;
+}
+
+.weather-dashboard--map-focus .weather-layer-popover__panel {
+  max-height: calc(100dvh - 70px) !important;
+}
+
+@media (max-width: 720px) {
+  .weather-dashboard--map-focus .weather-map-panel__time {
+    right: 58px;
+    left: auto;
+    max-width: calc(100vw - 156px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .weather-dashboard--map-focus .weather-map-panel__data-status {
+    display: none;
+  }
+
+  .weather-dashboard--map-focus .weather-dashboard__radar-legend {
+    right: 10px;
+    bottom: 10px;
+    width: calc(100vw - 20px);
+  }
+
+  .weather-dashboard--map-focus .weather-legend__live-meta,
+  .weather-dashboard--map-focus .weather-legend__source {
+    display: none;
+  }
+
+  .weather-dashboard--map-focus .weather-legend__scale--live {
+    min-width: 0;
+  }
+
+  .weather-dashboard--map-focus .weather-map-panel__scale {
+    display: none;
+  }
+}

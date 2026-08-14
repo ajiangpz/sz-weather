@@ -4,6 +4,10 @@
     <div class="weather-map-panel__shade"></div>
 
     <div class="weather-map-panel__time">当前时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
+    <div class="weather-map-panel__data-status" :title="store.dataSource">
+      <i aria-hidden="true"></i>
+      {{ store.dataStatusLabel }}
+    </div>
 
     <article v-if="mapStore.popup" class="weather-map-panel__popup" @click.stop>
       <button type="button" aria-label="关闭" @click="mapStore.closePopup()">×</button>
@@ -24,6 +28,8 @@
     <div class="weather-map-panel__controls" aria-label="地图控制">
       <button type="button" aria-label="放大" @click="zoomMap(1)"><span>+</span></button>
       <button type="button" aria-label="缩小" @click="zoomMap(-1)"><span>−</span></button>
+      <button type="button" aria-label="上一帧" @click="timelineStore.stepFrame(-1)"><UiIcon name="chevron-left" /></button>
+      <button type="button" aria-label="下一帧" @click="timelineStore.stepFrame(1)"><UiIcon name="chevron-right" /></button>
       <button type="button" aria-label="图层" :class="{ active: layerMenuOpen }" @click="layerMenuOpen = !layerMenuOpen"><UiIcon name="layers" /></button>
       <button type="button" aria-label="定位" @click="resetMapView"><UiIcon name="locate" /></button>
     </div>
@@ -68,7 +74,8 @@ import {
   createForecastScalarLayer,
 } from '@/utils/forecastScalarLayer';
 import { createForecastWindStreams } from '@/utils/liveWindField';
-import { createRainRadarBitmapLayer, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
+import { createNationalDemoRadarPoints } from '@/utils/nationalDemoRadar';
+import { createRadarBitmap, createRainRadarBitmapLayer, type RadarBitmapBounds } from '@/utils/radarDeckLayers';
 import { createWindFieldLayers } from '@/utils/windDeckLayers';
 import UiIcon from './UiIcon.vue';
 
@@ -164,34 +171,12 @@ const resetMapView = () => map?.fitBounds(CHINA_BOUNDS, { padding: 20, duration:
 const zoomMap = (direction: 1 | -1) => map?.easeTo({ zoom: map.getZoom() + direction, duration: 250 });
 
 const createNationalDemoPrecipitationBitmap = () => {
-  const canvas = document.createElement('canvas');
-  canvas.width = 560;
-  canvas.height = 340;
-  const context = canvas.getContext('2d');
-  if (!context) return canvas;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-
-  const blobs = [
-    { x: 0.69, y: 0.72, radius: 0.18, color: 'rgba(30, 170, 225, 0.58)' },
-    { x: 0.77, y: 0.62, radius: 0.12, color: 'rgba(52, 205, 143, 0.54)' },
-    { x: 0.83, y: 0.56, radius: 0.085, color: 'rgba(248, 205, 63, 0.52)' },
-    { x: 0.60, y: 0.50, radius: 0.11, color: 'rgba(48, 161, 226, 0.34)' },
-    { x: 0.48, y: 0.40, radius: 0.08, color: 'rgba(36, 132, 209, 0.28)' },
-  ];
-
-  blobs.forEach((blob) => {
-    const x = blob.x * canvas.width;
-    const y = blob.y * canvas.height;
-    const radius = blob.radius * canvas.width;
-    const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
-    gradient.addColorStop(0, blob.color);
-    gradient.addColorStop(0.55, blob.color.replace(/0\.(\d+)\)/, '0.26)'));
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    context.fillStyle = gradient;
-    context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  return createRadarBitmap({
+    points: createNationalDemoRadarPoints(),
+    bounds: chinaBitmapBounds,
+    width: 960,
+    height: 600,
   });
-
-  return canvas;
 };
 
 const rebuildModelBitmaps = () => {
@@ -289,6 +274,11 @@ const syncRainViewerLayer = () => {
       paint: {
         'raster-opacity': layerStore.radarOpacity / 100,
         'raster-fade-duration': 0,
+        'raster-resampling': 'linear',
+        'raster-saturation': 0.12,
+        'raster-contrast': 0.16,
+        'raster-brightness-min': 0.06,
+        'raster-brightness-max': 0.96,
       },
     }, 'alert-area-fill');
   } else {
@@ -397,11 +387,11 @@ onMounted(() => {
             type: 'raster',
             source: 'darkBase',
             paint: {
-              'raster-opacity': 0.98,
-              'raster-saturation': -0.22,
-              'raster-brightness-min': 0.09,
-              'raster-brightness-max': 0.92,
-              'raster-contrast': 0.06,
+              'raster-opacity': 0.92,
+              'raster-saturation': -0.46,
+              'raster-brightness-min': 0.06,
+              'raster-brightness-max': 0.8,
+              'raster-contrast': 0.1,
             },
           },
           {

@@ -29,13 +29,14 @@
     </template>
     <template v-else-if="layerStore.radarEnabled && weatherStore.currentRainViewerFrame">
       <span class="weather-legend__unit weather-legend__unit--live">雷达 LIVE</span>
-      <span class="weather-legend__live-meta">观测 · 10 min</span>
-      <a
-        class="weather-legend__source"
-        href="https://www.rainviewer.com/"
-        target="_blank"
-        rel="noopener noreferrer"
-      >RainViewer</a>
+      <span class="weather-legend__live-meta">dBZ · 10 min</span>
+      <div class="weather-legend__scale weather-legend__scale--live">
+        <div class="weather-legend__labels">
+          <span v-for="item in liveLabels" :key="item">{{ item }}</span>
+        </div>
+        <div class="weather-legend__gradient weather-legend__gradient--live"></div>
+      </div>
+      <a class="weather-legend__source" href="https://www.rainviewer.com/" target="_blank" rel="noopener noreferrer">RainViewer</a>
     </template>
     <template v-else-if="layerStore.radarEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--model">模式降水 LIVE</span>
@@ -66,6 +67,7 @@ import { useWeatherStore } from '@/stores/weather';
 const weatherStore = useWeatherStore();
 const layerStore = useLayerStore();
 const demoLabels = ['<5', '10', '20', '30', '40', '50', '60', '70+'];
+const liveLabels = ['<10', '15', '20', '30', '35', '45', '55', '65+'];
 const modelLabels = ['.02', '.1', '.35', '.75', '1.5', '3', '6', '10+'];
 const temperatureLabels = ['18', '22', '26', '29', '32', '36', '40'];
 const humidityLabels = ['30', '45', '60', '75', '88', '100'];
@@ -116,6 +118,7 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 .weather-legend__source {
   color: #72bdea;
   font-size: 9px;
+  pointer-events: auto;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -128,6 +131,24 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 
 .weather-legend__scale--model {
   min-width: 230px;
+}
+
+.weather-legend__scale--live {
+  min-width: 250px;
+}
+
+.weather-legend__gradient--live {
+  background: linear-gradient(
+    90deg,
+    rgba(206, 192, 135, 0.58),
+    #88ddee,
+    #00a3e0,
+    #005588,
+    #ffee00,
+    #ff4400,
+    #c10000,
+    #ff77ff
+  );
 }
 
 .weather-legend__gradient--model {

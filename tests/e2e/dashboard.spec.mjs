@@ -51,26 +51,25 @@ const createGridPayload = (times) => createGridPoints().map((point, pointIndex) 
   },
 }));
 
-test.describe('RainScope China dashboard smoke tests', () => {
-  test('loads the China dashboard without fatal page errors', async ({ page }) => {
+test.describe('RainScope China map-focus smoke tests', () => {
+  test('loads the full-screen China weather map without fatal page errors', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
 
     await page.goto('/');
 
-    await expect(page.getByRole('region', { name: 'RainScope 中国天气可视化大屏' })).toBeVisible();
-    await expect(page.getByRole('complementary', { name: '全国天气与重点城市概览' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '全国天气主视图' })).toBeVisible();
-    await expect(page.getByRole('complementary', { name: '全国预警与重点影响区域' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '全国气象风险概览' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'RainScope 中国天气地图' })).toBeVisible();
     await expect(page.getByRole('region', { name: '中国天气地图' })).toBeVisible();
-    await expect(page.getByText('中国', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('趋势 · 北京参考点', { exact: true })).toBeVisible();
+    await expect(page.getByText('北京', { exact: true }).first()).toBeVisible();
+    await expect(page.locator('.weather-dashboard__left')).toHaveCount(0);
+    await expect(page.locator('.weather-dashboard__right')).toHaveCount(0);
+    await expect(page.locator('.weather-dashboard__trend')).toHaveCount(0);
+    await expect(page.locator('.weather-dashboard__timeline')).toHaveCount(0);
 
     expect(pageErrors, `Unexpected page errors: ${pageErrors.join('\n')}`).toEqual([]);
   });
 
-  test('keeps the national dashboard usable at the documented desktop widths', async ({ page }, testInfo) => {
+  test('keeps the national map edge-to-edge at the documented desktop widths', async ({ page }, testInfo) => {
     for (const viewport of [
       { width: 1920, height: 1080 },
       { width: 1536, height: 1024 },
@@ -79,8 +78,9 @@ test.describe('RainScope China dashboard smoke tests', () => {
       await page.setViewportSize(viewport);
       await page.goto('/');
 
-      const dashboard = page.getByRole('region', { name: 'RainScope 中国天气可视化大屏' });
-      await expect(dashboard).toBeVisible();
+      const mapRegion = page.getByRole('region', { name: 'RainScope 中国天气地图' });
+      const mapShell = page.locator('.weather-dashboard__map-shell');
+      await expect(mapRegion).toBeVisible();
 
       const overflow = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
@@ -88,20 +88,15 @@ test.describe('RainScope China dashboard smoke tests', () => {
       }));
       expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
 
-      const [leftBox, centerBox, rightBox] = await Promise.all([
-        page.locator('.weather-dashboard__left').boundingBox(),
-        page.locator('.weather-dashboard__center').boundingBox(),
-        page.locator('.weather-dashboard__right').boundingBox(),
-      ]);
-      expect(leftBox).not.toBeNull();
-      expect(centerBox).not.toBeNull();
-      expect(rightBox).not.toBeNull();
-      expect(centerBox.width).toBeGreaterThan(leftBox.width);
-      expect(centerBox.width).toBeGreaterThan(rightBox.width);
+      const mapBox = await mapShell.boundingBox();
+      expect(mapBox).not.toBeNull();
+      expect(mapBox.x).toBeLessThanOrEqual(1);
+      expect(mapBox.y).toBeLessThanOrEqual(1);
+      expect(mapBox.width).toBeGreaterThanOrEqual(viewport.width - 1);
+      expect(mapBox.height).toBeGreaterThanOrEqual(viewport.height - 1);
 
-      const cityLabel = page.locator('.weather-header__city > span').first();
-      expect(await cityLabel.textContent()).toBe('中国');
-      expect((await cityLabel.getAttribute('style')) ?? '').not.toContain('display: none');
+      await expect(page.getByRole('button', { name: '图层' })).toBeVisible();
+      await expect(page.getByRole('region', { name: '地图数据图例' })).toBeVisible();
 
       await page.waitForTimeout(900);
       await page.screenshot({
@@ -229,10 +224,7 @@ test.describe('RainScope China dashboard smoke tests', () => {
 
     await page.goto('/?weather=live');
     await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('北京 · 中雨', { exact: true })).toBeVisible();
-    await expect(page.getByText('趋势 · 北京参考点', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: `当前时刻 ${times[12].slice(11, 16)}` })).toBeVisible();
-    await expect(page.getByText('逐15分钟', { exact: true })).toBeVisible();
+    await expect(page.locator('.weather-map-panel__time')).toContainText(`${times[12].slice(0, 10)} ${times[12].slice(11, 16)}`);
 
     await page.getByRole('button', { name: '图层' }).click();
     const layerPanel = page.locator('#weather-layer-popover-panel');

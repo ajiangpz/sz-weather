@@ -1,29 +1,11 @@
 <template>
-  <main class="weather-dashboard weather-dashboard--v2">
-    <WeatherHeader />
-
-    <section class="weather-dashboard__body" aria-label="RainScope 中国天气可视化大屏">
-      <aside class="weather-dashboard__left" aria-label="全国天气与重点城市概览">
-        <WeatherMetricPanel />
-        <WeatherStationRank />
-      </aside>
-
-      <section class="weather-dashboard__center" aria-label="全国天气主视图">
-        <WeatherRiskBanner />
-        <div class="weather-dashboard__map-shell">
-          <ChinaWeatherMapPanel class="weather-dashboard__map" />
-          <WeatherLegend class="weather-dashboard__radar-legend" />
-          <WeatherLayerPopover />
-        </div>
-      </section>
-
-      <aside class="weather-dashboard__right" aria-label="全国预警与重点影响区域">
-        <WeatherAlertPanel />
-        <WeatherImpactPanel />
-      </aside>
-
-      <WeatherTrendPanel class="weather-dashboard__trend" />
-      <WeatherTimeline class="weather-dashboard__timeline" />
+  <main class="weather-dashboard weather-dashboard--v2 weather-dashboard--map-focus">
+    <section class="weather-dashboard__body weather-dashboard__body--map-focus" aria-label="RainScope 中国天气地图">
+      <div class="weather-dashboard__map-shell">
+        <ChinaWeatherMapPanel class="weather-dashboard__map" />
+        <WeatherLegend class="weather-dashboard__radar-legend" />
+        <WeatherLayerPopover />
+      </div>
     </section>
   </main>
 </template>
@@ -31,16 +13,8 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue';
 import ChinaWeatherMapPanel from '@/components/weather/ChinaWeatherMapPanel.vue';
-import WeatherAlertPanel from '@/components/weather/WeatherAlertPanel.vue';
-import WeatherHeader from '@/components/weather/WeatherHeader.vue';
-import WeatherImpactPanel from '@/components/weather/WeatherImpactPanel.vue';
 import WeatherLayerPopover from '@/components/weather/WeatherLayerPopover.vue';
 import WeatherLegend from '@/components/weather/WeatherLegend.vue';
-import WeatherMetricPanel from '@/components/weather/WeatherMetricPanel.vue';
-import WeatherRiskBanner from '@/components/weather/WeatherRiskBanner.vue';
-import WeatherStationRank from '@/components/weather/WeatherStationRank.vue';
-import WeatherTimeline from '@/components/weather/WeatherTimeline.vue';
-import WeatherTrendPanel from '@/components/weather/WeatherTrendPanel.vue';
 import { useMapStore } from '@/stores/mapStore';
 import { useTimelineStore } from '@/stores/timelineStore';
 import { useWeatherStore } from '@/stores/weather';
