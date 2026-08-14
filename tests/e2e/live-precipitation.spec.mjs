@@ -44,6 +44,7 @@ test('renders future model precipitation as a continuous China live field when o
   const nextFrameButton = page.getByRole('button', { name: '下一帧' });
   for (let index = 12; index < futureIndex; index += 1) await nextFrameButton.click();
   await expect(page.locator('.weather-map-panel__time')).toContainText(times[futureIndex].slice(11, 16));
+  await expect(page.locator('.weather-map-panel__time')).toContainText('图层时间：');
 
   const precipitationLegend = page.getByRole('region', { name: '地图数据图例' });
   await expect(precipitationLegend.getByText('模式降水 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });

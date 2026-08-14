@@ -3,7 +3,7 @@
     <div ref="mapContainer" class="weather-map-panel__canvas"></div>
     <div class="weather-map-panel__shade"></div>
 
-    <div class="weather-map-panel__time">当前时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
+    <div class="weather-map-panel__time">图层时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
     <div class="weather-map-panel__data-status" :title="store.dataSource">
       <i aria-hidden="true"></i>
       {{ store.dataStatusLabel }}

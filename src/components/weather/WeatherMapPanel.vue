@@ -3,7 +3,7 @@
     <div ref="mapContainer" class="weather-map-panel__canvas"></div>
     <div class="weather-map-panel__shade"></div>
 
-    <div class="weather-map-panel__time">当前时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
+    <div class="weather-map-panel__time">图层时间：{{ mapFrameDate }} {{ timelineStore.currentFrameTime }}</div>
 
     <article v-if="mapStore.popup" class="weather-map-panel__popup" @click.stop>
       <button type="button" aria-label="关闭" @click="mapStore.closePopup()">×</button>

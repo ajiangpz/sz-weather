@@ -60,6 +60,7 @@ test.describe('RainScope China map-focus smoke tests', () => {
 
     await expect(page.getByRole('region', { name: 'RainScope 中国天气地图', exact: true })).toBeVisible();
     await expect(page.getByRole('region', { name: '中国天气地图', exact: true })).toBeVisible();
+    await expect(page.locator('.weather-map-panel__time')).toContainText('图层时间：');
     await expect(page.getByText('北京', { exact: true }).first()).toBeVisible();
     await expect(page.locator('.weather-dashboard__left')).toHaveCount(0);
     await expect(page.locator('.weather-dashboard__right')).toHaveCount(0);
