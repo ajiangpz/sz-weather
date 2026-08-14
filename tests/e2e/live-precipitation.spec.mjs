@@ -48,12 +48,12 @@ test('renders future model precipitation as a continuous China live field when o
 
   const precipitationLegend = page.getByRole('region', { name: '地图数据图例' });
   await expect(precipitationLegend.getByText('模式降水 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(precipitationLegend.getByText('mm / 15 min', { exact: true })).toBeVisible();
+  await expect(precipitationLegend.getByText('mm / 15 min · 12×8 · 插值', { exact: true })).toBeVisible();
 
   const layerButton = page.getByRole('button', { name: '图层' });
   const layerPanel = page.locator('#weather-layer-popover-panel');
   await layerButton.click();
-  await expect(layerPanel.getByText('模式降水 LIVE', { exact: true })).toBeVisible();
+  await expect(layerPanel.getByText('12×8 采样', { exact: true }).first()).toBeVisible();
   const windToggle = layerPanel.getByRole('checkbox', { name: '风场流线' });
   await windToggle.uncheck();
   await page.keyboard.press('Escape');

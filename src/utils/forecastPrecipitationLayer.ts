@@ -7,12 +7,13 @@ import {
   WIND_GRID_ROWS,
   type WindGridFrame,
 } from '@/services/openMeteoWindGrid';
+import { getForecastFieldEdgeAlpha } from './forecastFieldMask';
 
 export const FORECAST_PRECIPITATION_BOUNDS: [number, number, number, number] = [
-  WIND_GRID_BOUNDS.west,
-  WIND_GRID_BOUNDS.south,
-  WIND_GRID_BOUNDS.east,
-  WIND_GRID_BOUNDS.north,
+  WIND_GRID_BOUNDS.west - 2.5,
+  WIND_GRID_BOUNDS.south - 1.5,
+  WIND_GRID_BOUNDS.east + 2.5,
+  WIND_GRID_BOUNDS.north + 1.5,
 ];
 
 const colorStops = [
@@ -97,11 +98,11 @@ export const createForecastPrecipitationBitmap = (
 
   const pixels = context.createImageData(width, height);
   for (let y = 0; y < height; y += 1) {
-    const latitude = WIND_GRID_BOUNDS.north
-      - (y / Math.max(1, height - 1)) * (WIND_GRID_BOUNDS.north - WIND_GRID_BOUNDS.south);
+    const latitude = FORECAST_PRECIPITATION_BOUNDS[3]
+      - (y / Math.max(1, height - 1)) * (FORECAST_PRECIPITATION_BOUNDS[3] - FORECAST_PRECIPITATION_BOUNDS[1]);
     for (let x = 0; x < width; x += 1) {
-      const longitude = WIND_GRID_BOUNDS.west
-        + (x / Math.max(1, width - 1)) * (WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west);
+      const longitude = FORECAST_PRECIPITATION_BOUNDS[0]
+        + (x / Math.max(1, width - 1)) * (FORECAST_PRECIPITATION_BOUNDS[2] - FORECAST_PRECIPITATION_BOUNDS[0]);
       const precipitation = sampleForecastPrecipitation(frame, longitude, latitude);
       const [red, green, blue, alpha] = getPrecipitationColor(precipitation);
       if (alpha === 0) continue;
@@ -109,7 +110,7 @@ export const createForecastPrecipitationBitmap = (
       pixels.data[offset] = red;
       pixels.data[offset + 1] = green;
       pixels.data[offset + 2] = blue;
-      pixels.data[offset + 3] = alpha;
+      pixels.data[offset + 3] = Math.round(alpha * getForecastFieldEdgeAlpha(x, y, width, height));
     }
   }
   context.putImageData(pixels, 0, 0);

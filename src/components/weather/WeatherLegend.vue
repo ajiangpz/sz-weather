@@ -14,7 +14,7 @@
     </span>
     <template v-if="layerStore.temperatureEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--temperature">温度预报场</span>
-      <span class="weather-legend__live-meta">°C</span>
+      <span class="weather-legend__live-meta">°C · {{ gridResolutionLabel }} · 插值</span>
       <div class="weather-legend__scale weather-legend__scale--model">
         <div class="weather-legend__labels">
           <span v-for="item in temperatureLabels" :key="item">{{ item }}</span>
@@ -24,7 +24,7 @@
     </template>
     <template v-else-if="layerStore.humidityEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--humidity">湿度预报场</span>
-      <span class="weather-legend__live-meta">%</span>
+      <span class="weather-legend__live-meta">% · {{ gridResolutionLabel }} · 插值</span>
       <div class="weather-legend__scale weather-legend__scale--model">
         <div class="weather-legend__labels">
           <span v-for="item in humidityLabels" :key="item">{{ item }}</span>
@@ -45,7 +45,7 @@
     </template>
     <template v-else-if="layerStore.radarEnabled && weatherStore.currentWindGridFrame">
       <span class="weather-legend__unit weather-legend__unit--model">模式降水 LIVE</span>
-      <span class="weather-legend__live-meta">mm / 15 min</span>
+      <span class="weather-legend__live-meta">mm / 15 min · {{ gridResolutionLabel }} · 插值</span>
       <div class="weather-legend__scale weather-legend__scale--model">
         <div class="weather-legend__labels">
           <span v-for="item in modelLabels" :key="item">{{ item }}</span>
@@ -67,10 +67,12 @@
 
 <script setup lang="ts">
 import { useLayerStore } from '@/stores/layerStore';
+import { WIND_GRID_COLUMNS, WIND_GRID_ROWS } from '@/services/openMeteoWindGrid';
 import { useWeatherStore } from '@/stores/weather';
 
 const weatherStore = useWeatherStore();
 const layerStore = useLayerStore();
+const gridResolutionLabel = `${WIND_GRID_COLUMNS}×${WIND_GRID_ROWS}`;
 const demoLabels = ['<5', '10', '20', '30', '40', '50', '60', '70+'];
 const liveLabels = ['<10', '15', '20', '30', '35', '45', '55', '65+'];
 const modelLabels = ['.02', '.1', '.35', '.75', '1.5', '3', '6', '10+'];

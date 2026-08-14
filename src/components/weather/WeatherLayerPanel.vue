@@ -127,6 +127,7 @@ import {
   FORECAST_MODEL_PROFILES,
   type ForecastModel,
 } from '@/services/forecastModel';
+import { WIND_GRID_COLUMNS, WIND_GRID_ROWS } from '@/services/openMeteoWindGrid';
 import { type PrimaryWeatherField, useLayerStore } from '@/stores/layerStore';
 import { useWeatherStore } from '@/stores/weather';
 
@@ -149,6 +150,7 @@ const overlayLayers = [
 ] as const;
 
 const hasLiveForecastGrid = computed(() => weatherStore.windDataStatus === 'live');
+const gridResolutionLabel = `${WIND_GRID_COLUMNS}×${WIND_GRID_ROWS} 采样`;
 const demoAlertAvailable = computed(() => weatherStore.dataStatus === 'mock' || weatherStore.dataStatus === 'fallback');
 const layerUnavailable = (layer: (typeof overlayLayers)[number]) => (
   (layer.requiresForecastGrid && !hasLiveForecastGrid.value)
@@ -179,8 +181,12 @@ const primaryOpacity = computed({
 });
 
 const primaryFieldSource = (field: PrimaryWeatherField) => {
-  if (field === 'precipitation') return weatherStore.radarDataStatusLabel;
-  if (field === 'temperature' || field === 'humidity') return hasLiveForecastGrid.value ? '预报场' : '不可用';
+  if (field === 'precipitation') {
+    if (weatherStore.currentRainViewerFrame) return weatherStore.radarDataStatusLabel;
+    if (weatherStore.currentWindGridFrame) return gridResolutionLabel;
+    return weatherStore.radarDataStatusLabel;
+  }
+  if (field === 'temperature' || field === 'humidity') return hasLiveForecastGrid.value ? gridResolutionLabel : '不可用';
   return '底图';
 };
 

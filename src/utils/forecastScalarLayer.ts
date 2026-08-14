@@ -7,14 +7,15 @@ import {
   WIND_GRID_ROWS,
   type WindGridFrame,
 } from '@/services/openMeteoWindGrid';
+import { getForecastFieldEdgeAlpha } from './forecastFieldMask';
 
 export type ForecastScalarField = 'temperature' | 'humidity';
 
 export const FORECAST_SCALAR_BOUNDS: [number, number, number, number] = [
-  WIND_GRID_BOUNDS.west,
-  WIND_GRID_BOUNDS.south,
-  WIND_GRID_BOUNDS.east,
-  WIND_GRID_BOUNDS.north,
+  WIND_GRID_BOUNDS.west - 2.5,
+  WIND_GRID_BOUNDS.south - 1.5,
+  WIND_GRID_BOUNDS.east + 2.5,
+  WIND_GRID_BOUNDS.north + 1.5,
 ];
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
@@ -98,7 +99,7 @@ const getColor = (field: ForecastScalarField, value: number): [number, number, n
   const color = upper.color.map((channel, index) => (
     Math.round(interpolate(lower.color[index], channel, ratio))
   )) as [number, number, number];
-  return [...color, field === 'temperature' ? 174 : 158];
+  return [...color, field === 'temperature' ? 158 : 144];
 };
 
 export const createForecastScalarBitmap = (
@@ -115,18 +116,18 @@ export const createForecastScalarBitmap = (
 
   const pixels = context.createImageData(width, height);
   for (let y = 0; y < height; y += 1) {
-    const latitude = WIND_GRID_BOUNDS.north
-      - (y / Math.max(1, height - 1)) * (WIND_GRID_BOUNDS.north - WIND_GRID_BOUNDS.south);
+    const latitude = FORECAST_SCALAR_BOUNDS[3]
+      - (y / Math.max(1, height - 1)) * (FORECAST_SCALAR_BOUNDS[3] - FORECAST_SCALAR_BOUNDS[1]);
     for (let x = 0; x < width; x += 1) {
-      const longitude = WIND_GRID_BOUNDS.west
-        + (x / Math.max(1, width - 1)) * (WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west);
+      const longitude = FORECAST_SCALAR_BOUNDS[0]
+        + (x / Math.max(1, width - 1)) * (FORECAST_SCALAR_BOUNDS[2] - FORECAST_SCALAR_BOUNDS[0]);
       const value = sampleForecastScalar(frame, field, longitude, latitude);
       const [red, green, blue, alpha] = getColor(field, value);
       const offset = (y * width + x) * 4;
       pixels.data[offset] = red;
       pixels.data[offset + 1] = green;
       pixels.data[offset + 2] = blue;
-      pixels.data[offset + 3] = alpha;
+      pixels.data[offset + 3] = Math.round(alpha * getForecastFieldEdgeAlpha(x, y, width, height));
     }
   }
   context.putImageData(pixels, 0, 0);
