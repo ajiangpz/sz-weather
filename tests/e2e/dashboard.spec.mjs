@@ -52,6 +52,20 @@ const createGridPayload = (times) => createGridPoints().map((point, pointIndex) 
 }));
 
 test.describe('RainScope China map-focus smoke tests', () => {
+  test('uses China-wide page identity and sharing metadata', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page).toHaveTitle('RainScope 中国天气可视化');
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      'RainScope 中国天气可视化：联动查看全国降水、雷达、风场、温度、湿度与气压预报。',
+    );
+    await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
+      'content',
+      'RainScope 中国天气可视化',
+    );
+  });
+
   test('loads the full-screen China weather map without fatal page errors', async ({ page }) => {
     const pageErrors = [];
     page.on('pageerror', error => pageErrors.push(error.message));
