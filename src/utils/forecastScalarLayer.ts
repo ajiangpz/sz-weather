@@ -68,25 +68,28 @@ export const sampleForecastScalar = (
 type ColorStop = { value: number; color: [number, number, number] };
 
 const temperatureStops: ColorStop[] = [
-  { value: 18, color: [62, 100, 214] },
-  { value: 22, color: [48, 156, 232] },
-  { value: 26, color: [55, 202, 184] },
-  { value: 29, color: [224, 209, 77] },
-  { value: 32, color: [244, 143, 64] },
-  { value: 36, color: [222, 74, 80] },
-  { value: 40, color: [173, 58, 127] },
+  { value: -30, color: [87, 48, 168] },
+  { value: -15, color: [53, 92, 202] },
+  { value: 0, color: [38, 162, 218] },
+  { value: 15, color: [67, 193, 166] },
+  { value: 25, color: [230, 210, 75] },
+  { value: 35, color: [240, 120, 55] },
+  { value: 50, color: [164, 38, 84] },
 ];
 
 const humidityStops: ColorStop[] = [
-  { value: 30, color: [111, 86, 182] },
-  { value: 45, color: [80, 104, 205] },
-  { value: 60, color: [55, 142, 222] },
-  { value: 75, color: [43, 184, 206] },
-  { value: 88, color: [48, 205, 166] },
-  { value: 100, color: [93, 220, 139] },
+  { value: 0, color: [151, 91, 45] },
+  { value: 20, color: [216, 143, 55] },
+  { value: 40, color: [224, 203, 91] },
+  { value: 60, color: [115, 190, 154] },
+  { value: 80, color: [52, 157, 211] },
+  { value: 100, color: [54, 67, 166] },
 ];
 
-const getColor = (field: ForecastScalarField, value: number): [number, number, number, number] => {
+export const getForecastScalarColor = (
+  field: ForecastScalarField,
+  value: number,
+): [number, number, number, number] => {
   const stops = field === 'temperature' ? temperatureStops : humidityStops;
   const safeValue = clamp(value, stops[0].value, stops[stops.length - 1].value);
   const upperIndex = stops.findIndex((stop) => safeValue <= stop.value);
@@ -122,7 +125,7 @@ export const createForecastScalarBitmap = (
       const longitude = FORECAST_SCALAR_BOUNDS[0]
         + (x / Math.max(1, width - 1)) * (FORECAST_SCALAR_BOUNDS[2] - FORECAST_SCALAR_BOUNDS[0]);
       const value = sampleForecastScalar(frame, field, longitude, latitude);
-      const [red, green, blue, alpha] = getColor(field, value);
+      const [red, green, blue, alpha] = getForecastScalarColor(field, value);
       const offset = (y * width + x) * 4;
       pixels.data[offset] = red;
       pixels.data[offset + 1] = green;

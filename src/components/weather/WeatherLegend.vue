@@ -76,8 +76,8 @@ const gridResolutionLabel = `${WIND_GRID_COLUMNS}×${WIND_GRID_ROWS}`;
 const demoLabels = ['<5', '10', '20', '30', '40', '50', '60', '70+'];
 const liveLabels = ['<10', '15', '20', '30', '35', '45', '55', '65+'];
 const modelLabels = ['.02', '.1', '.35', '.75', '1.5', '3', '6', '10+'];
-const temperatureLabels = ['18', '22', '26', '29', '32', '36', '40'];
-const humidityLabels = ['30', '45', '60', '75', '88', '100'];
+const temperatureLabels = ['-30', '-15', '0', '15', '25', '35', '50'];
+const humidityLabels = ['0', '20', '40', '60', '80', '100'];
 </script>
 
 <style scoped>
@@ -199,25 +199,25 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 .weather-legend__gradient--temperature {
   background: linear-gradient(
     90deg,
-    rgb(62 100 214),
-    rgb(48 156 232),
-    rgb(55 202 184),
-    rgb(224 209 77),
-    rgb(244 143 64),
-    rgb(222 74 80),
-    rgb(173 58 127)
+    rgb(87 48 168),
+    rgb(53 92 202),
+    rgb(38 162 218),
+    rgb(67 193 166),
+    rgb(230 210 75),
+    rgb(240 120 55),
+    rgb(164 38 84)
   );
 }
 
 .weather-legend__gradient--humidity {
   background: linear-gradient(
     90deg,
-    rgb(111 86 182),
-    rgb(80 104 205),
-    rgb(55 142 222),
-    rgb(43 184 206),
-    rgb(48 205 166),
-    rgb(93 220 139)
+    rgb(151 91 45),
+    rgb(216 143 55),
+    rgb(224 203 91),
+    rgb(115 190 154),
+    rgb(52 157 211),
+    rgb(54 67 166)
   );
 }
 </style>

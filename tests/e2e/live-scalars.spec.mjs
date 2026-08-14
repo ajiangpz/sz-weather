@@ -59,6 +59,8 @@ test('renders precipitation, temperature and humidity as mutually exclusive Chin
   const legend = page.getByRole('region', { name: '地图数据图例' });
   await expect(legend.getByText('温度预报场', { exact: true })).toBeVisible();
   await expect(legend.getByText('°C · 12×8 · 插值', { exact: true })).toBeVisible();
+  await expect(legend.getByText('-30', { exact: true })).toBeVisible();
+  await expect(legend.getByText('50', { exact: true })).toBeVisible();
   await page.waitForTimeout(250);
   const mapShell = page.locator('.weather-dashboard__map-shell');
   const temperatureFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-temperature-field.png') });
@@ -68,6 +70,8 @@ test('renders precipitation, temperature and humidity as mutually exclusive Chin
   await page.keyboard.press('Escape');
   await expect(legend.getByText('湿度预报场', { exact: true })).toBeVisible();
   await expect(legend.getByText('% · 12×8 · 插值', { exact: true })).toBeVisible();
+  await expect(legend.getByText('0', { exact: true })).toBeVisible();
+  await expect(legend.getByText('100', { exact: true })).toBeVisible();
   await page.waitForTimeout(250);
   const humidityFrame = await mapShell.screenshot({ path: testInfo.outputPath('visual-qa-china-humidity-field.png') });
   expect(temperatureFrame.equals(humidityFrame)).toBe(false);

@@ -6,7 +6,7 @@ import {
   WIND_GRID_ROWS,
   type WindGridFrame,
 } from '@/services/openMeteoWindGrid';
-import { sampleForecastScalar } from './forecastScalarLayer';
+import { getForecastScalarColor, sampleForecastScalar } from './forecastScalarLayer';
 
 const createFrame = (): WindGridFrame => ({
   timestamp: '2026-08-12T16:00',
@@ -53,5 +53,21 @@ describe('forecast scalar fields', () => {
     const frame = createFrame();
     expect(sampleForecastScalar(frame, 'temperature', WIND_GRID_BOUNDS.west - 2, WIND_GRID_BOUNDS.south - 2)).toBeCloseTo(24, 6);
     expect(sampleForecastScalar(frame, 'humidity', WIND_GRID_BOUNDS.east + 2, WIND_GRID_BOUNDS.north + 2)).toBeCloseTo(northEastHumidity, 6);
+  });
+
+  it('uses a full-range semantic temperature scale and clamps its extremes', () => {
+    expect(getForecastScalarColor('temperature', -30)).toEqual([87, 48, 168, 158]);
+    expect(getForecastScalarColor('temperature', 25)).toEqual([230, 210, 75, 158]);
+    expect(getForecastScalarColor('temperature', 50)).toEqual([164, 38, 84, 158]);
+    expect(getForecastScalarColor('temperature', -80)).toEqual(getForecastScalarColor('temperature', -30));
+    expect(getForecastScalarColor('temperature', 70)).toEqual(getForecastScalarColor('temperature', 50));
+  });
+
+  it('uses a dry-to-moist humidity scale over the complete percentage domain', () => {
+    expect(getForecastScalarColor('humidity', 0)).toEqual([151, 91, 45, 144]);
+    expect(getForecastScalarColor('humidity', 60)).toEqual([115, 190, 154, 144]);
+    expect(getForecastScalarColor('humidity', 100)).toEqual([54, 67, 166, 144]);
+    expect(getForecastScalarColor('humidity', -10)).toEqual(getForecastScalarColor('humidity', 0));
+    expect(getForecastScalarColor('humidity', 120)).toEqual(getForecastScalarColor('humidity', 100));
   });
 });
