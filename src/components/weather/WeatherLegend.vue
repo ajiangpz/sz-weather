@@ -76,7 +76,7 @@ const gridResolutionLabel = `${WIND_GRID_COLUMNS}×${WIND_GRID_ROWS}`;
 const demoLabels = ['<5', '10', '20', '30', '40', '50', '60', '70+'];
 const liveLabels = ['<10', '15', '20', '30', '35', '45', '55', '65+'];
 const modelLabels = ['.02', '.1', '.35', '.75', '1.5', '3', '6', '10+'];
-const temperatureLabels = ['-30', '-15', '0', '15', '25', '35', '50'];
+const temperatureLabels = ['-30', '-10', '10', '30', '50'];
 const humidityLabels = ['0', '20', '40', '60', '80', '100'];
 </script>
 
@@ -200,11 +200,13 @@ const humidityLabels = ['0', '20', '40', '60', '80', '100'];
   background: linear-gradient(
     90deg,
     rgb(87 48 168),
+    rgb(68 65 190),
     rgb(53 92 202),
     rgb(38 162 218),
     rgb(67 193 166),
     rgb(230 210 75),
-    rgb(240 120 55),
+    rgb(244 153 61),
+    rgb(221 77 74),
     rgb(164 38 84)
   );
 }

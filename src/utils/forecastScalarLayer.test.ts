@@ -57,7 +57,7 @@ describe('forecast scalar fields', () => {
 
   it('uses a full-range semantic temperature scale and clamps its extremes', () => {
     expect(getForecastScalarColor('temperature', -30)).toEqual([87, 48, 168, 158]);
-    expect(getForecastScalarColor('temperature', 25)).toEqual([230, 210, 75, 158]);
+    expect(getForecastScalarColor('temperature', 20)).toEqual([230, 210, 75, 158]);
     expect(getForecastScalarColor('temperature', 50)).toEqual([164, 38, 84, 158]);
     expect(getForecastScalarColor('temperature', -80)).toEqual(getForecastScalarColor('temperature', -30));
     expect(getForecastScalarColor('temperature', 70)).toEqual(getForecastScalarColor('temperature', 50));

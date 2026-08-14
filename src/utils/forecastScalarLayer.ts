@@ -69,11 +69,13 @@ type ColorStop = { value: number; color: [number, number, number] };
 
 const temperatureStops: ColorStop[] = [
   { value: -30, color: [87, 48, 168] },
-  { value: -15, color: [53, 92, 202] },
+  { value: -20, color: [68, 65, 190] },
+  { value: -10, color: [53, 92, 202] },
   { value: 0, color: [38, 162, 218] },
-  { value: 15, color: [67, 193, 166] },
-  { value: 25, color: [230, 210, 75] },
-  { value: 35, color: [240, 120, 55] },
+  { value: 10, color: [67, 193, 166] },
+  { value: 20, color: [230, 210, 75] },
+  { value: 30, color: [244, 153, 61] },
+  { value: 40, color: [221, 77, 74] },
   { value: 50, color: [164, 38, 84] },
 ];
 
