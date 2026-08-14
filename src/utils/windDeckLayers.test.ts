@@ -19,9 +19,9 @@ const createStream = (id: string, speed: number, offset: number): WindStream => 
 
 describe('wind deck layers', () => {
   it('uses brighter colors for faster wind', () => {
-    expect(getWindStreamColor(2)).toEqual([76, 139, 204, 105]);
-    expect(getWindStreamColor(4)).toEqual([82, 181, 244, 135]);
-    expect(getWindStreamColor(6)).toEqual([118, 222, 255, 165]);
+    expect(getWindStreamColor(2)).toEqual([117, 185, 218, 150]);
+    expect(getWindStreamColor(4)).toEqual([137, 220, 244, 185]);
+    expect(getWindStreamColor(6)).toEqual([196, 246, 255, 220]);
   });
 
   it('moves faster particles farther per animation phase', () => {
@@ -30,8 +30,8 @@ describe('wind deck layers', () => {
 
   it('uses deterministic non-grid particle selection at the denser target', () => {
     const selected = Array.from({ length: 300 }, (_, index) => index).filter(shouldRenderWindParticle);
-    expect(selected.length).toBeGreaterThanOrEqual(145);
-    expect(selected.length).toBeLessThanOrEqual(175);
+    expect(selected.length).toBeGreaterThanOrEqual(205);
+    expect(selected.length).toBeLessThanOrEqual(225);
     expect(selected.slice(0, 6)).not.toEqual([0, 3, 6, 9, 12, 15]);
   });
 
@@ -46,7 +46,7 @@ describe('wind deck layers', () => {
     const particles = createWindParticleStreaks(streams, 0.6);
     const segments = createWindParticleSegments(particles);
 
-    expect(particles).toHaveLength(5);
+    expect(particles).toHaveLength(7);
     particles.forEach((particle) => {
       expect(particle.path).toHaveLength(8);
       expect(particle.headPath).toEqual(particle.path.slice(-2));

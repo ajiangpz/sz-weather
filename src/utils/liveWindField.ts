@@ -124,7 +124,7 @@ const traceStream = (
   return points;
 };
 
-export const createForecastWindStreams = (frame: WindGridFrame, density = 1.12): WindStream[] => {
+export const createForecastWindStreams = (frame: WindGridFrame, density = 1.45): WindStream[] => {
   const columns = Math.max(8, Math.round(20 * density));
   const rows = Math.max(6, Math.round(15 * density));
   const longitudeSpan = WIND_GRID_BOUNDS.east - WIND_GRID_BOUNDS.west;

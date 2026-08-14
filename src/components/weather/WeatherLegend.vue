@@ -1,5 +1,10 @@
 <template>
   <section class="weather-legend weather-legend--map" aria-label="地图数据图例">
+    <span v-if="layerStore.windEnabled" class="weather-legend__wind">
+      <span>风速</span>
+      <i aria-hidden="true"></i>
+      <small>0 · 3 · 6 · 10+ m/s</small>
+    </span>
     <span
       v-if="layerStore.pressureEnabled && weatherStore.currentWindGridFrame"
       class="weather-legend__pressure"
@@ -74,6 +79,30 @@ const humidityLabels = ['30', '45', '60', '75', '88', '100'];
 </script>
 
 <style scoped>
+.weather-legend__wind {
+  display: inline-grid;
+  flex: 0 1 132px;
+  grid-template-columns: auto minmax(34px, 54px);
+  align-items: center;
+  gap: 2px 6px;
+  color: #b9d4e3;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.weather-legend__wind i {
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgb(117 185 218 / 65%), rgb(137 220 244 / 82%), rgb(225 252 255 / 96%));
+}
+
+.weather-legend__wind small {
+  grid-column: 1 / -1;
+  color: #7895a6;
+  font-size: 8px;
+  letter-spacing: 0.01em;
+}
+
 .weather-legend__pressure {
   display: inline-flex;
   align-items: center;

@@ -11,9 +11,9 @@ export interface WindFieldLayerInput {
 }
 
 export const getWindStreamColor = (speed: number): [number, number, number, number] => {
-  if (speed >= 5) return [118, 222, 255, 165];
-  if (speed >= 3.5) return [82, 181, 244, 135];
-  return [76, 139, 204, 105];
+  if (speed >= 6) return [196, 246, 255, 220];
+  if (speed >= 3) return [137, 220, 244, 185];
+  return [117, 185, 218, 150];
 };
 
 export interface WindParticleStreak {
@@ -48,11 +48,11 @@ const interpolatePoint = (path: Array<[number, number]>, progress: number): [num
   return [start[0] + (end[0] - start[0]) * ratio, start[1] + (end[1] - start[1]) * ratio];
 };
 
-export const shouldRenderWindParticle = (index: number) => particleNoise(index, 1.7) < 0.56;
+export const shouldRenderWindParticle = (index: number) => particleNoise(index, 1.7) < 0.72;
 
 // WeatherMapPanel currently redraws the wind layer on a throttled cadence. Keep the
 // phase rate high enough that the visible particle speed still tracks wind speed.
-export const getWindParticleRate = (speed: number) => 0.42 + Math.max(0, speed) * 0.065;
+export const getWindParticleRate = (speed: number) => 0.52 + Math.max(0, speed) * 0.075;
 
 export const getWindLifecycleAlpha = (progress: number) => {
   const fadeIn = clamp01(progress / 0.09);
@@ -68,7 +68,7 @@ export const createWindParticleStreaks = (
 
   const initialPhase = particleNoise(streamIndex, 3.1);
   const progress = (initialPhase + particlePhase * getWindParticleRate(stream.speed)) % 1;
-  const trailSpan = Math.min(0.13, 0.08 + stream.speed * 0.0075);
+  const trailSpan = Math.min(0.16, 0.1 + stream.speed * 0.008);
   const sampleCount = 8;
   const startProgress = Math.max(0, progress - trailSpan);
   const path = Array.from({ length: sampleCount }, (_, sampleIndex) => {
@@ -110,16 +110,16 @@ export const createWindFieldLayers = ({ streams, opacity, visible, particlePhase
       getPath: (segment) => segment.path,
       getColor: (segment) => {
         const [red, green, blue] = getWindStreamColor(segment.speed);
-        const baseAlpha = segment.speed >= 5 ? 148 : 122;
+        const baseAlpha = segment.speed >= 6 ? 178 : 152;
         return [red, green, blue, Math.round(baseAlpha * segment.alpha)];
       },
-      getWidth: (segment) => Math.min(1.05, (0.5 + segment.speed * 0.05) * segment.widthScale),
+      getWidth: (segment) => Math.min(1.18, (0.58 + segment.speed * 0.055) * segment.widthScale),
       widthUnits: 'pixels',
-      widthMinPixels: 0.46,
-      widthMaxPixels: 1.05,
+      widthMinPixels: 0.56,
+      widthMaxPixels: 1.18,
       jointRounded: true,
       capRounded: true,
-      opacity: Math.min(0.76, opacity * 0.86),
+      opacity: Math.min(0.84, opacity * 0.96),
       visible,
       pickable: false,
     }),
@@ -127,13 +127,13 @@ export const createWindFieldLayers = ({ streams, opacity, visible, particlePhase
       id: 'deck-wind-particle-heads',
       data: particles,
       getPath: (particle) => particle.headPath,
-      getColor: (particle) => particle.speed >= 5
-        ? [188, 244, 255, Math.round(224 * particle.lifecycleAlpha)]
-        : [104, 211, 248, Math.round(194 * particle.lifecycleAlpha)],
-      getWidth: (particle) => Math.min(1.22, 0.76 + particle.speed * 0.068),
+      getColor: (particle) => particle.speed >= 6
+        ? [225, 252, 255, Math.round(238 * particle.lifecycleAlpha)]
+        : [166, 232, 250, Math.round(216 * particle.lifecycleAlpha)],
+      getWidth: (particle) => Math.min(1.36, 0.84 + particle.speed * 0.072),
       widthUnits: 'pixels',
-      widthMinPixels: 0.78,
-      widthMaxPixels: 1.22,
+      widthMinPixels: 0.88,
+      widthMaxPixels: 1.36,
       jointRounded: true,
       capRounded: true,
       opacity: Math.min(0.9, opacity * 1.12),

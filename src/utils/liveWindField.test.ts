@@ -34,8 +34,8 @@ describe('forecast wind field', () => {
 
   it('traces a dense deterministic field through forecast vectors', () => {
     const streams = createForecastWindStreams(createFrame(270));
-    expect(streams.length).toBeGreaterThanOrEqual(350);
-    expect(streams.length).toBeLessThanOrEqual(374);
+    expect(streams.length).toBeGreaterThanOrEqual(610);
+    expect(streams.length).toBeLessThanOrEqual(638);
     expect(streams.every((stream) => stream.path.length >= 8)).toBe(true);
     expect(streams.every((stream) => stream.speed >= 4 && stream.speed < 5)).toBe(true);
   });

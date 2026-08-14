@@ -86,6 +86,10 @@ test('drives the animated national wind layer from the China forecast grid', asy
   await expect(page.getByRole('checkbox', { name: '风场流线' })).toBeChecked();
   await page.keyboard.press('Escape');
 
+  const windLegend = page.getByRole('region', { name: '地图数据图例' });
+  await expect(windLegend.getByText('风速', { exact: true })).toBeVisible();
+  await expect(windLegend.getByText('0 · 3 · 6 · 10+ m/s', { exact: true })).toBeVisible();
+
   await expect(page.locator('.weather-map-panel__time')).toContainText(`${times[12].slice(0, 10)} ${times[12].slice(11, 16)}`);
 
   const mapShell = page.locator('.weather-dashboard__map-shell');
