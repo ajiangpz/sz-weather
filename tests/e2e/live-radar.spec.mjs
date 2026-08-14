@@ -108,7 +108,9 @@ test('uses RainViewer only inside the observed China radar window and falls back
   await page.getByRole('button', { name: '关闭' }).click();
 
   const futureIndex = 16;
-  await page.getByRole('button', { name: `预报时刻 ${fixture.times[futureIndex].slice(11, 16)}` }).click();
+  const nextFrameButton = page.getByRole('button', { name: '下一帧' });
+  for (let index = fixture.currentIndex; index < futureIndex; index += 1) await nextFrameButton.click();
+  await expect(page.locator('.weather-map-panel__time')).toContainText(fixture.times[futureIndex].slice(11, 16));
   await expect(radarLegend.getByText('DEMO dBZ', { exact: true })).toBeVisible();
   await layerButton.click();
   await expect(layerPanel.getByText('DEMO 降水', { exact: true })).toBeVisible();

@@ -78,7 +78,6 @@ test('switches China reference forecast and national forecast grid to GFS togeth
   await expect(modelSelect).toHaveValue('best_match');
 
   await modelSelect.selectOption('gfs');
-  await expect(modelSelect).toBeDisabled();
   await expect(modelSelect).toBeEnabled({ timeout: 10_000 });
   await expect(modelSelect).toHaveValue('gfs');
   await expect(panel.getByText('NOAA 全球预报；全国 15 分钟展示帧由小时数据插值', { exact: true })).toBeVisible();

@@ -58,8 +58,8 @@ test.describe('RainScope China map-focus smoke tests', () => {
 
     await page.goto('/');
 
-    await expect(page.getByRole('region', { name: 'RainScope 中国天气地图' })).toBeVisible();
-    await expect(page.getByRole('region', { name: '中国天气地图' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'RainScope 中国天气地图', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: '中国天气地图', exact: true })).toBeVisible();
     await expect(page.getByText('北京', { exact: true }).first()).toBeVisible();
     await expect(page.locator('.weather-dashboard__left')).toHaveCount(0);
     await expect(page.locator('.weather-dashboard__right')).toHaveCount(0);
@@ -78,7 +78,7 @@ test.describe('RainScope China map-focus smoke tests', () => {
       await page.setViewportSize(viewport);
       await page.goto('/');
 
-      const mapRegion = page.getByRole('region', { name: 'RainScope 中国天气地图' });
+      const mapRegion = page.getByRole('region', { name: 'RainScope 中国天气地图', exact: true });
       const mapShell = page.locator('.weather-dashboard__map-shell');
       await expect(mapRegion).toBeVisible();
 

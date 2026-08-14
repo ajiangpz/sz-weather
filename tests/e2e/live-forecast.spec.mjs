@@ -44,11 +44,13 @@ test('keeps the Beijing reference forecast visually inside the China dashboard s
 
   await page.goto('/?weather=live');
   await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText('北京 · 中雨', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: `当前时刻 ${fixture.times[fixture.currentIndex].slice(11, 16)}` })).toBeVisible();
-  await expect(page.getByText('DEMO · mm/24h', { exact: true })).toBeVisible();
-  await expect(page.getByText(/DEMO · \d+ 条生效/)).toBeVisible();
+  await expect(page.locator('.weather-map-panel__time')).toContainText(fixture.times[fixture.currentIndex].slice(0, 10));
+  await expect(page.locator('.weather-map-panel__time')).toContainText(fixture.times[fixture.currentIndex].slice(11, 16));
+  await expect(page.getByText('北京', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('DEMO dBZ', { exact: true })).toBeVisible();
+  await expect(page.locator('.weather-dashboard__left')).toHaveCount(0);
+  await expect(page.locator('.weather-dashboard__right')).toHaveCount(0);
+  await expect(page.locator('.weather-dashboard__timeline')).toHaveCount(0);
 
   const overflow = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,

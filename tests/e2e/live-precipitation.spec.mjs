@@ -39,7 +39,9 @@ test('renders future model precipitation as a continuous China live field when o
   await expect(page.getByText('预报 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
 
   const futureIndex = 16;
-  await page.getByRole('button', { name: `预报时刻 ${times[futureIndex].slice(11, 16)}` }).click();
+  const nextFrameButton = page.getByRole('button', { name: '下一帧' });
+  for (let index = 12; index < futureIndex; index += 1) await nextFrameButton.click();
+  await expect(page.locator('.weather-map-panel__time')).toContainText(times[futureIndex].slice(11, 16));
 
   const precipitationLegend = page.getByRole('region', { name: '地图数据图例' });
   await expect(precipitationLegend.getByText('模式降水 LIVE', { exact: true })).toBeVisible({ timeout: 10_000 });
@@ -80,7 +82,8 @@ test('renders future model precipitation as a continuous China live field when o
   const firstTitle = await popupTitle.textContent();
 
   const nextIndex = 17;
-  await page.getByRole('button', { name: `预报时刻 ${times[nextIndex].slice(11, 16)}` }).click();
+  await nextFrameButton.click();
+  await expect(page.locator('.weather-map-panel__time')).toContainText(times[nextIndex].slice(11, 16));
   await expect.poll(async () => popupTitle.textContent()).not.toBe(firstTitle);
 
   await page.screenshot({ path: testInfo.outputPath('visual-qa-china-model-precipitation-1536x1024.png'), fullPage: true });
