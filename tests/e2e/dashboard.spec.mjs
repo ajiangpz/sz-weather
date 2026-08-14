@@ -147,6 +147,7 @@ test.describe('RainScope China map-focus smoke tests', () => {
     await expect(noneField).toBeEnabled();
     await expect(windToggle).toBeChecked();
     await expect(alertToggle).toBeChecked();
+    await expect(layerPanel.getByText('演示区域', { exact: true })).toBeVisible();
     await expect(cityToggle).toBeChecked();
 
     await layerPanel.locator('.layer-panel__primary-option').filter({ hasText: '无底色' }).click();

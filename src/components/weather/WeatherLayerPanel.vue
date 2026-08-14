@@ -76,8 +76,8 @@
           v-for="layer in overlayLayers"
           :key="layer.name"
           :class="{
-            'is-active': layerStore[layer.enabledKey],
-            'is-unavailable': layer.requiresForecastGrid && !hasLiveForecastGrid,
+            'is-active': layerStore[layer.enabledKey] && !layerUnavailable(layer),
+            'is-unavailable': layerUnavailable(layer),
           }"
         >
           <label class="layer-panel__toggle">
@@ -85,7 +85,7 @@
               v-model="layerStore[layer.enabledKey]"
               type="checkbox"
               :aria-label="layer.name"
-              :disabled="layer.requiresForecastGrid && !hasLiveForecastGrid"
+              :disabled="layerUnavailable(layer)"
             />
             <i class="layer-panel__swatch" :class="`layer-panel__swatch--${layer.tone}`" aria-hidden="true"></i>
             <span>{{ layer.name }}</span>
@@ -93,12 +93,15 @@
             <small v-else-if="layer.requiresForecastGrid" class="layer-panel__source" aria-hidden="true">
               {{ hasLiveForecastGrid ? '预报场' : '不可用' }}
             </small>
+            <small v-else-if="layer.requiresDemoMode" class="layer-panel__source" aria-hidden="true">
+              {{ demoAlertAvailable ? '演示区域' : '实时模式不可用' }}
+            </small>
           </label>
           <div
             v-if="layer.opacityKey"
             class="layer-panel__opacity"
             :class="{
-              'is-disabled': !layerStore[layer.enabledKey] || (layer.requiresForecastGrid && !hasLiveForecastGrid),
+              'is-disabled': !layerStore[layer.enabledKey] || layerUnavailable(layer),
             }"
           >
             <span>透明度</span>
@@ -108,7 +111,7 @@
               min="0"
               max="100"
               :aria-label="`${layer.name}透明度`"
-              :disabled="!layerStore[layer.enabledKey] || (layer.requiresForecastGrid && !hasLiveForecastGrid)"
+              :disabled="!layerStore[layer.enabledKey] || layerUnavailable(layer)"
             />
             <strong>{{ layerStore[layer.opacityKey] }}%</strong>
           </div>
@@ -139,13 +142,18 @@ const primaryFields = [
 ] as const;
 
 const overlayLayers = [
-  { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind', requiresForecastGrid: false },
-  { name: '气压等值线', enabledKey: 'pressureEnabled', opacityKey: 'pressureOpacity', tone: 'pressure', requiresForecastGrid: true },
-  { name: '预警区域', enabledKey: 'alertEnabled', opacityKey: 'alertOpacity', tone: 'alert', requiresForecastGrid: false },
-  { name: '重点城市', enabledKey: 'stationEnabled', opacityKey: null, tone: 'station', requiresForecastGrid: false },
+  { name: '风场流线', enabledKey: 'windEnabled', opacityKey: 'windOpacity', tone: 'wind', requiresForecastGrid: false, requiresDemoMode: false },
+  { name: '气压等值线', enabledKey: 'pressureEnabled', opacityKey: 'pressureOpacity', tone: 'pressure', requiresForecastGrid: true, requiresDemoMode: false },
+  { name: '预警区域', enabledKey: 'alertEnabled', opacityKey: 'alertOpacity', tone: 'alert', requiresForecastGrid: false, requiresDemoMode: true },
+  { name: '重点城市', enabledKey: 'stationEnabled', opacityKey: null, tone: 'station', requiresForecastGrid: false, requiresDemoMode: false },
 ] as const;
 
 const hasLiveForecastGrid = computed(() => weatherStore.windDataStatus === 'live');
+const demoAlertAvailable = computed(() => weatherStore.dataStatus === 'mock' || weatherStore.dataStatus === 'fallback');
+const layerUnavailable = (layer: (typeof overlayLayers)[number]) => (
+  (layer.requiresForecastGrid && !hasLiveForecastGrid.value)
+  || (layer.requiresDemoMode && !demoAlertAvailable.value)
+);
 
 const handleForecastModelChange = (event: Event) => {
   const select = event.currentTarget as HTMLSelectElement;
@@ -184,11 +192,15 @@ watch(hasLiveForecastGrid, (available) => {
   layerStore.pressureEnabled = false;
 });
 
+watch(demoAlertAvailable, (available) => {
+  if (!available) layerStore.alertEnabled = false;
+});
+
 const activeLayerCount = computed(() => [
   primaryField.value !== 'none',
   layerStore.windEnabled,
   layerStore.pressureEnabled && hasLiveForecastGrid.value,
-  layerStore.alertEnabled,
+  layerStore.alertEnabled && demoAlertAvailable.value,
   layerStore.stationEnabled,
 ].filter(Boolean).length);
 </script>

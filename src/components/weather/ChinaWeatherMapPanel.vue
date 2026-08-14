@@ -111,6 +111,10 @@ let windParticlePhase = 0;
 let windLastFrameTime = 0;
 let windLastRenderTime = 0;
 
+const demoAlertsVisible = computed(() => (
+  layerStore.alertEnabled && (store.dataStatus === 'mock' || store.dataStatus === 'fallback')
+));
+
 const createCurrentWindStreams = () => {
   const liveFrame = store.currentWindGridFrame;
   return liveFrame
@@ -399,7 +403,7 @@ onMounted(() => {
             type: 'fill',
             source: 'alertArea',
             filter: ['==', ['get', 'id'], mapStore.activeAlertId],
-            layout: { visibility: layerStore.alertEnabled ? 'visible' : 'none' },
+            layout: { visibility: demoAlertsVisible.value ? 'visible' : 'none' },
             paint: {
               'fill-color': mapStore.activeAlertId === 'east-china-convective-blue' ? '#3b82f6' : '#facc15',
               'fill-opacity': layerStore.alertOpacity / 100 * 0.12,
@@ -410,7 +414,7 @@ onMounted(() => {
             type: 'line',
             source: 'alertArea',
             filter: ['==', ['get', 'id'], mapStore.activeAlertId],
-            layout: { visibility: layerStore.alertEnabled ? 'visible' : 'none' },
+            layout: { visibility: demoAlertsVisible.value ? 'visible' : 'none' },
             paint: {
               'line-color': mapStore.activeAlertId === 'east-china-convective-blue' ? '#60a5fa' : '#facc15',
               'line-width': 2,
@@ -530,7 +534,7 @@ watch(() => store.windForecastFrames, () => {
 watch(() => store.currentRainViewerTileTemplate, () => syncRainViewerLayer());
 watch(() => [layerStore.stationEnabled, mapStore.activeStationId], updateStationMarkers);
 
-watch(() => layerStore.alertEnabled, (enabled) => {
+watch(demoAlertsVisible, (enabled) => {
   if (!map?.getLayer('alert-area-fill')) return;
   const visibility = enabled ? 'visible' : 'none';
   map.setLayoutProperty('alert-area-fill', 'visibility', visibility);

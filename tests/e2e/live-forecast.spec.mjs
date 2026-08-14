@@ -48,6 +48,11 @@ test('keeps the Beijing reference forecast visually inside the China dashboard s
   await expect(page.locator('.weather-map-panel__time')).toContainText(fixture.times[fixture.currentIndex].slice(11, 16));
   await expect(page.getByText('北京', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('DEMO dBZ', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '图层' }).click();
+  const layerPanel = page.locator('#weather-layer-popover-panel');
+  await expect(layerPanel.getByRole('checkbox', { name: '预警区域' })).toBeDisabled();
+  await expect(layerPanel.getByText('实时模式不可用', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
   await expect(page.locator('.weather-dashboard__left')).toHaveCount(0);
   await expect(page.locator('.weather-dashboard__right')).toHaveCount(0);
   await expect(page.locator('.weather-dashboard__timeline')).toHaveCount(0);
