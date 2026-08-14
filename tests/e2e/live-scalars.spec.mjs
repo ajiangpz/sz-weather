@@ -77,6 +77,15 @@ test('renders precipitation, temperature and humidity as mutually exclusive Chin
   expect(temperatureFrame.equals(humidityFrame)).toBe(false);
 
   await layerButton.click();
+  await windToggle.check();
+  await page.keyboard.press('Escape');
+  await expect(legend.getByText('风速', { exact: true })).toBeVisible();
+  const combinedScaleBox = await legend.locator('.weather-legend__scale').boundingBox();
+  const combinedLegendBox = await legend.boundingBox();
+  expect(combinedScaleBox?.width ?? 0).toBeGreaterThanOrEqual(220);
+  expect((combinedLegendBox?.x ?? 0) + (combinedLegendBox?.width ?? 0)).toBeLessThanOrEqual(1536);
+
+  await layerButton.click();
   await selectPrimaryField(layerPanel, '无底色');
   await page.keyboard.press('Escape');
   await expect(legend.getByText('温度预报场', { exact: true })).toHaveCount(0);

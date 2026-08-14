@@ -81,6 +81,11 @@ const humidityLabels = ['0', '20', '40', '60', '80', '100'];
 </script>
 
 <style scoped>
+.weather-legend--map {
+  flex-wrap: wrap;
+  row-gap: 5px;
+}
+
 .weather-legend__wind {
   display: inline-grid;
   flex: 0 1 132px;
@@ -161,10 +166,12 @@ const humidityLabels = ['0', '20', '40', '60', '80', '100'];
 }
 
 .weather-legend__scale--model {
+  flex: 1 0 230px;
   min-width: 230px;
 }
 
 .weather-legend__scale--live {
+  flex: 1 0 250px;
   min-width: 250px;
 }
 
