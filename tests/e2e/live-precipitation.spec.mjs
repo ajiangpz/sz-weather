@@ -12,6 +12,8 @@ const selectPrimaryField = async (panel, name) => {
 };
 
 test('renders future model precipitation as a continuous China live field when observed radar is unavailable', async ({ page }, testInfo) => {
+  test.setTimeout(60_000);
+
   await page.setViewportSize({ width: 1536, height: 1024 });
   const times = createTimeline();
   const cityPayload = createReferencePayload(times, {

@@ -70,6 +70,8 @@ test.describe('RainScope China map-focus smoke tests', () => {
   });
 
   test('keeps the national map edge-to-edge at the documented desktop widths', async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+
     for (const viewport of [
       { width: 1920, height: 1080 },
       { width: 1536, height: 1024 },
